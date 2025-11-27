@@ -65,8 +65,8 @@ export default function Home() {
           <a href="#about" className="hover:text-white transition-colors">Sobre</a>
         </div>
         <div className="flex gap-4">
-          <Button variant="ghost" className="hidden md:flex hover:bg-primary/5">Login</Button>
-          <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 rounded-full px-6">
+          <Button className="hidden md:flex text-white hover:bg-white/10 rounded-full px-6">Login</Button>
+          <Button className="bg-white hover:bg-white/90 text-primary shadow-lg shadow-white/20 rounded-full px-6 font-bold">
             Criar Conta
           </Button>
         </div>
