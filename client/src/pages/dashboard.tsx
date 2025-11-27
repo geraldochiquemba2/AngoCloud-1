@@ -129,29 +129,82 @@ export default function Dashboard() {
     }
   };
 
-  // Load thumbnails for image/video files
-  const loadThumbnail = useCallback(async (fileId: string) => {
+  const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      
+      const timeoutId = setTimeout(() => {
+        video.src = "";
+        reject(new Error("Video load timeout"));
+      }, 15000);
+      
+      video.onloadeddata = () => {
+        video.currentTime = Math.min(2, video.duration * 0.1);
+      };
+      
+      video.onseeked = () => {
+        clearTimeout(timeoutId);
+        try {
+          const canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth || 320;
+          canvas.height = video.videoHeight || 180;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const thumbnailUrl = canvas.toDataURL("image/jpeg", 0.8);
+            video.src = "";
+            resolve(thumbnailUrl);
+          } else {
+            reject(new Error("Could not get canvas context"));
+          }
+        } catch (err) {
+          reject(err);
+        }
+      };
+      
+      video.onerror = (e) => {
+        clearTimeout(timeoutId);
+        reject(new Error("Video load error: " + (e as any)?.message));
+      };
+      
+      video.src = videoUrl;
+    });
+  }, []);
+
+  const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
     if (fileThumbnails[fileId]) return;
     
     try {
-      const response = await fetch(`/api/files/${fileId}/preview`, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setFileThumbnails(prev => ({ ...prev, [fileId]: data.url }));
+      if (mimeType.startsWith("video/")) {
+        try {
+          const thumbnailDataUrl = await generateVideoThumbnail(`/api/files/${fileId}/stream`);
+          setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+        } catch (err) {
+          console.error("Error generating video thumbnail:", err);
+          setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+        }
+      } else {
+        const response = await fetch(`/api/files/${fileId}/preview`, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          setFileThumbnails(prev => ({ ...prev, [fileId]: data.url }));
+        }
       }
     } catch (err) {
       console.error("Error loading thumbnail:", err);
     }
-  }, [fileThumbnails]);
+  }, [fileThumbnails, generateVideoThumbnail]);
 
-  // Load thumbnails when files change
   useEffect(() => {
     const mediaFiles = files.filter(f => 
       f.tipoMime.startsWith("image/") || f.tipoMime.startsWith("video/")
     );
     mediaFiles.forEach(file => {
       if (!fileThumbnails[file.id]) {
-        loadThumbnail(file.id);
+        loadThumbnail(file.id, file.tipoMime);
       }
     });
   }, [files, loadThumbnail]);
@@ -853,7 +906,7 @@ export default function Dashboard() {
                                 className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
                                 onClick={() => openPreview(file)}
                               >
-                                {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/")) && fileThumbnails[file.id] ? (
+                                {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/")) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" ? (
                                   <img 
                                     src={fileThumbnails[file.id]} 
                                     alt={file.nome}

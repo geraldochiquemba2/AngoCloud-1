@@ -553,6 +553,44 @@ export async function registerRoutes(
     }
   });
 
+  // Proxy video stream for CORS-safe thumbnail generation
+  app.get("/api/files/:id/stream", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível" });
+      }
+
+      if (!file.tipoMime.startsWith("video/")) {
+        return res.status(400).json({ message: "Este endpoint é apenas para vídeos" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        return res.status(500).json({ message: "Erro ao buscar vídeo" });
+      }
+
+      res.setHeader("Content-Type", file.tipoMime);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error) {
+      console.error("Stream error:", error);
+      res.status(500).json({ message: "Erro ao fazer stream" });
+    }
+  });
+
   // Download file
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
