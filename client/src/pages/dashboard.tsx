@@ -695,12 +695,15 @@ export default function Dashboard() {
               className="backdrop-blur-md bg-white/10 p-6 rounded-2xl border border-white/30"
             >
               <h2 className="text-lg font-bold text-white mb-4">Armazenamento</h2>
-              <div className="mb-3">
-                <div className="flex justify-between mb-2">
-                  <span className="text-white/80 text-sm">{storageUsedGB.toFixed(2)} GB de {storageTotalGB.toFixed(0)} GB</span>
-                  <span className="text-white/60 text-xs">{storagePercent.toFixed(0)}%</span>
+              <div className="mb-4 p-4 bg-gradient-to-br from-primary/20 to-accent/10 rounded-xl border border-primary/30">
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-2xl font-bold text-white">{storageUsedGB.toFixed(2)}</span>
+                  <span className="text-white/70">GB já consumidos</span>
                 </div>
-                <div className="w-full bg-white/10 rounded-full h-2 border border-white/20">
+                <p className="text-white/60 text-sm">{storageUsedGB.toFixed(2)} GB de {storageTotalGB.toFixed(0)} GB ({storagePercent.toFixed(0)}%)</p>
+              </div>
+              <div className="mb-4">
+                <div className="w-full bg-white/10 rounded-full h-3 border border-white/20 overflow-hidden">
                   <motion.div
                     className="bg-gradient-to-r from-primary to-accent h-full rounded-full"
                     initial={{ width: 0 }}
@@ -709,8 +712,11 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
-              <p className="text-white/60 text-xs">{(storageTotalGB - storageUsedGB).toFixed(2)} GB disponível</p>
-              <div className="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+              <div className="flex justify-between text-sm text-white/70 mb-4">
+                <span>Usado: {storageUsedGB.toFixed(2)} GB</span>
+                <span>Disponível: {(storageTotalGB - storageUsedGB).toFixed(2)} GB</span>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
                 <p className="text-xs text-white/70">Plano: <span className="font-bold text-white capitalize">{user.plano}</span></p>
               </div>
             </motion.div>
