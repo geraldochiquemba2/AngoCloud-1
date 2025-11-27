@@ -65,8 +65,8 @@ export default function Home() {
           <a href="#about" className="hover:text-white transition-colors">Sobre</a>
         </div>
         <div className="flex gap-4">
-          <Button className="hidden md:flex text-white rounded-full px-6 border border-white/30 hover:bg-white/10 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
-          <Button className="text-white rounded-full px-6 font-bold border border-white/30 hover:bg-white/10 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10">
+          <Button className="hidden md:flex text-white rounded-full px-6 border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
+          <Button className="text-white rounded-full px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10">
             Criar Conta
           </Button>
         </div>
@@ -104,7 +104,7 @@ export default function Home() {
               <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-12 px-8 rounded-full shadow-xl text-base font-bold">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 hover:bg-white/10 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all">
                 Ver Planos
               </Button>
             </div>
