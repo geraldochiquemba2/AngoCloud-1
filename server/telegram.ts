@@ -1,8 +1,12 @@
 /**
- * Telegram Bot Service para AngoCloud
+ * Telegram Bot Service para AngoCloud com Retry/Fallback Robusto
  * 
  * Este serviço gerencia o upload e download de arquivos usando a Telegram Bot API
- * como backend de armazenamento. Suporta múltiplos bots para distribuir a carga.
+ * como backend de armazenamento. Suporta múltiplos bots com:
+ * - Retry com exponential backoff
+ * - Fallback automático entre bots
+ * - Health checks
+ * - Logging detalhado
  */
 
 interface TelegramBot {
@@ -10,6 +14,9 @@ interface TelegramBot {
   token: string;
   name: string;
   active: boolean;
+  failureCount: number;
+  lastFailureTime: number;
+  consecutiveFailures: number;
 }
 
 interface UploadResult {
@@ -17,9 +24,22 @@ interface UploadResult {
   botId: string;
 }
 
+interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+}
+
 class TelegramService {
   private bots: TelegramBot[] = [];
   private currentBotIndex: number = 0;
+  private retryConfig: RetryConfig = {
+    maxRetries: 3,
+    initialDelayMs: 500,
+    maxDelayMs: 10000,
+    backoffMultiplier: 2,
+  };
 
   constructor() {
     this.loadBotsFromEnv();
@@ -27,10 +47,8 @@ class TelegramService {
 
   /**
    * Carrega bots configurados nas variáveis de ambiente
-   * Formato esperado: TELEGRAM_BOT_1_TOKEN, TELEGRAM_BOT_2_TOKEN, etc.
    */
   private loadBotsFromEnv() {
-    // Procura por tokens de bots nas variáveis de ambiente
     const envBots: TelegramBot[] = [];
     
     for (let i = 1; i <= 10; i++) {
@@ -41,6 +59,9 @@ class TelegramService {
           token,
           name: `AngoCloud Bot ${i}`,
           active: true,
+          failureCount: 0,
+          lastFailureTime: 0,
+          consecutiveFailures: 0,
         });
       }
     }
@@ -51,113 +72,247 @@ class TelegramService {
       console.warn("⚠️  Nenhum bot Telegram configurado. Upload de arquivos não funcionará.");
       console.warn("   Configure TELEGRAM_BOT_1_TOKEN, TELEGRAM_BOT_2_TOKEN, etc.");
     } else {
-      console.log(`✅ ${this.bots.length} bot(s) Telegram carregados`);
+      console.log(`✅ ${this.bots.length} bot(s) Telegram carregados com retry/fallback`);
     }
   }
 
   /**
-   * Seleciona o próximo bot disponível (round-robin)
+   * Aguarda com base em exponential backoff
    */
-  private getNextBot(): TelegramBot | null {
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Calcula delay com exponential backoff
+   */
+  private calculateBackoffDelay(attempt: number): number {
+    const delay = Math.min(
+      this.retryConfig.initialDelayMs * Math.pow(this.retryConfig.backoffMultiplier, attempt),
+      this.retryConfig.maxDelayMs
+    );
+    // Adiciona jitter para evitar thundering herd
+    return delay + Math.random() * (delay * 0.1);
+  }
+
+  /**
+   * Seleciona o próximo bot disponível com health check
+   */
+  private getNextAvailableBot(): TelegramBot | null {
     if (this.bots.length === 0) {
       return null;
     }
 
-    const activeBots = this.bots.filter(b => b.active);
+    // Filtra bots com base na saúde
+    const activeBots = this.bots.filter(bot => {
+      if (!bot.active) return false;
+      
+      // Se o bot falhou recentemente, verifica se pode tentar de novo
+      if (bot.consecutiveFailures > 0) {
+        const timeSinceLastFailure = Date.now() - bot.lastFailureTime;
+        const recoveryTime = 60000 * bot.consecutiveFailures; // 1 min * falhas consecutivas
+        
+        if (timeSinceLastFailure < recoveryTime) {
+          return false; // Bot em período de recovery
+        }
+        
+        // Reseta contador se passou tempo suficiente
+        console.log(`🔄 Bot ${bot.name} tentando se recuperar...`);
+        bot.consecutiveFailures = 0;
+      }
+      
+      return true;
+    });
+
     if (activeBots.length === 0) {
-      return null;
+      console.warn("⚠️  Nenhum bot disponível! Tentando usar bot com falhas...");
+      // Último recurso: tenta usar qualquer bot
+      const anyBot = this.bots[this.currentBotIndex % this.bots.length];
+      this.currentBotIndex++;
+      return anyBot;
     }
 
+    // Seleciona bot com round-robin entre os disponíveis
     const bot = activeBots[this.currentBotIndex % activeBots.length];
     this.currentBotIndex++;
     return bot;
   }
 
   /**
-   * Verifica se o serviço está disponível
+   * Registra falha de um bot
    */
-  public isAvailable(): boolean {
-    return this.bots.length > 0 && this.bots.some(b => b.active);
+  private recordBotFailure(bot: TelegramBot, error: any): void {
+    bot.failureCount++;
+    bot.consecutiveFailures++;
+    bot.lastFailureTime = Date.now();
+    
+    console.error(`❌ Bot ${bot.name} falhou (tentativa ${bot.consecutiveFailures}):`, 
+      error?.message || error);
+    
+    // Marca bot como inativo após 5 falhas consecutivas
+    if (bot.consecutiveFailures >= 5) {
+      bot.active = false;
+      console.error(`🔴 Bot ${bot.name} marcado como inativo após ${bot.consecutiveFailures} falhas`);
+    }
   }
 
   /**
-   * Faz upload de um arquivo para o Telegram
-   * @param fileBuffer - Buffer do arquivo
-   * @param fileName - Nome do arquivo
-   * @returns Resultado do upload com file_id do Telegram
+   * Registra sucesso de um bot
+   */
+  private recordBotSuccess(bot: TelegramBot): void {
+    if (bot.consecutiveFailures > 0) {
+      console.log(`✅ Bot ${bot.name} recuperado! Falhas consecutivas resetadas.`);
+    }
+    bot.consecutiveFailures = 0;
+  }
+
+  /**
+   * Verifica se o serviço está disponível
+   */
+  public isAvailable(): boolean {
+    return this.bots.length > 0 && this.bots.some(b => b.active || b.consecutiveFailures < 5);
+  }
+
+  /**
+   * Obtém status dos bots para monitoramento
+   */
+  public getBotStatus(): Array<{id: string; name: string; active: boolean; failures: number}> {
+    return this.bots.map(b => ({
+      id: b.id,
+      name: b.name,
+      active: b.active,
+      failures: b.failureCount,
+    }));
+  }
+
+  /**
+   * Faz upload com retry automático
    */
   public async uploadFile(fileBuffer: Buffer, fileName: string): Promise<UploadResult> {
-    const bot = this.getNextBot();
-    
-    if (!bot) {
-      throw new Error("Nenhum bot Telegram disponível para upload");
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      const bot = this.getNextAvailableBot();
+      
+      if (!bot) {
+        throw new Error("Nenhum bot Telegram disponível para upload");
+      }
+
+      try {
+        console.log(`📤 Upload tentativa ${attempt + 1}/${this.retryConfig.maxRetries + 1} com ${bot.name}`);
+        
+        const result = await this.uploadFileToBot(bot, fileBuffer, fileName);
+        this.recordBotSuccess(bot);
+        
+        console.log(`✅ Upload bem-sucedido com ${bot.name}`);
+        return result;
+      } catch (error) {
+        lastError = error as Error;
+        this.recordBotFailure(bot, error);
+
+        if (attempt < this.retryConfig.maxRetries) {
+          const delay = this.calculateBackoffDelay(attempt);
+          console.log(`⏳ Aguardando ${Math.round(delay)}ms antes de nova tentativa...`);
+          await this.sleep(delay);
+        }
+      }
     }
 
+    throw new Error(`Falha ao fazer upload após ${this.retryConfig.maxRetries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Upload para um bot específico
+   */
+  private async uploadFileToBot(bot: TelegramBot, fileBuffer: Buffer, fileName: string): Promise<UploadResult> {
+    const chatId = process.env.TELEGRAM_STORAGE_CHAT_ID || bot.id;
+
+    const formData = new FormData();
+    const blob = new Blob([fileBuffer], { type: "application/octet-stream" });
+    formData.append("document", blob, fileName);
+    formData.append("chat_id", chatId);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
     try {
-      // Determina o chat_id (pode ser um grupo/canal privado para armazenamento)
-      const chatId = process.env.TELEGRAM_STORAGE_CHAT_ID || bot.id;
-
-      // Envia o arquivo usando a Telegram Bot API
-      const formData = new FormData();
-      const blob = new Blob([fileBuffer], { type: "application/octet-stream" });
-      formData.append("document", blob, fileName);
-      formData.append("chat_id", chatId);
-
       const response = await fetch(
         `https://api.telegram.org/bot${bot.token}/sendDocument`,
         {
           method: "POST",
           body: formData,
+          signal: controller.signal,
         }
       );
 
       const data = await response.json();
 
       if (!data.ok) {
-        throw new Error(`Telegram API error: ${data.description || "Unknown error"}`);
+        // Identifica tipo de erro
+        const errorCode = data.error_code;
+        if (errorCode === 429) {
+          throw new Error(`Rate limit do Telegram (retry-after: ${data.parameters?.retry_after || '?'}s)`);
+        } else if (errorCode === 403) {
+          throw new Error("Bot banido/removido do Telegram");
+        } else if (errorCode === 400) {
+          throw new Error(`Erro do cliente: ${data.description}`);
+        }
+        throw new Error(`Telegram API error: ${data.description || `Code ${errorCode}`}`);
       }
 
       const fileId = data.result.document.file_id;
-
-      return {
-        fileId,
-        botId: bot.id,
-      };
-    } catch (error) {
-      console.error(`Erro ao fazer upload via ${bot.name}:`, error);
-      
-      // Marca o bot como inativo temporariamente
-      bot.active = false;
-      setTimeout(() => {
-        bot.active = true;
-      }, 60000); // Reativa após 1 minuto
-
-      // Tenta com outro bot
-      if (this.bots.filter(b => b.active).length > 0) {
-        return this.uploadFile(fileBuffer, fileName);
-      }
-
-      throw new Error("Falha ao fazer upload: todos os bots estão indisponíveis");
+      return { fileId, botId: bot.id };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   /**
-   * Obtém a URL de download de um arquivo do Telegram
-   * @param fileId - ID do arquivo no Telegram
-   * @param botId - ID do bot que fez o upload
-   * @returns URL de download
+   * Download com retry
    */
-  public async getDownloadUrl(fileId: string, botId: string): Promise<string> {
+  public async downloadFile(fileId: string, botId: string): Promise<Buffer> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        console.log(`📥 Download tentativa ${attempt + 1}/${this.retryConfig.maxRetries + 1}`);
+        
+        const url = await this.getDownloadUrl(fileId, botId);
+        const buffer = await this.fetchFileBuffer(url);
+        
+        console.log(`✅ Download bem-sucedido`);
+        return buffer;
+      } catch (error) {
+        lastError = error as Error;
+
+        if (attempt < this.retryConfig.maxRetries) {
+          const delay = this.calculateBackoffDelay(attempt);
+          console.log(`⏳ Aguardando ${Math.round(delay)}ms antes de nova tentativa...`);
+          await this.sleep(delay);
+        }
+      }
+    }
+
+    throw new Error(`Falha ao fazer download após ${this.retryConfig.maxRetries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Obtém URL de download
+   */
+  private async getDownloadUrl(fileId: string, botId: string): Promise<string> {
     const bot = this.bots.find(b => b.id === botId);
     
     if (!bot) {
       throw new Error(`Bot ${botId} não encontrado`);
     }
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
-      // Primeiro, obtém o caminho do arquivo
       const response = await fetch(
-        `https://api.telegram.org/bot${bot.token}/getFile?file_id=${fileId}`
+        `https://api.telegram.org/bot${bot.token}/getFile?file_id=${fileId}`,
+        { signal: controller.signal }
       );
 
       const data = await response.json();
@@ -167,26 +322,21 @@ class TelegramService {
       }
 
       const filePath = data.result.file_path;
-      
-      // Retorna a URL de download
       return `https://api.telegram.org/file/bot${bot.token}/${filePath}`;
-    } catch (error) {
-      console.error(`Erro ao obter URL de download:`, error);
-      throw new Error("Falha ao obter link de download");
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   /**
-   * Faz download de um arquivo do Telegram
-   * @param fileId - ID do arquivo no Telegram
-   * @param botId - ID do bot que fez o upload
-   * @returns Buffer do arquivo
+   * Faz fetch do arquivo com timeout
    */
-  public async downloadFile(fileId: string, botId: string): Promise<Buffer> {
+  private async fetchFileBuffer(url: string): Promise<Buffer> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
     try {
-      const url = await this.getDownloadUrl(fileId, botId);
-      
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: controller.signal });
       
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);
@@ -194,21 +344,16 @@ class TelegramService {
 
       const arrayBuffer = await response.arrayBuffer();
       return Buffer.from(arrayBuffer);
-    } catch (error) {
-      console.error(`Erro ao fazer download:`, error);
-      throw new Error("Falha ao fazer download do arquivo");
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
   /**
-   * Deleta um arquivo do Telegram (se possível)
-   * Nota: A API do Telegram não permite deletar arquivos, então esta função
-   * apenas registra a ação para futura implementação
+   * Deleta arquivo (nota: Telegram não suporta)
    */
   public async deleteFile(fileId: string, botId: string): Promise<void> {
-    // A API do Telegram não suporta deletar arquivos enviados
-    // Esta função existe para compatibilidade futura
-    console.log(`Arquivo ${fileId} marcado para deleção (Telegram não suporta deleção real)`);
+    console.log(`📋 Arquivo ${fileId} marcado para deleção (Telegram não suporta deleção real)`);
   }
 }
 

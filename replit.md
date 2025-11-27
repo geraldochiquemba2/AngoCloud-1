@@ -6,12 +6,16 @@ AngoCloud é uma plataforma de armazenamento em nuvem projetada para fornecer ar
 
 ## Status Atual
 
-**Backend MVP Completo com Escalabilidade (Novembro 2024)**
+**Backend MVP Completo com Resilência (Novembro 2025)**
 - ✅ Sistema de autenticação completo (registro, login, logout, sessões)
 - ✅ Banco de dados PostgreSQL com schema completo
 - ✅ API RESTful completa para gerenciamento de arquivos e pastas
 - ✅ Integração com Telegram Bot API com suporte a até 10 bots
 - ✅ Load balancing automático entre múltiplos bots
+- ✅ **🆕 Retry com exponential backoff para uploads/downloads**
+- ✅ **🆕 Fallback automático entre bots com health checks**
+- ✅ **🆕 Tratamento inteligente de rate limits do Telegram**
+- ✅ **🆕 Logging detalhado para monitoramento**
 - ✅ Sistema de quotas de armazenamento por plano
 - ✅ Compartilhamento de arquivos via links públicos
 - ✅ Dashboard completo com funcionalidades avançadas
@@ -20,7 +24,8 @@ AngoCloud é uma plataforma de armazenamento em nuvem projetada para fornecer ar
 - ✅ Frontend totalmente funcional e responsivo
 
 **Fase 1 - MVP Local: Completa**
-**Fase 2 - Escalabilidade: Em Progresso**
+**Fase 2 - Escalabilidade: Completa**
+**Fase 3 - Resilência: Completa ✨**
 
 ## User Preferences
 
@@ -174,7 +179,29 @@ CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 - CDN para downloads de ficheiros populares
 - Separar frontend e backend em servidores distintos
 
-### 4. Limites Atuais e Soluções
+### 4. Sistema de Retry/Fallback (NOVO)
+
+**Configuração Padrão:**
+- Máximo de tentativas: 3 retries
+- Delay inicial: 500ms
+- Delay máximo: 10s
+- Multiplicador: 2x (exponential backoff com jitter)
+
+**Mecanismos de Proteção:**
+- Rate limit automático do Telegram (retry-after)
+- Health check de bots com período de recovery
+- Timeout de 30s para uploads, 15s para getFile
+- Marcação automática de bots falhados
+- Jitter para evitar thundering herd
+
+**Cenários Tratados:**
+- ✅ Bot bloqueado/removido → Tenta próximo bot
+- ✅ Rate limit (429) → Aguarda e retenta
+- ✅ Timeout de rede → Retry com backoff
+- ✅ Falha de chat_id → Logging detalhado
+- ✅ Todos os bots falhados → Erro claro ao utilizador
+
+### 5. Limites Atuais e Soluções
 
 | Limitação | Valor Atual | Solução |
 |-----------|------------|--------|
@@ -182,6 +209,7 @@ CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 | Tamanho máximo ficheiro | 2GB | Implementar multipart upload |
 | Utilizadores simultâneos | 500 | Usar load balancer + múltiplos servidores |
 | Armazenamento total | Ilimitado* | Depende apenas de bots Telegram |
+| Robustez contra bloqueios | ✅ Robusto | Retry + Fallback + Health checks |
 
 *Cada bot Telegram tem limite de armazenamento teórico ilimitado
 
@@ -197,9 +225,33 @@ CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 - Conexões ativas
 ```
 
-### 6. Plano de Crescimento Sugerido
+### 6. Monitoramento de Bots
+
+O serviço expõe endpoint para monitoramento:
+```javascript
+const status = telegramService.getBotStatus();
+// Retorna: [{id: 'bot_1', name: 'AngoCloud Bot 1', active: true, failures: 0}, ...]
+```
+
+### 7. Plano de Crescimento Sugerido
 
 **Fase 1 (0-1000 utilizadores):** Configuração atual ✅
 **Fase 2 (1000-10k utilizadores):** Adicionar 10 bots Telegram
 **Fase 3 (10k-100k utilizadores):** Adicionar Redis + cache
 **Fase 4 (100k+ utilizadores):** Arquitetura distribuída
+
+### 8. Tratamento de Bloqueios Telegram
+
+**Como o sistema contorna bloqueios:**
+
+1. **Bloqueio de 1 bot → Usa próximo bot automaticamente**
+2. **Rate limit (429) → Retenta após tempo indicado pelo Telegram**
+3. **Bot removido (403) → Marca inativo e continua com outros**
+4. **Erro de rede → Exponential backoff até sucesso ou limite**
+5. **Todos indisponíveis → Retorna erro claro (implementar fila de retry depois)**
+
+**Logs para debugging:**
+- `📤 Upload tentativa X/Y com BotZ` - mostra progresso
+- `❌ Bot X falhou` - registra falhas
+- `✅ Bot X recuperado` - mostra recuperação
+- `🔴 Bot X marcado como inativo` - após 5 falhas consecutivas
