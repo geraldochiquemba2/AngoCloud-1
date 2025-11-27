@@ -172,9 +172,11 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex items-center">
-        {/* Fixed Video Background */}
-        <div className="fixed top-0 left-0 w-screen h-screen z-0">
+      <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex items-center" style={{
+        backgroundImage: 'url(/pricing-video.mp4)',
+      }}>
+        {/* Video Background Container */}
+        <div className="absolute inset-0 z-0">
           <video
             key="pricing-video"
             autoPlay
