@@ -44,18 +44,18 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-full overflow-hidden bg-background text-foreground selection:bg-primary/30">
+    <div className="min-h-screen w-full overflow-hidden bg-background text-foreground selection:bg-primary/10">
       {/* Background Elements */}
       <div className="fixed inset-0 z-[-1]">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-accent/5 blur-[120px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-accent/3 blur-[120px]" />
       </div>
 
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
         <div className="flex items-center gap-2 font-display font-bold text-2xl tracking-tighter">
-          <Cloud className="w-8 h-8 text-primary fill-primary/20" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-white/80">AngoCloud</span>
+          <Cloud className="w-8 h-8 text-primary fill-primary/10" />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">AngoCloud</span>
         </div>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-muted-foreground">
           <a href="#features" className="hover:text-primary transition-colors">Funcionalidades</a>
@@ -63,8 +63,8 @@ export default function Home() {
           <a href="#about" className="hover:text-primary transition-colors">Sobre</a>
         </div>
         <div className="flex gap-4">
-          <Button variant="ghost" className="hidden md:flex hover:bg-white/5">Login</Button>
-          <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25 rounded-full px-6">
+          <Button variant="ghost" className="hidden md:flex hover:bg-primary/5">Login</Button>
+          <Button className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 rounded-full px-6">
             Criar Conta
           </Button>
         </div>
@@ -79,10 +79,10 @@ export default function Home() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="z-10"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-xs font-medium text-accent mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm text-xs font-medium text-primary mb-6">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-accent"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
               </span>
               A Nuvem de Angola
             </div>
@@ -94,10 +94,10 @@ export default function Home() {
               Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white h-12 px-8 rounded-full shadow-xl shadow-primary/20 text-base">
+              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white h-12 px-8 rounded-full shadow-lg shadow-primary/20 text-base">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/10 hover:bg-white/5 hover:text-white text-base">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/30 hover:bg-primary/5 text-primary text-base">
                 Ver Planos
               </Button>
             </div>
@@ -112,7 +112,7 @@ export default function Home() {
                 <span>Alta Velocidade</span>
               </div>
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-blue-400" />
+                <Cloud className="w-4 h-4 text-primary" />
                 <span>15GB Grátis</span>
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.2 }}
             className="relative h-[500px] w-full flex items-center justify-center"
           >
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full transform translate-y-10" />
+            <div className="absolute inset-0 bg-primary/10 blur-[100px] rounded-full transform translate-y-10" />
             <motion.img 
               src={heroImage} 
               alt="Cloud Storage Future" 
@@ -162,9 +162,9 @@ export default function Home() {
               <motion.div 
                 key={i}
                 whileHover={{ y: -5 }}
-                className="glass-card p-8 rounded-2xl border border-white/5 hover:border-primary/50 transition-colors group"
+                className="glass-card p-8 rounded-2xl border border-primary/10 hover:border-primary/30 transition-colors group"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-primary/8 flex items-center justify-center mb-6 group-hover:bg-primary/15 transition-colors">
                   <feature.icon className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
@@ -177,7 +177,7 @@ export default function Home() {
 
       {/* Pricing Section */}
       <section id="pricing" className="py-24 px-6 md:px-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/40 pointer-events-none" />
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
@@ -188,7 +188,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-8">
             {pricingPlans.map((plan, i) => (
               <ThreeDCard key={i} className="w-full md:w-auto" containerClassName="md:!py-0">
-                <ThreeDCardBody className="bg-card/50 relative group/card dark:hover:shadow-2xl dark:hover:shadow-primary/[0.1] dark:bg-card dark:border-white/[0.2] border-black/[0.1] w-[300px] md:w-[350px] h-auto rounded-xl p-6 border glass-card">
+                <ThreeDCardBody className="bg-white relative group/card hover:shadow-lg hover:shadow-primary/[0.1] w-[300px] md:w-[350px] h-auto rounded-xl p-6 border border-primary/10 glass-card">
                   <ThreeDCardItem
                     translateZ="50"
                     className="text-xl font-bold text-foreground"
@@ -246,7 +246,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-white/5 bg-black/20">
+      <footer className="py-12 border-t border-primary/10 bg-white/50">
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 font-display font-bold text-xl">
             <Cloud className="w-6 h-6 text-primary" />
