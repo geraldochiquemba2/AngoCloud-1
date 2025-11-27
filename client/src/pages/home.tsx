@@ -135,11 +135,17 @@ export default function Home() {
       </section>
 
       {/* Features Grid */}
-      <section id="features" className="py-24 px-6 md:px-12 relative">
-        <div className="max-w-7xl mx-auto">
+      <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden" style={{
+        backgroundImage: 'url(/features-bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}>
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4">Tecnologia de Ponta</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Tecnologia de Ponta</h2>
+            <p className="text-white/80 max-w-2xl mx-auto">
               Infraestrutura local otimizada para a rede de internet angolana, garantindo a menor latência possível.
             </p>
           </div>
@@ -153,13 +159,13 @@ export default function Home() {
               <motion.div 
                 key={i}
                 whileHover={{ y: -5 }}
-                className="glass-card p-8 rounded-2xl border border-primary/10 hover:border-primary/30 transition-colors group"
+                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-colors group"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/8 flex items-center justify-center mb-6 group-hover:bg-primary/15 transition-colors">
-                  <feature.icon className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6 group-hover:bg-white/30 transition-colors">
+                  <feature.icon className="w-6 h-6 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.desc}</p>
+                <h3 className="text-xl font-bold mb-3 text-white">{feature.title}</h3>
+                <p className="text-white/70 leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
