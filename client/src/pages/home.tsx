@@ -62,7 +62,7 @@ export default function Home() {
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80 hover:text-white transition-colors">
           <a href="#features" className="hover:text-white transition-colors">Funcionalidades</a>
           <a href="#pricing" className="hover:text-white transition-colors">Preços</a>
-          <a href="#about" className="hover:text-white transition-colors">Sobre</a>
+          <a href="/about" className="hover:text-white transition-colors">Sobre</a>
         </div>
         <div className="flex gap-2 md:gap-4">
           <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
