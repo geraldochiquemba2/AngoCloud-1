@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   plano: text("plano").notNull().default("gratis"),
   storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(16106127360), // 15GB em bytes
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),
+  encryptionSalt: text("encryption_salt"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -117,6 +118,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   email: z.string().email(),
   passwordHash: z.string().min(6),
   nome: z.string().min(2),
+  encryptionSalt: z.string().optional(),
 });
 
 export const insertFolderSchema = createInsertSchema(folders).omit({

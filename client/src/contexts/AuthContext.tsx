@@ -1,4 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { 
+  generateSalt, 
+  deriveAndExportKey, 
+  storeEncryptionKey, 
+  getStoredEncryptionKey,
+  clearEncryptionKey,
+  isEncryptionSupported
+} from "@/lib/encryption";
 
 interface User {
   id: string;
@@ -7,6 +15,7 @@ interface User {
   plano: string;
   storageLimit: number;
   storageUsed: number;
+  encryptionSalt?: string | null;
 }
 
 interface AuthContextType {
@@ -18,6 +27,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   loading: boolean;
   error: string | null;
+  hasEncryptionKey: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,11 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasEncryptionKey, setHasEncryptionKey] = useState(false);
 
-  // Check if user is already logged in on mount
   useEffect(() => {
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    setHasEncryptionKey(!!getStoredEncryptionKey());
+  }, [isLoggedIn]);
 
   const checkAuth = async () => {
     try {
@@ -43,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userData = await response.json();
         setUser(userData);
         setIsLoggedIn(true);
+        
+        const storedKey = getStoredEncryptionKey();
+        setHasEncryptionKey(!!storedKey);
       }
     } catch (err) {
       console.error("Error checking auth:", err);
@@ -51,16 +68,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const setupEncryptionKey = async (password: string, salt: string) => {
+    if (!isEncryptionSupported()) {
+      console.warn("Encryption not supported in this browser");
+      return;
+    }
+    
+    try {
+      const exportedKey = await deriveAndExportKey(password, salt);
+      storeEncryptionKey(exportedKey);
+      setHasEncryptionKey(true);
+    } catch (err) {
+      console.error("Error setting up encryption key:", err);
+    }
+  };
+
   const signup = async (email: string, password: string, nome: string) => {
     setError(null);
     setLoading(true);
     
     try {
+      const encryptionSalt = generateSalt();
+      
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password, nome }),
+        body: JSON.stringify({ email, password, nome, encryptionSalt }),
       });
 
       if (!response.ok) {
@@ -71,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await response.json();
       setUser(userData);
       setIsLoggedIn(true);
+      
+      await setupEncryptionKey(password, encryptionSalt);
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -99,6 +135,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userData = await response.json();
       setUser(userData);
       setIsLoggedIn(true);
+      
+      if (userData.encryptionSalt) {
+        await setupEncryptionKey(password, userData.encryptionSalt);
+      } else {
+        console.warn("User has no encryption salt - legacy account");
+      }
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -114,6 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: "include",
       });
       
+      clearEncryptionKey();
+      setHasEncryptionKey(false);
       setUser(null);
       setIsLoggedIn(false);
     } catch (err) {
@@ -137,7 +181,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, signup, logout, refreshUser, loading, error }}>
+    <AuthContext.Provider value={{ 
+      isLoggedIn, 
+      user, 
+      login, 
+      signup, 
+      logout, 
+      refreshUser, 
+      loading, 
+      error,
+      hasEncryptionKey 
+    }}>
       {children}
     </AuthContext.Provider>
   );

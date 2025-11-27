@@ -151,15 +151,19 @@ export async function registerRoutes(
         email: z.string().email(),
         password: z.string().min(6),
         nome: z.string().min(2),
+        encryptionSalt: z.string().optional(),
       });
 
-      const { email, password, nome } = schema.parse(req.body);
+      const { email, password, nome, encryptionSalt } = schema.parse(req.body);
 
       // Check if user exists
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "Email já está em uso" });
       }
+
+      // Generate encryption salt if not provided
+      const salt = encryptionSalt || crypto.randomBytes(16).toString('base64');
 
       // Create user with bcrypt hashed password
       const hashedPassword = await hashPassword(password);
@@ -168,6 +172,7 @@ export async function registerRoutes(
         passwordHash: hashedPassword,
         nome,
         plano: "gratis",
+        encryptionSalt: salt,
       });
 
       // Auto login
@@ -191,6 +196,7 @@ export async function registerRoutes(
             plano: user.plano,
             storageLimit: user.storageLimit,
             storageUsed: user.storageUsed,
+            encryptionSalt: salt,
           });
         }
       );
@@ -203,19 +209,26 @@ export async function registerRoutes(
   });
 
   // Login
-  app.post("/api/auth/login", (req: Request, res: Response, next) => {
-    passport.authenticate("local", (err: any, user: Express.User | false, info: any) => {
+  app.post("/api/auth/login", async (req: Request, res: Response, next) => {
+    passport.authenticate("local", async (err: any, user: Express.User | false, info: any) => {
       if (err) {
         return res.status(500).json({ message: "Erro ao fazer login" });
       }
       if (!user) {
         return res.status(401).json({ message: info?.message || "Credenciais inválidas" });
       }
+      
+      // Get full user data including encryption salt
+      const fullUser = await storage.getUser(user.id);
+      
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({ message: "Erro ao fazer login" });
         }
-        res.json(user);
+        res.json({
+          ...user,
+          encryptionSalt: fullUser?.encryptionSalt || null,
+        });
       });
     })(req, res, next);
   });
@@ -231,8 +244,12 @@ export async function registerRoutes(
   });
 
   // Get current user
-  app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
-    res.json(req.user);
+  app.get("/api/auth/me", requireAuth, async (req: Request, res: Response) => {
+    const fullUser = await storage.getUser(req.user!.id);
+    res.json({
+      ...req.user,
+      encryptionSalt: fullUser?.encryptionSalt || null,
+    });
   });
 
   // ========== FILES ROUTES ==========
