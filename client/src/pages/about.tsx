@@ -55,7 +55,6 @@ export default function About() {
         </button>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <button onClick={() => navigate("/")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Voltar</button>
-          <button onClick={() => navigate("/")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-white text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
           <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
