@@ -84,42 +84,42 @@ export default function Home() {
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="z-20 bg-white/80 backdrop-blur-md p-8 rounded-2xl"
+            className="z-20"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm text-xs font-medium text-primary mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-xs font-medium text-white mb-6">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
               A Nuvem de Angola
             </div>
-            <h1 className="text-5xl md:text-7xl font-display font-bold leading-[1.1] mb-6">
+            <h1 className="text-5xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
               Armazenamento <br />
-              <span className="text-gradient">Sem Fronteiras.</span>
+              <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras.</span>
             </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-md leading-relaxed">
+            <p className="text-lg text-white/90 mb-8 max-w-md leading-relaxed drop-shadow-md">
               Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-white h-12 px-8 rounded-full shadow-lg shadow-primary/20 text-base">
+              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-12 px-8 rounded-full shadow-xl text-base font-bold">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-primary/30 hover:bg-primary/5 text-primary text-base">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/40 hover:bg-white/10 text-white text-base">
                 Ver Planos
               </Button>
             </div>
             
-            <div className="mt-12 flex items-center gap-8 text-sm font-medium text-muted-foreground">
+            <div className="mt-12 flex items-center gap-8 text-sm font-medium text-white/80">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
+                <Shield className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
               </div>
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-accent" />
+                <Zap className="w-4 h-4 text-white" />
                 <span>Alta Velocidade</span>
               </div>
               <div className="flex items-center gap-2">
-                <Cloud className="w-4 h-4 text-primary" />
+                <Cloud className="w-4 h-4 text-white" />
                 <span>15GB Grátis</span>
               </div>
             </div>
