@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Check, Cloud, Shield, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CloudScene from "@/components/ui/cloud-scene";
 
 // Import assets
 import heroImage from "@assets/generated_images/futuristic_3d_cloud_hero_image.png";
@@ -124,38 +125,10 @@ export default function Home() {
             transition={{ duration: 1, delay: 0.2 }}
             className="relative h-[500px] w-full flex items-center justify-center"
           >
-            <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full transform translate-y-10" />
-            <motion.img 
-              src={heroImage} 
-              alt="Cloud Storage Future" 
-              className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
-              animate={{ 
-                y: [0, -20, 0],
-                rotateZ: [0, 1, 0]
-              }}
-              transition={{ 
-                duration: 6, 
-                repeat: Infinity,
-                ease: "easeInOut" 
-              }}
-            />
-            
-            {/* Floating Cube Accent */}
-            <motion.img
-              src={cubeImage}
-              alt="Cube"
-              className="absolute bottom-10 left-0 w-24 h-24 object-contain opacity-80 z-20"
-              animate={{ 
-                y: [0, 30, 0],
-                rotate: [0, 45, 0]
-              }}
-              transition={{ 
-                duration: 8, 
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1
-              }}
-            />
+            <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full" />
+            <div className="w-full h-full z-10">
+              <CloudScene />
+            </div>
           </motion.div>
         </div>
       </section>
