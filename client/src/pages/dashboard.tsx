@@ -1246,7 +1246,7 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => { setShowRenameModal(false); setSelectedFile(null); }}
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowRenameModal(false); setSelectedFile(null); } }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -1268,7 +1268,8 @@ export default function Dashboard() {
                 onChange={(e) => setNewFileName(e.target.value)}
                 placeholder="Novo nome"
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50 mb-4"
-                onKeyDown={(e) => e.key === "Enter" && renameFile()}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); renameFile(); } }}
+                autoFocus
                 data-testid="input-new-name"
               />
               
@@ -1276,11 +1277,12 @@ export default function Dashboard() {
                 <button
                   onClick={() => { setShowRenameModal(false); setSelectedFile(null); }}
                   className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+                  data-testid="button-cancel-rename"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={renameFile}
+                  onClick={() => { console.log("Rename button clicked"); renameFile(); }}
                   className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/80 transition-colors"
                   data-testid="button-confirm-rename"
                 >
@@ -1299,7 +1301,7 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => { setShowMoveModal(false); setSelectedFile(null); }}
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowMoveModal(false); setSelectedFile(null); } }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -1348,7 +1350,7 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => { setShowShareModal(false); setSelectedFile(null); setShareLink(null); }}
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowShareModal(false); setSelectedFile(null); setShareLink(null); } }}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
