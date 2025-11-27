@@ -40,8 +40,8 @@ class TelegramService {
   private bots: TelegramBot[] = [];
   private currentBotIndex: number = 0;
   private retryConfig: RetryConfig = {
-    maxRetries: 3,
-    initialDelayMs: 500,
+    maxRetries: 5,
+    initialDelayMs: 1000,
     maxDelayMs: 10000,
     backoffMultiplier: 2,
   };

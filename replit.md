@@ -182,10 +182,11 @@ CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 ### 4. Sistema de Retry/Fallback (NOVO)
 
 **Configuração Padrão:**
-- Máximo de tentativas: 3 retries
-- Delay inicial: 500ms
+- Máximo de tentativas: 5 retries (6 tentativas no total)
+- Delay inicial: 1s
 - Delay máximo: 10s
 - Multiplicador: 2x (exponential backoff com jitter)
+- Sequência real: 1s → 2s → 4s → 8s → 10s
 
 **Mecanismos de Proteção:**
 - Rate limit automático do Telegram (retry-after)
