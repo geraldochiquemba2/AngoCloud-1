@@ -561,7 +561,6 @@ export default function Dashboard() {
           <span className="hidden sm:inline">Sair</span>
         </button>
       </nav>
-
       {/* Main Content */}
       <div className="pt-20 px-4 md:px-8 pb-8">
         <div className="max-w-7xl mx-auto">
@@ -767,7 +766,7 @@ export default function Dashboard() {
                     {viewMode === "files" && !searchResults && (
                       <button 
                         onClick={() => setShowUploadModal(true)}
-                        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all"
+                        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-primary/80 text-white font-medium transition-all bg-[#ffffff]"
                         data-testid="button-upload-empty"
                       >
                         <Upload className="w-4 h-4" />
@@ -895,7 +894,6 @@ export default function Dashboard() {
           </motion.div>
         </div>
       </div>
-
       {/* Upload Modal */}
       <AnimatePresence>
         {showUploadModal && (
@@ -967,7 +965,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Create Folder Modal */}
       <AnimatePresence>
         {showFolderModal && (
@@ -1021,7 +1018,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Rename Modal */}
       <AnimatePresence>
         {showRenameModal && selectedFile && (
@@ -1075,7 +1071,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Move Modal */}
       <AnimatePresence>
         {showMoveModal && selectedFile && (
@@ -1125,7 +1120,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Share Modal */}
       <AnimatePresence>
         {showShareModal && selectedFile && shareLink && (
@@ -1174,7 +1168,6 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Click outside to close menus */}
       {showFileMenu && (
         <div 
@@ -1182,7 +1175,6 @@ export default function Dashboard() {
           onClick={() => setShowFileMenu(null)}
         />
       )}
-
       {/* Footer */}
       <motion.footer 
         initial={{ opacity: 0 }}
