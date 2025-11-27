@@ -1022,7 +1022,7 @@ export async function registerRoutes(
       // Check if email is registered in the system
       const targetUser = await storage.getUserByEmail(email);
       if (!targetUser) {
-        return res.status(404).json({ message: "Utilizador não existente" });
+        return res.status(404).json({ message: "Email inválido" });
       }
 
       // Don't allow sharing with yourself
