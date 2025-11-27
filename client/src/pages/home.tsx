@@ -1,7 +1,7 @@
 import { ThreeDCard, ThreeDCardBody, ThreeDCardItem } from "@/components/ui/3d-card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Check, Cloud, Shield, Zap } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 
@@ -111,11 +111,11 @@ export default function Home() {
             
             <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-white" />
+                <Lock className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
               </div>
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-white" />
+                <Server className="w-4 h-4 text-white" />
                 <span>Alta Velocidade</span>
               </div>
               <div className="flex items-center gap-2">
@@ -151,9 +151,9 @@ export default function Home() {
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {[
-              { title: "Servidores em Luanda", desc: "Acesso ultra-rápido sem depender de cabos submarinos internacionais.", icon: Zap },
-              { title: "Privacidade Total", desc: "Seus dados são seus. Encriptação AES-256 em repouso e em trânsito.", icon: Shield },
-              { title: "Backup Automático", desc: "Sincronização em tempo real em todos os seus dispositivos.", icon: Cloud },
+              { title: "Servidores em Luanda", desc: "Acesso ultra-rápido sem depender de cabos submarinos internacionais.", icon: Server },
+              { title: "Privacidade Total", desc: "Seus dados são seus. Encriptação AES-256 em repouso e em trânsito.", icon: Lock },
+              { title: "Backup Automático", desc: "Sincronização em tempo real em todos os seus dispositivos.", icon: HardDrive },
             ].map((feature, i) => (
               <motion.div 
                 key={i}
