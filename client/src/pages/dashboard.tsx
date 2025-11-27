@@ -28,6 +28,9 @@ interface FileItem {
   folderId: string | null;
   isDeleted: boolean;
   deletedAt: string | null;
+  isEncrypted?: boolean;
+  originalMimeType?: string | null;
+  originalSize?: number | null;
 }
 
 interface FolderItem {
@@ -249,13 +252,24 @@ export default function Dashboard() {
     }
   }, [fileThumbnails, generateVideoThumbnail]);
 
+  const isMediaFile = (file: FileItem): boolean => {
+    const mimeToCheck = file.isEncrypted && file.originalMimeType 
+      ? file.originalMimeType 
+      : file.tipoMime;
+    return mimeToCheck.startsWith("image/") || mimeToCheck.startsWith("video/");
+  };
+
+  const getEffectiveMimeType = (file: FileItem): string => {
+    return (file.isEncrypted && file.originalMimeType) 
+      ? file.originalMimeType 
+      : file.tipoMime;
+  };
+
   useEffect(() => {
-    const mediaFiles = files.filter(f => 
-      f.tipoMime.startsWith("image/") || f.tipoMime.startsWith("video/")
-    );
+    const mediaFiles = files.filter(isMediaFile);
     mediaFiles.forEach(file => {
       if (!fileThumbnails[file.id]) {
-        loadThumbnail(file.id, file.tipoMime);
+        loadThumbnail(file.id, getEffectiveMimeType(file));
       }
     });
   }, [files, loadThumbnail]);
