@@ -28,6 +28,16 @@ AngoCloud é uma plataforma de armazenamento em nuvem projetada para fornecer ar
 **Fase 1 - MVP Local: Completa**
 **Fase 2 - Escalabilidade: Completa**
 **Fase 3 - Resilência: Completa ✨**
+**Fase 4 - Encriptação Cliente: Completa ✨**
+
+### Encriptação de Ficheiros (Cliente-Side)
+
+- ✅ **Encriptação AES-256-GCM** - Ficheiros encriptados no navegador antes de upload
+- ✅ **PBKDF2 Key Derivation** - Chave de encriptação derivada da password do utilizador
+- ✅ **Zero-Knowledge** - Servidor nunca tem acesso aos ficheiros desencriptados
+- ✅ **Previews Encriptados** - Thumbnails e previews são desencriptados no cliente
+- ✅ **Download Seguro** - Ficheiros desencriptados automaticamente ao baixar
+- ⚠️ **Compartilhamento** - Links partilhados não podem ser desencriptados por terceiros (limitação intencional)
 
 ## User Preferences
 
