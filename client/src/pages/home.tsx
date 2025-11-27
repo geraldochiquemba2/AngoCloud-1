@@ -129,9 +129,15 @@ export default function Home() {
               <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold transition-all duration-300">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all duration-300">
+              <button 
+                onClick={() => {
+                  const element = document.getElementById("pricing");
+                  element?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all duration-300 border font-bold"
+              >
                 Ver Planos
-              </Button>
+              </button>
             </motion.div>
             
             <motion.div 
