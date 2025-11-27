@@ -202,7 +202,18 @@ export default function About() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 px-6 md:px-12 overflow-hidden bg-gradient-to-r from-primary via-primary/80 to-accent">
+      <section 
+        className="relative py-24 px-6 md:px-12 overflow-hidden"
+        style={{
+          backgroundImage: `url(${valuesBackgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          backgroundRepeat: 'repeat-y',
+          minHeight: 'auto'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
         <div className="max-w-7xl mx-auto text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
