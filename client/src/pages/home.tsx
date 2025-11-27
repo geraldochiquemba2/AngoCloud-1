@@ -1,7 +1,7 @@
 import { ThreeDCard, ThreeDCardBody, ThreeDCardItem } from "@/components/ui/3d-card";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Check, Cloud, Server, Lock, HardDrive } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 
@@ -269,8 +269,15 @@ export default function Home() {
               <Cloud className="w-6 h-6 text-white" />
               <span>AngoCloud</span>
             </div>
-            <div className="text-sm text-white/70">
-              &copy; 2024 AngoCloud Technologies. Feito em Luanda com ❤️
+            <div className="text-sm text-white/70 flex items-center gap-2">
+              <span>&copy; 2024 AngoCloud Technologies. Feito em Luanda com</span>
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+                className="inline-block"
+              >
+                <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+              </motion.div>
             </div>
             <div className="flex gap-6">
                {/* Social icons would go here */}
