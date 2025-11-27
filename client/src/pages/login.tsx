@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useState } from "react";
+import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
 
 export default function Login() {
   const [, navigate] = useLocation();
@@ -19,14 +20,14 @@ export default function Login() {
     <div 
       className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10 flex flex-col"
       style={{
-        backgroundImage: 'url(/attached_assets/pexels-shkrabaanthony-5475778_1764258312022.jpg)',
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
       }}
     >
       {/* Background Overlay */}
-      <div className="fixed inset-0 z-[-1] bg-black/50 backdrop-blur-sm" />
+      <div className="fixed inset-0 z-[-1] bg-black/40" />
 
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50">
