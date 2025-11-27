@@ -66,6 +66,7 @@ export default function Dashboard() {
   // File actions
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [showFileMenu, setShowFileMenu] = useState<string | null>(null);
+  const [menuOpenTime, setMenuOpenTime] = useState<number>(0);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
@@ -1016,7 +1017,15 @@ export default function Dashboard() {
                                     </button>
                                     <div className="relative">
                                       <button
-                                        onClick={(e) => { e.stopPropagation(); setShowFileMenu(showFileMenu === file.id ? null : file.id); }}
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          if (showFileMenu === file.id) {
+                                            setShowFileMenu(null);
+                                          } else {
+                                            setShowFileMenu(file.id);
+                                            setMenuOpenTime(Date.now());
+                                          }
+                                        }}
                                         className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
                                         data-testid={`button-menu-${file.id}`}
                                       >
@@ -1463,7 +1472,12 @@ export default function Dashboard() {
       {showFileMenu && (
         <div 
           className="fixed inset-0 z-40" 
-          onClick={() => setShowFileMenu(null)}
+          onClick={() => {
+            const timeSinceOpen = Date.now() - menuOpenTime;
+            if (timeSinceOpen > 100) {
+              setShowFileMenu(null);
+            }
+          }}
         />
       )}
       {/* Footer */}
