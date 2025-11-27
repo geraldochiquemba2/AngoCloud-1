@@ -4,6 +4,9 @@ import {
   folders, 
   shares, 
   payments,
+  invitations,
+  filePermissions,
+  folderPermissions,
   type User, 
   type InsertUser,
   type File,
@@ -14,9 +17,15 @@ import {
   type InsertShare,
   type Payment,
   type InsertPayment,
+  type Invitation,
+  type InsertInvitation,
+  type FilePermission,
+  type InsertFilePermission,
+  type FolderPermission,
+  type InsertFolderPermission,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, or } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -60,6 +69,40 @@ export interface IStorage {
   getPaymentsByUser(userId: string): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string): Promise<void>;
+
+  // Invitations
+  createInvitation(invitation: InsertInvitation): Promise<Invitation>;
+  getInvitationByToken(token: string): Promise<Invitation | undefined>;
+  getInvitationById(id: string): Promise<Invitation | undefined>;
+  getInvitationsByInviter(inviterId: string): Promise<Invitation[]>;
+  getInvitationsByInviteeEmail(email: string): Promise<Invitation[]>;
+  getPendingInvitationsForUser(email: string): Promise<Invitation[]>;
+  updateInvitationStatus(id: string, status: string, inviteeUserId?: string): Promise<void>;
+  deleteInvitation(id: string): Promise<void>;
+  getInvitationsForResource(resourceType: string, resourceId: string): Promise<Invitation[]>;
+
+  // File Permissions
+  createFilePermission(permission: InsertFilePermission): Promise<FilePermission>;
+  getFilePermission(fileId: string, userId: string): Promise<FilePermission | undefined>;
+  getFilePermissionsByFile(fileId: string): Promise<FilePermission[]>;
+  getFilePermissionsByUser(userId: string): Promise<FilePermission[]>;
+  deleteFilePermission(id: string): Promise<void>;
+  hasFileAccess(fileId: string, userId: string): Promise<boolean>;
+
+  // Folder Permissions
+  createFolderPermission(permission: InsertFolderPermission): Promise<FolderPermission>;
+  getFolderPermission(folderId: string, userId: string): Promise<FolderPermission | undefined>;
+  getFolderPermissionsByFolder(folderId: string): Promise<FolderPermission[]>;
+  getFolderPermissionsByUser(userId: string): Promise<FolderPermission[]>;
+  deleteFolderPermission(id: string): Promise<void>;
+  hasFolderAccess(folderId: string, userId: string): Promise<boolean>;
+  canUploadToFolder(folderId: string, userId: string): Promise<boolean>;
+
+  // Shared content
+  getSharedFilesForUser(userId: string): Promise<File[]>;
+  getSharedFoldersForUser(userId: string): Promise<Folder[]>;
+  getFilesInSharedFolder(folderId: string, userId: string): Promise<File[]>;
+  getFoldersInSharedFolder(parentId: string, userId: string): Promise<Folder[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -306,6 +349,253 @@ export class DatabaseStorage implements IStorage {
 
   async updatePaymentStatus(id: string, status: string): Promise<void> {
     await db.update(payments).set({ status }).where(eq(payments.id, id));
+  }
+
+  // Invitations
+  async createInvitation(invitation: InsertInvitation): Promise<Invitation> {
+    const [newInvitation] = await db.insert(invitations).values(invitation).returning();
+    return newInvitation;
+  }
+
+  async getInvitationByToken(token: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.token, token));
+    return invitation || undefined;
+  }
+
+  async getInvitationById(id: string): Promise<Invitation | undefined> {
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.id, id));
+    return invitation || undefined;
+  }
+
+  async getInvitationsByInviter(inviterId: string): Promise<Invitation[]> {
+    return db
+      .select()
+      .from(invitations)
+      .where(eq(invitations.inviterId, inviterId))
+      .orderBy(desc(invitations.createdAt));
+  }
+
+  async getInvitationsByInviteeEmail(email: string): Promise<Invitation[]> {
+    return db
+      .select()
+      .from(invitations)
+      .where(eq(invitations.inviteeEmail, email))
+      .orderBy(desc(invitations.createdAt));
+  }
+
+  async getPendingInvitationsForUser(email: string): Promise<Invitation[]> {
+    return db
+      .select()
+      .from(invitations)
+      .where(and(
+        eq(invitations.inviteeEmail, email),
+        eq(invitations.status, "pending")
+      ))
+      .orderBy(desc(invitations.createdAt));
+  }
+
+  async updateInvitationStatus(id: string, status: string, inviteeUserId?: string): Promise<void> {
+    const updateData: any = { status };
+    if (inviteeUserId) {
+      updateData.inviteeUserId = inviteeUserId;
+    }
+    await db.update(invitations).set(updateData).where(eq(invitations.id, id));
+  }
+
+  async deleteInvitation(id: string): Promise<void> {
+    await db.delete(invitations).where(eq(invitations.id, id));
+  }
+
+  async getInvitationsForResource(resourceType: string, resourceId: string): Promise<Invitation[]> {
+    return db
+      .select()
+      .from(invitations)
+      .where(and(
+        eq(invitations.resourceType, resourceType),
+        eq(invitations.resourceId, resourceId)
+      ))
+      .orderBy(desc(invitations.createdAt));
+  }
+
+  // File Permissions
+  async createFilePermission(permission: InsertFilePermission): Promise<FilePermission> {
+    const [newPermission] = await db.insert(filePermissions).values(permission).returning();
+    return newPermission;
+  }
+
+  async getFilePermission(fileId: string, userId: string): Promise<FilePermission | undefined> {
+    const [permission] = await db
+      .select()
+      .from(filePermissions)
+      .where(and(
+        eq(filePermissions.fileId, fileId),
+        eq(filePermissions.userId, userId)
+      ));
+    return permission || undefined;
+  }
+
+  async getFilePermissionsByFile(fileId: string): Promise<FilePermission[]> {
+    return db
+      .select()
+      .from(filePermissions)
+      .where(eq(filePermissions.fileId, fileId));
+  }
+
+  async getFilePermissionsByUser(userId: string): Promise<FilePermission[]> {
+    return db
+      .select()
+      .from(filePermissions)
+      .where(eq(filePermissions.userId, userId));
+  }
+
+  async deleteFilePermission(id: string): Promise<void> {
+    await db.delete(filePermissions).where(eq(filePermissions.id, id));
+  }
+
+  async hasFileAccess(fileId: string, userId: string): Promise<boolean> {
+    const file = await this.getFile(fileId);
+    if (!file) return false;
+    
+    // Owner always has access
+    if (file.userId === userId) return true;
+    
+    // Check direct file permission
+    const permission = await this.getFilePermission(fileId, userId);
+    if (permission) return true;
+    
+    // Check folder permission if file is in a folder
+    if (file.folderId) {
+      const folderAccess = await this.hasFolderAccess(file.folderId, userId);
+      if (folderAccess) return true;
+    }
+    
+    return false;
+  }
+
+  // Folder Permissions
+  async createFolderPermission(permission: InsertFolderPermission): Promise<FolderPermission> {
+    const [newPermission] = await db.insert(folderPermissions).values(permission).returning();
+    return newPermission;
+  }
+
+  async getFolderPermission(folderId: string, userId: string): Promise<FolderPermission | undefined> {
+    const [permission] = await db
+      .select()
+      .from(folderPermissions)
+      .where(and(
+        eq(folderPermissions.folderId, folderId),
+        eq(folderPermissions.userId, userId)
+      ));
+    return permission || undefined;
+  }
+
+  async getFolderPermissionsByFolder(folderId: string): Promise<FolderPermission[]> {
+    return db
+      .select()
+      .from(folderPermissions)
+      .where(eq(folderPermissions.folderId, folderId));
+  }
+
+  async getFolderPermissionsByUser(userId: string): Promise<FolderPermission[]> {
+    return db
+      .select()
+      .from(folderPermissions)
+      .where(eq(folderPermissions.userId, userId));
+  }
+
+  async deleteFolderPermission(id: string): Promise<void> {
+    await db.delete(folderPermissions).where(eq(folderPermissions.id, id));
+  }
+
+  async hasFolderAccess(folderId: string, userId: string): Promise<boolean> {
+    const folder = await this.getFolder(folderId);
+    if (!folder) return false;
+    
+    // Owner always has access
+    if (folder.userId === userId) return true;
+    
+    // Check direct folder permission
+    const permission = await this.getFolderPermission(folderId, userId);
+    if (permission) return true;
+    
+    // Check parent folder permission recursively
+    if (folder.parentId) {
+      return this.hasFolderAccess(folder.parentId, userId);
+    }
+    
+    return false;
+  }
+
+  async canUploadToFolder(folderId: string, userId: string): Promise<boolean> {
+    const folder = await this.getFolder(folderId);
+    if (!folder) return false;
+    
+    // Owner can always upload
+    if (folder.userId === userId) return true;
+    
+    // Check if user has collaborator role on folder
+    const permission = await this.getFolderPermission(folderId, userId);
+    if (permission && permission.role === "collaborator") return true;
+    
+    // Check parent folder permission recursively
+    if (folder.parentId) {
+      return this.canUploadToFolder(folder.parentId, userId);
+    }
+    
+    return false;
+  }
+
+  // Shared content
+  async getSharedFilesForUser(userId: string): Promise<File[]> {
+    const permissions = await this.getFilePermissionsByUser(userId);
+    if (permissions.length === 0) return [];
+    
+    const fileIds = permissions.map(p => p.fileId);
+    return db
+      .select()
+      .from(files)
+      .where(and(
+        sql`${files.id} IN (${sql.join(fileIds.map(id => sql`${id}`), sql`, `)})`,
+        eq(files.isDeleted, false)
+      ))
+      .orderBy(desc(files.createdAt));
+  }
+
+  async getSharedFoldersForUser(userId: string): Promise<Folder[]> {
+    const permissions = await this.getFolderPermissionsByUser(userId);
+    if (permissions.length === 0) return [];
+    
+    const folderIds = permissions.map(p => p.folderId);
+    return db
+      .select()
+      .from(folders)
+      .where(sql`${folders.id} IN (${sql.join(folderIds.map(id => sql`${id}`), sql`, `)})`)
+      .orderBy(desc(folders.createdAt));
+  }
+
+  async getFilesInSharedFolder(folderId: string, userId: string): Promise<File[]> {
+    const hasAccess = await this.hasFolderAccess(folderId, userId);
+    if (!hasAccess) return [];
+    
+    return db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.folderId, folderId),
+        eq(files.isDeleted, false)
+      ))
+      .orderBy(desc(files.createdAt));
+  }
+
+  async getFoldersInSharedFolder(parentId: string, userId: string): Promise<Folder[]> {
+    const hasAccess = await this.hasFolderAccess(parentId, userId);
+    if (!hasAccess) return [];
+    
+    return db
+      .select()
+      .from(folders)
+      .where(eq(folders.parentId, parentId))
+      .orderBy(desc(folders.createdAt));
   }
 }
 

@@ -334,12 +334,48 @@ export async function registerRoutes(
       const isEncrypted = req.body.isEncrypted === "true";
       const originalMimeType = req.body.originalMimeType || req.file.mimetype;
       const originalSize = req.body.originalSize ? parseInt(req.body.originalSize, 10) : fileSize;
-
-      if (user.storageUsed + originalSize > user.storageLimit) {
+      const folderId = req.body.folderId || null;
+      
+      // Determine who owns the storage (folder owner if uploading to shared folder)
+      let storageOwnerId = user.id;
+      let fileOwnerId = user.id;
+      
+      if (folderId) {
+        const folder = await storage.getFolder(folderId);
+        if (!folder) {
+          return res.status(404).json({ message: "Pasta não encontrada" });
+        }
+        
+        // Check if user has access to this folder
+        if (folder.userId === user.id) {
+          // User owns the folder - use their storage
+          storageOwnerId = user.id;
+          fileOwnerId = user.id;
+        } else {
+          // Check if user has collaborator permission
+          const canUpload = await storage.canUploadToFolder(folderId, user.id);
+          if (!canUpload) {
+            return res.status(403).json({ message: "Sem permissão para enviar ficheiros para esta pasta" });
+          }
+          // Uploading to shared folder - storage goes to folder owner
+          storageOwnerId = folder.userId;
+          fileOwnerId = folder.userId;
+        }
+      }
+      
+      // Get storage owner's current usage
+      const storageOwner = await storage.getUser(storageOwnerId);
+      if (!storageOwner) {
+        return res.status(500).json({ message: "Erro ao verificar quota de armazenamento" });
+      }
+      
+      if (storageOwner.storageUsed + originalSize > storageOwner.storageLimit) {
         return res.status(400).json({ 
-          message: "Quota de armazenamento excedida",
-          storageUsed: user.storageUsed,
-          storageLimit: user.storageLimit,
+          message: storageOwnerId === user.id 
+            ? "Quota de armazenamento excedida" 
+            : "O proprietário da pasta excedeu a quota de armazenamento",
+          storageUsed: storageOwner.storageUsed,
+          storageLimit: storageOwner.storageLimit,
         });
       }
 
@@ -354,10 +390,9 @@ export async function registerRoutes(
         req.file.originalname
       );
 
-      const folderId = req.body.folderId || null;
-
       const file = await storage.createFile({
-        userId: user.id,
+        userId: fileOwnerId,
+        uploadedByUserId: user.id,
         folderId,
         nome: req.file.originalname,
         tamanho: fileSize,
@@ -369,7 +404,8 @@ export async function registerRoutes(
         originalSize,
       });
 
-      await storage.updateUserStorage(user.id, originalSize);
+      // Update storage for the storage owner (folder owner if shared folder)
+      await storage.updateUserStorage(storageOwnerId, originalSize);
 
       res.json(file);
     } catch (error) {
@@ -543,6 +579,361 @@ export async function registerRoutes(
     }
   });
 
+  // ========== INVITATION ROUTES ==========
+
+  // Create invitation (invite someone to access a file or folder)
+  app.post("/api/invitations", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        resourceType: z.enum(["file", "folder"]),
+        resourceId: z.string(),
+        inviteeEmail: z.string().email(),
+        role: z.enum(["viewer", "collaborator"]).optional().default("viewer"),
+      });
+
+      const { resourceType, resourceId, inviteeEmail, role } = schema.parse(req.body);
+      const inviterId = req.user!.id;
+
+      // Verify the resource exists and belongs to the user
+      if (resourceType === "file") {
+        const file = await storage.getFile(resourceId);
+        if (!file || file.userId !== inviterId) {
+          return res.status(404).json({ message: "Ficheiro não encontrado" });
+        }
+      } else {
+        const folder = await storage.getFolder(resourceId);
+        if (!folder || folder.userId !== inviterId) {
+          return res.status(404).json({ message: "Pasta não encontrada" });
+        }
+      }
+
+      // Check if invitee already has access
+      const existingInvitations = await storage.getInvitationsForResource(resourceType, resourceId);
+      const alreadyInvited = existingInvitations.find(
+        inv => inv.inviteeEmail === inviteeEmail && (inv.status === "pending" || inv.status === "accepted")
+      );
+      if (alreadyInvited) {
+        return res.status(400).json({ message: "Este email já foi convidado" });
+      }
+
+      // Check if invitee user exists
+      const inviteeUser = await storage.getUserByEmail(inviteeEmail);
+
+      // Generate unique token for the invitation
+      const token = crypto.randomBytes(32).toString("hex");
+
+      const invitation = await storage.createInvitation({
+        resourceType,
+        resourceId,
+        inviterId,
+        inviteeEmail,
+        role,
+        token,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      });
+
+      // If the invitee user exists, we can directly reference them
+      if (inviteeUser) {
+        await storage.updateInvitationStatus(invitation.id, "pending", inviteeUser.id);
+      }
+
+      res.json({
+        ...invitation,
+        inviteeExists: !!inviteeUser,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
+      }
+      console.error("Create invitation error:", error);
+      res.status(500).json({ message: "Erro ao criar convite" });
+    }
+  });
+
+  // Get pending invitations for current user
+  app.get("/api/invitations/pending", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitations = await storage.getPendingInvitationsForUser(req.user!.email);
+      
+      // Enrich with resource details
+      const enrichedInvitations = await Promise.all(
+        invitations.map(async (inv) => {
+          let resourceName = "";
+          let ownerName = "";
+          
+          if (inv.resourceType === "file") {
+            const file = await storage.getFile(inv.resourceId);
+            resourceName = file?.nome || "Ficheiro desconhecido";
+          } else {
+            const folder = await storage.getFolder(inv.resourceId);
+            resourceName = folder?.nome || "Pasta desconhecida";
+          }
+          
+          const inviter = await storage.getUser(inv.inviterId);
+          ownerName = inviter?.nome || "Utilizador desconhecido";
+          
+          return {
+            ...inv,
+            resourceName,
+            ownerName,
+          };
+        })
+      );
+      
+      res.json(enrichedInvitations);
+    } catch (error) {
+      console.error("Get pending invitations error:", error);
+      res.status(500).json({ message: "Erro ao buscar convites" });
+    }
+  });
+
+  // Get sent invitations (invitations created by current user)
+  app.get("/api/invitations/sent", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitations = await storage.getInvitationsByInviter(req.user!.id);
+      
+      // Enrich with resource details
+      const enrichedInvitations = await Promise.all(
+        invitations.map(async (inv) => {
+          let resourceName = "";
+          
+          if (inv.resourceType === "file") {
+            const file = await storage.getFile(inv.resourceId);
+            resourceName = file?.nome || "Ficheiro desconhecido";
+          } else {
+            const folder = await storage.getFolder(inv.resourceId);
+            resourceName = folder?.nome || "Pasta desconhecida";
+          }
+          
+          return {
+            ...inv,
+            resourceName,
+          };
+        })
+      );
+      
+      res.json(enrichedInvitations);
+    } catch (error) {
+      console.error("Get sent invitations error:", error);
+      res.status(500).json({ message: "Erro ao buscar convites enviados" });
+    }
+  });
+
+  // Get invitations for a specific resource
+  app.get("/api/invitations/resource/:type/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { type, id } = req.params;
+      
+      // Verify ownership
+      if (type === "file") {
+        const file = await storage.getFile(id);
+        if (!file || file.userId !== req.user!.id) {
+          return res.status(404).json({ message: "Ficheiro não encontrado" });
+        }
+      } else if (type === "folder") {
+        const folder = await storage.getFolder(id);
+        if (!folder || folder.userId !== req.user!.id) {
+          return res.status(404).json({ message: "Pasta não encontrada" });
+        }
+      } else {
+        return res.status(400).json({ message: "Tipo de recurso inválido" });
+      }
+      
+      const invitations = await storage.getInvitationsForResource(type, id);
+      res.json(invitations);
+    } catch (error) {
+      console.error("Get resource invitations error:", error);
+      res.status(500).json({ message: "Erro ao buscar convites do recurso" });
+    }
+  });
+
+  // Accept invitation
+  app.post("/api/invitations/:id/accept", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitation = await storage.getInvitationById(req.params.id);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      if (invitation.inviteeEmail !== req.user!.email) {
+        return res.status(403).json({ message: "Este convite não é para você" });
+      }
+      
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Este convite já foi processado" });
+      }
+      
+      if (invitation.expiresAt && new Date(invitation.expiresAt) < new Date()) {
+        return res.status(410).json({ message: "Este convite expirou" });
+      }
+      
+      // Update invitation status
+      await storage.updateInvitationStatus(invitation.id, "accepted", req.user!.id);
+      
+      // Create the appropriate permission
+      if (invitation.resourceType === "file") {
+        await storage.createFilePermission({
+          fileId: invitation.resourceId,
+          userId: req.user!.id,
+          role: invitation.role === "collaborator" ? "editor" : "viewer",
+          grantedBy: invitation.inviterId,
+        });
+      } else {
+        await storage.createFolderPermission({
+          folderId: invitation.resourceId,
+          userId: req.user!.id,
+          role: invitation.role,
+          grantedBy: invitation.inviterId,
+        });
+      }
+      
+      res.json({ message: "Convite aceite com sucesso" });
+    } catch (error) {
+      console.error("Accept invitation error:", error);
+      res.status(500).json({ message: "Erro ao aceitar convite" });
+    }
+  });
+
+  // Decline invitation
+  app.post("/api/invitations/:id/decline", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitation = await storage.getInvitationById(req.params.id);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      if (invitation.inviteeEmail !== req.user!.email) {
+        return res.status(403).json({ message: "Este convite não é para você" });
+      }
+      
+      if (invitation.status !== "pending") {
+        return res.status(400).json({ message: "Este convite já foi processado" });
+      }
+      
+      await storage.updateInvitationStatus(invitation.id, "declined", req.user!.id);
+      
+      res.json({ message: "Convite recusado" });
+    } catch (error) {
+      console.error("Decline invitation error:", error);
+      res.status(500).json({ message: "Erro ao recusar convite" });
+    }
+  });
+
+  // Cancel invitation (by the inviter)
+  app.delete("/api/invitations/:id", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const invitation = await storage.getInvitationById(req.params.id);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: "Convite não encontrado" });
+      }
+      
+      if (invitation.inviterId !== req.user!.id) {
+        return res.status(403).json({ message: "Você não pode cancelar este convite" });
+      }
+      
+      // If the invitation was already accepted, also remove the permission
+      if (invitation.status === "accepted" && invitation.inviteeUserId) {
+        if (invitation.resourceType === "file") {
+          const permission = await storage.getFilePermission(invitation.resourceId, invitation.inviteeUserId);
+          if (permission) {
+            await storage.deleteFilePermission(permission.id);
+          }
+        } else {
+          const permission = await storage.getFolderPermission(invitation.resourceId, invitation.inviteeUserId);
+          if (permission) {
+            await storage.deleteFolderPermission(permission.id);
+          }
+        }
+      }
+      
+      await storage.deleteInvitation(invitation.id);
+      
+      res.json({ message: "Convite cancelado" });
+    } catch (error) {
+      console.error("Cancel invitation error:", error);
+      res.status(500).json({ message: "Erro ao cancelar convite" });
+    }
+  });
+
+  // ========== SHARED CONTENT ROUTES ==========
+
+  // Get files shared with the current user
+  app.get("/api/shared/files", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const files = await storage.getSharedFilesForUser(req.user!.id);
+      
+      // Enrich with owner info
+      const enrichedFiles = await Promise.all(
+        files.map(async (file) => {
+          const owner = await storage.getUser(file.userId);
+          return {
+            ...file,
+            ownerName: owner?.nome || "Desconhecido",
+            ownerEmail: owner?.email || "",
+          };
+        })
+      );
+      
+      res.json(enrichedFiles);
+    } catch (error) {
+      console.error("Get shared files error:", error);
+      res.status(500).json({ message: "Erro ao buscar ficheiros partilhados" });
+    }
+  });
+
+  // Get folders shared with the current user
+  app.get("/api/shared/folders", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const foldersData = await storage.getSharedFoldersForUser(req.user!.id);
+      
+      // Enrich with owner info and permission details
+      const enrichedFolders = await Promise.all(
+        foldersData.map(async (folder) => {
+          const owner = await storage.getUser(folder.userId);
+          const permission = await storage.getFolderPermission(folder.id, req.user!.id);
+          return {
+            ...folder,
+            ownerName: owner?.nome || "Desconhecido",
+            ownerEmail: owner?.email || "",
+            role: permission?.role || "viewer",
+          };
+        })
+      );
+      
+      res.json(enrichedFolders);
+    } catch (error) {
+      console.error("Get shared folders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pastas partilhadas" });
+    }
+  });
+
+  // Get content of a shared folder
+  app.get("/api/shared/folders/:id/content", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const folderId = req.params.id;
+      const userId = req.user!.id;
+      
+      // Check if user has access to this folder
+      const hasAccess = await storage.hasFolderAccess(folderId, userId);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const [filesData, foldersData] = await Promise.all([
+        storage.getFilesInSharedFolder(folderId, userId),
+        storage.getFoldersInSharedFolder(folderId, userId),
+      ]);
+      
+      res.json({ files: filesData, folders: foldersData });
+    } catch (error) {
+      console.error("Get shared folder content error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteúdo da pasta" });
+    }
+  });
+
   // ========== SHARES ROUTES ==========
 
   // Create share link
@@ -607,8 +998,14 @@ export async function registerRoutes(
   app.get("/api/files/:id/preview", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       if (!file.telegramFileId || !file.telegramBotId) {
@@ -631,8 +1028,14 @@ export async function registerRoutes(
   app.get("/api/files/:id/stream", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       if (!file.telegramFileId || !file.telegramBotId) {
@@ -669,8 +1072,14 @@ export async function registerRoutes(
   app.get("/api/files/:id/content", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       if (!file.telegramFileId || !file.telegramBotId) {
@@ -703,8 +1112,14 @@ export async function registerRoutes(
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       if (!file.telegramFileId || !file.telegramBotId) {
@@ -727,8 +1142,14 @@ export async function registerRoutes(
   app.get("/api/files/:id/download-data", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
-      if (!file || file.userId !== req.user!.id) {
+      if (!file) {
         return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+      
+      // Check if user has access (owner or has permission)
+      const hasAccess = await storage.hasFileAccess(req.params.id, req.user!.id);
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       if (!file.telegramFileId || !file.telegramBotId) {

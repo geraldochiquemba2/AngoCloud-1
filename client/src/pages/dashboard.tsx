@@ -3,7 +3,8 @@ import {
   Search, Trash2, Download, MoreVertical, FolderPlus, 
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
   File, Image, Video, Music, FileCode, FileArchive, Lock,
-  Shield, Loader2, AlertTriangle
+  Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
+  CheckCircle, XCircle, Clock, FolderOpen
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -48,7 +49,29 @@ interface ShareItem {
   createdAt: string;
 }
 
-type ViewMode = "files" | "trash";
+interface InvitationItem {
+  id: string;
+  resourceType: "file" | "folder";
+  resourceId: string;
+  resourceName: string;
+  ownerName: string;
+  role: string;
+  status: string;
+  createdAt: string;
+}
+
+interface SharedFileItem extends FileItem {
+  ownerName: string;
+  ownerEmail: string;
+}
+
+interface SharedFolderItem extends FolderItem {
+  ownerName: string;
+  ownerEmail: string;
+  role: string;
+}
+
+type ViewMode = "files" | "trash" | "shared";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
@@ -103,6 +126,22 @@ export default function Dashboard() {
   const [showEncryptionModal, setShowEncryptionModal] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState("");
   const [encryptionLoading, setEncryptionLoading] = useState(false);
+  
+  // Invitations
+  const [pendingInvitations, setPendingInvitations] = useState<InvitationItem[]>([]);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"viewer" | "collaborator">("viewer");
+  const [inviteResourceType, setInviteResourceType] = useState<"file" | "folder">("file");
+  const [inviteResourceId, setInviteResourceId] = useState("");
+  const [inviteResourceName, setInviteResourceName] = useState("");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  
+  // Shared content
+  const [sharedFiles, setSharedFiles] = useState<SharedFileItem[]>([]);
+  const [sharedFolders, setSharedFolders] = useState<SharedFolderItem[]>([]);
+  const [currentSharedFolderId, setCurrentSharedFolderId] = useState<string | null>(null);
+  const [sharedFolderPath, setSharedFolderPath] = useState<SharedFolderItem[]>([]);
 
   useEffect(() => {
     if (!user) {
@@ -110,7 +149,138 @@ export default function Dashboard() {
       return;
     }
     fetchContent();
+    fetchPendingInvitations();
   }, [user, navigate, currentFolderId, viewMode]);
+
+  const fetchPendingInvitations = async () => {
+    try {
+      const response = await fetch("/api/invitations/pending", { credentials: "include" });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingInvitations(data);
+      }
+    } catch (err) {
+      console.error("Error fetching invitations:", err);
+    }
+  };
+
+  const fetchSharedContent = async () => {
+    try {
+      if (currentSharedFolderId) {
+        const response = await fetch(`/api/shared/folders/${currentSharedFolderId}/content`, { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          setFiles(data.files);
+          setFolders(data.folders);
+        }
+      } else {
+        const [filesRes, foldersRes] = await Promise.all([
+          fetch("/api/shared/files", { credentials: "include" }),
+          fetch("/api/shared/folders", { credentials: "include" })
+        ]);
+        
+        if (filesRes.ok) {
+          const filesData = await filesRes.json();
+          setSharedFiles(filesData);
+        }
+        if (foldersRes.ok) {
+          const foldersData = await foldersRes.json();
+          setSharedFolders(foldersData);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching shared content:", err);
+    }
+  };
+
+  const acceptInvitation = async (invitationId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/accept`, {
+        method: "POST",
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        toast.success("Convite aceite com sucesso!");
+        fetchPendingInvitations();
+        if (viewMode === "shared") {
+          fetchSharedContent();
+        }
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao aceitar convite");
+      }
+    } catch (err) {
+      console.error("Error accepting invitation:", err);
+      toast.error("Erro ao aceitar convite");
+    }
+  };
+
+  const declineInvitation = async (invitationId: string) => {
+    try {
+      const response = await fetch(`/api/invitations/${invitationId}/decline`, {
+        method: "POST",
+        credentials: "include",
+      });
+      
+      if (response.ok) {
+        toast.success("Convite recusado");
+        fetchPendingInvitations();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao recusar convite");
+      }
+    } catch (err) {
+      console.error("Error declining invitation:", err);
+      toast.error("Erro ao recusar convite");
+    }
+  };
+
+  const sendInvitation = async () => {
+    if (!inviteEmail.trim()) {
+      toast.error("Por favor, insira um email");
+      return;
+    }
+    
+    setInviteLoading(true);
+    try {
+      const response = await fetch("/api/invitations", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          resourceType: inviteResourceType,
+          resourceId: inviteResourceId,
+          inviteeEmail: inviteEmail,
+          role: inviteRole,
+        }),
+      });
+      
+      if (response.ok) {
+        toast.success("Convite enviado com sucesso!");
+        setShowInviteModal(false);
+        setInviteEmail("");
+        setInviteRole("viewer");
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao enviar convite");
+      }
+    } catch (err) {
+      console.error("Error sending invitation:", err);
+      toast.error("Erro ao enviar convite");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const openInviteModal = (type: "file" | "folder", id: string, name: string) => {
+    setInviteResourceType(type);
+    setInviteResourceId(id);
+    setInviteResourceName(name);
+    setInviteEmail("");
+    setInviteRole("viewer");
+    setShowInviteModal(true);
+  };
 
   const fetchContent = async () => {
     try {
@@ -122,6 +292,8 @@ export default function Dashboard() {
           setFiles(data);
           setFolders([]);
         }
+      } else if (viewMode === "shared") {
+        await fetchSharedContent();
       } else {
         const [filesRes, foldersRes] = await Promise.all([
           fetch(`/api/files${currentFolderId ? `?folderId=${currentFolderId}` : ""}`, { credentials: "include" }),
@@ -1023,12 +1195,25 @@ export default function Dashboard() {
                   Nova Pasta
                 </button>
                 <button 
-                  onClick={() => { setViewMode(viewMode === "trash" ? "files" : "trash"); setCurrentFolderId(null); setFolderPath([]); }}
+                  onClick={() => { setViewMode(viewMode === "trash" ? "files" : "trash"); setCurrentFolderId(null); setFolderPath([]); setCurrentSharedFolderId(null); setSharedFolderPath([]); }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "trash" ? "bg-red-500/20 text-red-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
                   data-testid="button-trash"
                 >
                   <Trash2 className="w-4 h-4" />
                   {viewMode === "trash" ? "Ver Ficheiros" : "Lixeira"}
+                </button>
+                <button 
+                  onClick={() => { setViewMode(viewMode === "shared" ? "files" : "shared"); setCurrentFolderId(null); setFolderPath([]); setCurrentSharedFolderId(null); setSharedFolderPath([]); }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border border-white/20 font-medium transition-all ${viewMode === "shared" ? "bg-blue-500/20 text-blue-300" : "bg-white/10 hover:bg-white/20 text-white"}`}
+                  data-testid="button-shared"
+                >
+                  <Users className="w-4 h-4" />
+                  {viewMode === "shared" ? "Meus Ficheiros" : "Partilhados"}
+                  {pendingInvitations.length > 0 && (
+                    <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                      {pendingInvitations.length}
+                    </span>
+                  )}
                 </button>
               </div>
             </motion.div>
@@ -1117,6 +1302,70 @@ export default function Dashboard() {
             </motion.div>
           )}
 
+          {/* Shared Header */}
+          {viewMode === "shared" && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mb-4"
+            >
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="w-5 h-5 text-blue-400" />
+                <h2 className="text-xl font-bold text-white">Partilhados Comigo</h2>
+              </div>
+              
+              {/* Pending Invitations */}
+              {pendingInvitations.length > 0 && (
+                <div className="mb-6 backdrop-blur-md bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/30">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Mail className="w-4 h-4 text-yellow-400" />
+                    <h3 className="text-sm font-medium text-yellow-300">Convites Pendentes ({pendingInvitations.length})</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {pendingInvitations.map((inv) => (
+                      <div 
+                        key={inv.id} 
+                        className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                      >
+                        <div className="flex items-center gap-3">
+                          {inv.resourceType === "folder" ? (
+                            <Folder className="w-5 h-5 text-yellow-400" />
+                          ) : (
+                            <FileText className="w-5 h-5 text-blue-400" />
+                          )}
+                          <div>
+                            <p className="text-white font-medium text-sm">{inv.resourceName}</p>
+                            <p className="text-white/50 text-xs">
+                              De: {inv.ownerName} | Permissão: {inv.role === "collaborator" ? "Colaborador" : "Visualizador"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => acceptInvitation(inv.id)}
+                            className="p-2 rounded-lg bg-green-500/20 text-green-400 hover:bg-green-500/40 transition-colors"
+                            title="Aceitar"
+                            data-testid={`button-accept-invite-${inv.id}`}
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => declineInvitation(inv.id)}
+                            className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors"
+                            title="Recusar"
+                            data-testid={`button-decline-invite-${inv.id}`}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Content Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1146,13 +1395,93 @@ export default function Dashboard() {
                         >
                           <Folder className="w-10 h-10 text-yellow-400 mb-2" />
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
-                            className="absolute top-2 right-2 p-1 rounded-lg bg-red-500/20 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/40"
-                            data-testid={`button-delete-folder-${folder.id}`}
+                          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openInviteModal("folder", folder.id, folder.nome); }}
+                              className="p-1 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40"
+                              title="Convidar"
+                              data-testid={`button-invite-folder-${folder.id}`}
+                            >
+                              <UserPlus className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
+                              className="p-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40"
+                              data-testid={`button-delete-folder-${folder.id}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Shared Folders */}
+                {viewMode === "shared" && !currentSharedFolderId && sharedFolders.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-white/50 mb-3">Pastas Partilhadas</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                      {sharedFolders.map((folder) => (
+                        <motion.div
+                          key={folder.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-blue-500/30 cursor-pointer transition-all"
+                          onClick={() => setCurrentSharedFolderId(folder.id)}
+                          data-testid={`shared-folder-item-${folder.id}`}
+                        >
+                          <FolderOpen className="w-10 h-10 text-blue-400 mb-2" />
+                          <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
+                          <span className="text-blue-300/60 text-[10px]">
+                            {folder.ownerName} | {folder.role === "collaborator" ? "Colaborador" : "Visualizador"}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Shared Files */}
+                {viewMode === "shared" && !currentSharedFolderId && sharedFiles.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros Partilhados</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                      {sharedFiles.map((file) => (
+                        <motion.div
+                          key={file.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-blue-500/30 transition-all overflow-hidden"
+                          data-testid={`shared-file-item-${file.id}`}
+                        >
+                          <div 
+                            className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
+                            onClick={() => openPreview(file)}
                           >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                            <div className="w-full h-full flex items-center justify-center p-4">
+                              <div className="w-12 h-12 flex items-center justify-center">
+                                {getFileIcon(getEffectiveMimeType(file))}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="p-2 flex-1">
+                            <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
+                            <p className="text-blue-300/60 text-[10px]">{file.ownerName}</p>
+                          </div>
+                          
+                          <div className="absolute top-1 right-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
+                              className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                              title="Download"
+                              data-testid={`button-download-shared-${file.id}`}
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </div>
                         </motion.div>
                       ))}
                     </div>
@@ -1160,25 +1489,37 @@ export default function Dashboard() {
                 )}
 
                 {/* Files */}
-                {displayFiles.length === 0 && folders.length === 0 ? (
+                {displayFiles.length === 0 && folders.length === 0 && (viewMode !== "shared" || (sharedFiles.length === 0 && sharedFolders.length === 0)) ? (
                   <div className="flex flex-col items-center justify-center h-64 text-white/50">
-                    <FileText className="w-16 h-16 mb-4 opacity-30" />
-                    <p className="text-lg">
-                      {viewMode === "trash" 
-                        ? "A lixeira está vazia" 
-                        : searchResults 
-                          ? "Nenhum ficheiro encontrado" 
-                          : "Nenhum ficheiro ainda"}
-                    </p>
-                    {viewMode === "files" && !searchResults && (
-                      <button 
-                        onClick={() => setShowUploadModal(true)}
-                        className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-primary/80 text-white font-medium transition-all bg-[#ffffff]"
-                        data-testid="button-upload-empty"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Fazer Upload
-                      </button>
+                    {viewMode === "shared" ? (
+                      <>
+                        <Users className="w-16 h-16 mb-4 opacity-30" />
+                        <p className="text-lg">Nenhum ficheiro partilhado contigo</p>
+                        <p className="text-sm mt-2 text-white/30">
+                          Quando alguém partilhar ficheiros ou pastas contigo, aparecerão aqui
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-16 h-16 mb-4 opacity-30" />
+                        <p className="text-lg">
+                          {viewMode === "trash" 
+                            ? "A lixeira está vazia" 
+                            : searchResults 
+                              ? "Nenhum ficheiro encontrado" 
+                              : "Nenhum ficheiro ainda"}
+                        </p>
+                        {viewMode === "files" && !searchResults && (
+                          <button 
+                            onClick={() => setShowUploadModal(true)}
+                            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-primary/80 text-white font-medium transition-all bg-[#ffffff]"
+                            data-testid="button-upload-empty"
+                          >
+                            <Upload className="w-4 h-4" />
+                            Fazer Upload
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 ) : (
@@ -1848,6 +2189,129 @@ export default function Dashboard() {
                   Eliminar
                 </button>
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Invite Modal */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowInviteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/20">
+                    <UserPlus className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Convidar Utilizador</h2>
+                </div>
+                <button onClick={() => setShowInviteModal(false)} className="text-white/50 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
+                <p className="text-white/50 text-sm mb-1">
+                  {inviteResourceType === "folder" ? "Pasta:" : "Ficheiro:"}
+                </p>
+                <p className="text-white font-medium flex items-center gap-2">
+                  {inviteResourceType === "folder" ? (
+                    <Folder className="w-4 h-4 text-yellow-400" />
+                  ) : (
+                    <FileText className="w-4 h-4 text-blue-400" />
+                  )}
+                  {inviteResourceName}
+                </p>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Email do utilizador</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                    <input
+                      type="email"
+                      value={inviteEmail}
+                      onChange={(e) => setInviteEmail(e.target.value)}
+                      placeholder="email@exemplo.com"
+                      className="w-full pl-10 pr-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500"
+                      data-testid="input-invite-email"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-white/70 text-sm mb-2">Permissão</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setInviteRole("viewer")}
+                      className={`p-3 rounded-lg border transition-colors flex flex-col items-center gap-1 ${
+                        inviteRole === "viewer" 
+                          ? "bg-blue-500/20 border-blue-500 text-blue-300" 
+                          : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                      }`}
+                      data-testid="button-role-viewer"
+                    >
+                      <Shield className="w-5 h-5" />
+                      <span className="text-sm font-medium">Visualizador</span>
+                      <span className="text-[10px] text-white/50">Apenas ver e download</span>
+                    </button>
+                    <button
+                      onClick={() => setInviteRole("collaborator")}
+                      className={`p-3 rounded-lg border transition-colors flex flex-col items-center gap-1 ${
+                        inviteRole === "collaborator" 
+                          ? "bg-green-500/20 border-green-500 text-green-300" 
+                          : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                      }`}
+                      data-testid="button-role-collaborator"
+                    >
+                      <Users className="w-5 h-5" />
+                      <span className="text-sm font-medium">Colaborador</span>
+                      <span className="text-[10px] text-white/50">Ver, download e upload</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="flex-1 py-2.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-colors font-medium"
+                  data-testid="button-cancel-invite"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={sendInvitation}
+                  disabled={inviteLoading || !inviteEmail.trim()}
+                  className="flex-1 py-2.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  data-testid="button-send-invite"
+                >
+                  {inviteLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Mail className="w-4 h-4" />
+                  )}
+                  Enviar Convite
+                </button>
+              </div>
+              
+              <p className="text-white/40 text-xs text-center mt-4">
+                O utilizador receberá uma notificação no painel quando entrar
+              </p>
             </motion.div>
           </motion.div>
         )}
