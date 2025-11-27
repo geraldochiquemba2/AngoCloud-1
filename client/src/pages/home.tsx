@@ -70,10 +70,10 @@ export default function Home() {
           <button onClick={() => navigate("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
-          <Button className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
-          <Button className="text-white rounded-full px-4 sm:px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10 text-xs sm:text-base">
+          <button onClick={() => navigate("/login")} className="text-white rounded-full px-4 sm:px-6 text-xs sm:text-base border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all cursor-pointer bg-transparent">Login</button>
+          <button onClick={() => navigate("/signup")} className="text-white rounded-full px-4 sm:px-6 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10 text-xs sm:text-base cursor-pointer bg-transparent">
             Criar Conta
-          </Button>
+          </button>
         </div>
       </nav>
 
