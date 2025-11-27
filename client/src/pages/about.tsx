@@ -51,7 +51,7 @@ export default function About() {
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
         >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
-          <span className="text-white drop-shadow-md">AngoCloud</span>
+          <span className="text-white drop-shadow-md">OrbitalDrive</span>
         </button>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <button onClick={() => navigate("/")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Voltar</button>
@@ -82,7 +82,7 @@ export default function About() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
-              Sobre AngoCloud
+              Sobre OrbitalDrive
             </div>
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
               A Nuvem de <br />
@@ -252,10 +252,10 @@ export default function About() {
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left relative z-10">
           <div className="flex items-center gap-2 font-display font-bold text-xl text-white">
             <Cloud className="w-6 h-6 text-white" />
-            <span>AngoCloud</span>
+            <span>OrbitalDrive</span>
           </div>
           <div className="text-sm text-white/70 flex items-center gap-2">
-            <span>&copy; 2024 AngoCloud Technologies. Feito em Luanda com</span>
+            <span>&copy; 2024 OrbitalDrive. Feito em Luanda com</span>
             <motion.div
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 0.6, repeat: Infinity }}

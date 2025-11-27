@@ -39,7 +39,7 @@ export default function Login() {
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
         >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
-          <span className="text-white drop-shadow-md">AngoCloud</span>
+          <span className="text-white drop-shadow-md">OrbitalDrive</span>
         </button>
         <div className="flex gap-2">
           <button
@@ -68,7 +68,7 @@ export default function Login() {
               className="text-center mb-8"
             >
               <h1 className="text-3xl md:text-4xl font-display font-bold text-white mb-2">Bem-vindo</h1>
-              <p className="text-white/70">Acede à tua conta AngoCloud</p>
+              <p className="text-white/70">Acede à tua conta OrbitalDrive</p>
             </motion.div>
 
             {/* Email Input */}
@@ -151,10 +151,10 @@ export default function Login() {
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left">
           <div className="flex items-center gap-2 font-display font-bold text-xl text-white">
             <Cloud className="w-6 h-6 text-white" />
-            <span>AngoCloud</span>
+            <span>OrbitalDrive</span>
           </div>
           <div className="text-sm text-white/70 flex items-center gap-2">
-            <span>&copy; 2024 AngoCloud Technologies. Feito em Luanda com</span>
+            <span>&copy; 2024 OrbitalDrive. Feito em Luanda com</span>
             <motion.div
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 0.6, repeat: Infinity }}
