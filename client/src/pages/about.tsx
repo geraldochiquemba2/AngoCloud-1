@@ -36,13 +36,6 @@ export default function About() {
     { number: "1M+", label: "Ficheiros Guardados" }
   ];
 
-  const team = [
-    { name: "João Silva", role: "Fundador & CEO", icon: "👨‍💼" },
-    { name: "Maria Santos", role: "CTO", icon: "👩‍💻" },
-    { name: "Pedro Costa", role: "Head of Security", icon: "👨‍🔬" },
-    { name: "Ana Martins", role: "Product Manager", icon: "👩‍🔬" }
-  ];
-
   return (
     <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
       {/* Background Elements */}
@@ -202,45 +195,6 @@ export default function About() {
                   {stat.number}
                 </motion.div>
                 <p className="text-xs sm:text-sm lg:text-base text-white/80 font-medium">{stat.label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Team Section */}
-      <section className="relative py-24 px-6 md:px-12 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            viewport={{ once: true, margin: "-100px" }}
-          >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4">Nossa Equipa</h2>
-            <p className="text-muted-foreground text-lg">Pessoas talentosas dedicadas a servir Angola</p>
-          </motion.div>
-
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {team.map((member, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -8 }}
-                transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
-                viewport={{ once: true, margin: "-100px" }}
-                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-500 text-center group hover:shadow-lg hover:shadow-primary/10"
-              >
-                <motion.div 
-                  className="text-6xl mb-4 transition-transform duration-300"
-                  whileHover={{ scale: 1.2, rotate: 10 }}
-                >
-                  {member.icon}
-                </motion.div>
-                <h3 className="text-xl font-bold mb-2">{member.name}</h3>
-                <p className="text-primary font-medium text-sm">{member.role}</p>
               </motion.div>
             ))}
           </div>
