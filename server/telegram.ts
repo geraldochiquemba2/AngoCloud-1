@@ -31,6 +31,11 @@ interface RetryConfig {
   backoffMultiplier: number;
 }
 
+interface CachedUrl {
+  url: string;
+  expiresAt: number;
+}
+
 class TelegramService {
   private bots: TelegramBot[] = [];
   private currentBotIndex: number = 0;
@@ -40,6 +45,9 @@ class TelegramService {
     maxDelayMs: 10000,
     backoffMultiplier: 2,
   };
+  private urlCache: Map<string, CachedUrl> = new Map();
+  private cacheHits: number = 0;
+  private cacheMisses: number = 0;
 
   constructor() {
     this.loadBotsFromEnv();
@@ -297,14 +305,31 @@ class TelegramService {
   }
 
   /**
-   * Obtém URL de download com retry automático
+   * Obtém URL de download com cache e retry automático
+   * URLs do Telegram expiram após ~1 hora, então cacheamos por 50 minutos
    */
   public async getDownloadUrl(fileId: string, botId: string): Promise<string> {
+    const cacheKey = `${fileId}:${botId}`;
+    const cached = this.urlCache.get(cacheKey);
+    
+    if (cached && cached.expiresAt > Date.now()) {
+      this.cacheHits++;
+      return cached.url;
+    }
+    
+    this.cacheMisses++;
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
       try {
-        return await this.fetchDownloadUrl(fileId, botId);
+        const url = await this.fetchDownloadUrl(fileId, botId);
+        
+        this.urlCache.set(cacheKey, {
+          url,
+          expiresAt: Date.now() + 50 * 60 * 1000,
+        });
+        
+        return url;
       } catch (error) {
         lastError = error as Error;
         if (attempt < this.retryConfig.maxRetries) {
@@ -316,6 +341,42 @@ class TelegramService {
     }
 
     throw new Error(`Falha ao obter URL de download após ${this.retryConfig.maxRetries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Limpa cache expirado (executar periodicamente)
+   */
+  public cleanExpiredCache(): number {
+    const now = Date.now();
+    let cleaned = 0;
+    
+    for (const [key, value] of this.urlCache.entries()) {
+      if (value.expiresAt <= now) {
+        this.urlCache.delete(key);
+        cleaned++;
+      }
+    }
+    
+    if (cleaned > 0) {
+      console.log(`🧹 Cache: ${cleaned} URLs expiradas removidas`);
+    }
+    
+    return cleaned;
+  }
+
+  /**
+   * Obtém estatísticas de cache
+   */
+  public getCacheStats(): { hits: number; misses: number; size: number; hitRate: string } {
+    const total = this.cacheHits + this.cacheMisses;
+    const hitRate = total > 0 ? ((this.cacheHits / total) * 100).toFixed(1) : '0.0';
+    
+    return {
+      hits: this.cacheHits,
+      misses: this.cacheMisses,
+      size: this.urlCache.size,
+      hitRate: `${hitRate}%`,
+    };
   }
 
   /**
