@@ -54,6 +54,9 @@ export default function Dashboard() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [currentUploadFile, setCurrentUploadFile] = useState<string>("");
+  const [uploadFileIndex, setUploadFileIndex] = useState(0);
+  const [totalUploadFiles, setTotalUploadFiles] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Folder modal
@@ -322,55 +325,78 @@ export default function Dashboard() {
     }
   }, [currentFolderId]);
 
+  const uploadSingleFile = (file: globalThis.File, folderId: string | null): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file);
+      if (folderId) {
+        formData.append("folderId", folderId);
+      }
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = (event.loaded / event.total) * 100;
+          setUploadProgress(percentComplete);
+        }
+      };
+      
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          toast.success(`${file.name} enviado com sucesso`);
+          resolve(true);
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            toast.error(error.message || `Erro ao enviar ${file.name}`);
+          } catch {
+            toast.error(`Erro ao enviar ${file.name}`);
+          }
+          resolve(false);
+        }
+      };
+      
+      xhr.onerror = () => {
+        toast.error(`Erro ao enviar ${file.name}`);
+        resolve(false);
+      };
+      
+      xhr.open("POST", "/api/files/upload");
+      xhr.withCredentials = true;
+      xhr.send(formData);
+    });
+  };
+
   const uploadFiles = async (filesToUpload: globalThis.File[]) => {
     setIsUploading(true);
     setUploadProgress(0);
+    setTotalUploadFiles(filesToUpload.length);
     
-    let completed = 0;
-    const total = filesToUpload.length;
     let hasSuccess = false;
     
-    for (const file of filesToUpload) {
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        if (currentFolderId) {
-          formData.append("folderId", currentFolderId);
-        }
-        
-        const response = await fetch("/api/files/upload", {
-          method: "POST",
-          credentials: "include",
-          body: formData
-        });
-        
-        if (response.ok) {
-          completed++;
-          hasSuccess = true;
-          setUploadProgress((completed / total) * 100);
-          toast.success(`${file.name} enviado com sucesso`);
-        } else {
-          const error = await response.json();
-          toast.error(error.message || `Erro ao enviar ${file.name}`);
-        }
-      } catch (err) {
-        console.error("Upload error:", err);
-        toast.error(`Erro ao enviar ${file.name}`);
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
+      setUploadFileIndex(i + 1);
+      setCurrentUploadFile(file.name);
+      setUploadProgress(0);
+      const success = await uploadSingleFile(file, currentFolderId);
+      if (success) {
+        hasSuccess = true;
       }
     }
     
-    // Reset all upload state
     setIsUploading(false);
     setUploadProgress(0);
+    setCurrentUploadFile("");
+    setUploadFileIndex(0);
+    setTotalUploadFiles(0);
     setShowUploadModal(false);
     setDragOver(false);
     
-    // Clear file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     
-    // Refresh content and user data
     if (hasSuccess) {
       await fetchContent();
       await refreshUser();
@@ -1102,17 +1128,29 @@ export default function Dashboard() {
               </div>
               
               {isUploading && (
-                <div className="mt-4">
-                  <div className="flex justify-between text-sm text-white/70 mb-2">
-                    <span>A enviar...</span>
-                    <span>{Math.round(uploadProgress)}%</span>
+                <div className="mt-4 space-y-3">
+                  <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                    <p className="text-white/90 text-sm font-medium truncate mb-1">
+                      {currentUploadFile}
+                    </p>
+                    {totalUploadFiles > 1 && (
+                      <p className="text-white/50 text-xs">
+                        Ficheiro {uploadFileIndex} de {totalUploadFiles}
+                      </p>
+                    )}
                   </div>
-                  <div className="w-full bg-white/10 rounded-full h-2">
-                    <motion.div
-                      className="bg-primary h-full rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${uploadProgress}%` }}
-                    />
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-white/70">A enviar...</span>
+                      <span className="text-primary font-bold">{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                      <motion.div
+                        className="bg-gradient-to-r from-primary to-accent h-full rounded-full"
+                        style={{ width: `${uploadProgress}%` }}
+                        transition={{ duration: 0.1 }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
