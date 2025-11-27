@@ -203,8 +203,15 @@ export default function Home() {
                   >
                     Ideal para {plan.name === 'Empresas' ? 'negócios' : 'uso pessoal'}
                   </ThreeDCardItem>
+
+                  <ThreeDCardItem translateZ="75" className="mt-4 mb-6 inline-block">
+                    <div className="bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-2 rounded-lg border border-primary/20">
+                      <span className="text-3xl font-bold text-primary font-display">{plan.storage}</span>
+                      <span className="text-xs text-muted-foreground ml-1">de armazenamento</span>
+                    </div>
+                  </ThreeDCardItem>
                   
-                  <ThreeDCardItem translateZ="80" className="mt-6 mb-8">
+                  <ThreeDCardItem translateZ="80" className="mb-8">
                     <span className="text-4xl font-bold font-display">{plan.price}</span>
                     {plan.period && <span className="text-muted-foreground text-sm">{plan.period}</span>}
                   </ThreeDCardItem>
