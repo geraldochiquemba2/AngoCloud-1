@@ -2,7 +2,8 @@ import {
   Cloud, Heart, LogOut, Upload, FileText, Share2, Folder, 
   Search, Trash2, Download, MoreVertical, FolderPlus, 
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
-  File, Image, Video, Music, FileCode, FileArchive, Lock
+  File, Image, Video, Music, FileCode, FileArchive, Lock,
+  Shield, Loader2, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -48,7 +49,7 @@ type ViewMode = "files" | "trash";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const { user, logout, refreshUser } = useAuth();
+  const { user, logout, refreshUser, needsEncryptionSetup, enableEncryption, hasEncryptionKey } = useAuth();
   const [files, setFiles] = useState<FileItem[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -94,6 +95,11 @@ export default function Dashboard() {
   // Delete confirmation
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null);
+  
+  // Encryption setup
+  const [showEncryptionModal, setShowEncryptionModal] = useState(false);
+  const [encryptionPassword, setEncryptionPassword] = useState("");
+  const [encryptionLoading, setEncryptionLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -367,6 +373,25 @@ export default function Dashboard() {
     navigate("/");
   };
 
+  const handleEnableEncryption = async () => {
+    if (!encryptionPassword.trim()) {
+      toast.error("Por favor, insira a sua password");
+      return;
+    }
+    
+    setEncryptionLoading(true);
+    try {
+      await enableEncryption(encryptionPassword);
+      toast.success("Encriptação ativada com sucesso! Os seus ficheiros agora serão encriptados.");
+      setShowEncryptionModal(false);
+      setEncryptionPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao ativar encriptação");
+    } finally {
+      setEncryptionLoading(false);
+    }
+  };
+
   // Upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -388,13 +413,18 @@ export default function Dashboard() {
       
       let fileToUpload: globalThis.File | Blob = file;
       let originalSize = file.size;
+      let wasEncrypted = false;
       
-      if (encryptionKey && isEncryptionSupported()) {
+      if (!encryptionKey || !isEncryptionSupported()) {
+        console.warn("Encryption key not available - file will be uploaded without encryption");
+        toast.warning(`${file.name} será enviado SEM encriptação. Faça logout e login novamente para ativar a encriptação.`);
+      } else {
         setCurrentUploadFile(`A encriptar ${file.name}...`);
         
         const encrypted = await encryptFile(file, encryptionKey);
         fileToUpload = new Blob([encrypted.encryptedBuffer], { type: 'application/octet-stream' });
         originalSize = encrypted.originalSize;
+        wasEncrypted = true;
         
         setCurrentUploadFile(`A enviar ${file.name}...`);
       }
@@ -405,7 +435,7 @@ export default function Dashboard() {
         formData.append("file", fileToUpload, file.name);
         formData.append("originalSize", originalSize.toString());
         formData.append("originalMimeType", file.type);
-        formData.append("isEncrypted", encryptionKey ? "true" : "false");
+        formData.append("isEncrypted", wasEncrypted ? "true" : "false");
         if (folderId) {
           formData.append("folderId", folderId);
         }
@@ -419,7 +449,11 @@ export default function Dashboard() {
         
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            toast.success(`${file.name} enviado com sucesso (encriptado)`);
+            if (wasEncrypted) {
+              toast.success(`${file.name} enviado com sucesso (encriptado)`);
+            } else {
+              toast.success(`${file.name} enviado com sucesso`);
+            }
             resolve(true);
           } else {
             try {
@@ -874,8 +908,33 @@ export default function Dashboard() {
           <span className="hidden sm:inline">Sair</span>
         </button>
       </nav>
+      {/* Encryption Warning Banner */}
+      {needsEncryptionSetup && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-16 left-0 right-0 z-40 bg-amber-500/90 backdrop-blur-sm border-b border-amber-600"
+        >
+          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-900 flex-shrink-0" />
+              <p className="text-amber-900 text-sm font-medium">
+                A sua conta não tem encriptação ativa. Ative para proteger os seus ficheiros.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowEncryptionModal(true)}
+              className="flex items-center gap-2 px-4 py-1.5 bg-amber-900 text-white rounded-full text-sm font-medium hover:bg-amber-800 transition-colors flex-shrink-0"
+              data-testid="button-enable-encryption"
+            >
+              <Shield className="w-4 h-4" />
+              Ativar Agora
+            </button>
+          </div>
+        </motion.div>
+      )}
       {/* Main Content */}
-      <div className="pt-20 px-4 md:px-8 pb-8">
+      <div className={`${needsEncryptionSetup ? 'pt-32' : 'pt-20'} px-4 md:px-8 pb-8`}>
         <div className="max-w-7xl mx-auto">
           {/* Mobile Search */}
           <div className="md:hidden mb-6 mt-4">
@@ -1315,6 +1374,81 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Enable Encryption Modal */}
+      <AnimatePresence>
+        {showEncryptionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => !encryptionLoading && setShowEncryptionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Ativar Encriptação</h2>
+                <button 
+                  onClick={() => !encryptionLoading && setShowEncryptionModal(false)} 
+                  className="text-white/50 hover:text-white"
+                  disabled={encryptionLoading}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-white/70 text-sm mb-4">
+                Para ativar a encriptação dos seus ficheiros, por favor confirme a sua password.
+                Após ativar, todos os novos ficheiros serão encriptados automaticamente.
+              </p>
+              
+              <input
+                type="password"
+                value={encryptionPassword}
+                onChange={(e) => setEncryptionPassword(e.target.value)}
+                placeholder="Sua password"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50 mb-4"
+                onKeyDown={(e) => e.key === "Enter" && handleEnableEncryption()}
+                disabled={encryptionLoading}
+                data-testid="input-encryption-password"
+              />
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => !encryptionLoading && setShowEncryptionModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+                  disabled={encryptionLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEnableEncryption}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/80 transition-colors flex items-center justify-center gap-2"
+                  disabled={encryptionLoading}
+                  data-testid="button-confirm-encryption"
+                >
+                  {encryptionLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      A ativar...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-4 h-4" />
+                      Ativar
+                    </>
+                  )}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

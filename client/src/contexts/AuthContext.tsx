@@ -25,9 +25,11 @@ interface AuthContextType {
   signup: (email: string, password: string, nome: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  enableEncryption: (password: string) => Promise<void>;
   loading: boolean;
   error: string | null;
   hasEncryptionKey: boolean;
+  needsEncryptionSetup: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -180,6 +182,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const enableEncryption = async (password: string) => {
+    if (!isEncryptionSupported()) {
+      throw new Error("Encriptação não suportada neste browser");
+    }
+    
+    if (!user) {
+      throw new Error("Utilizador não autenticado");
+    }
+    
+    try {
+      const encryptionSalt = generateSalt();
+      
+      const response = await fetch("/api/auth/enable-encryption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ encryptionSalt, password }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Erro ao ativar encriptação");
+      }
+
+      await setupEncryptionKey(password, encryptionSalt);
+      setUser({ ...user, encryptionSalt });
+    } catch (err: any) {
+      console.error("Error enabling encryption:", err);
+      throw err;
+    }
+  };
+
+  const needsEncryptionSetup = isLoggedIn && user && !user.encryptionSalt && !hasEncryptionKey;
+
   return (
     <AuthContext.Provider value={{ 
       isLoggedIn, 
@@ -187,10 +223,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login, 
       signup, 
       logout, 
-      refreshUser, 
+      refreshUser,
+      enableEncryption,
       loading, 
       error,
-      hasEncryptionKey 
+      hasEncryptionKey,
+      needsEncryptionSetup: !!needsEncryptionSetup
     }}>
       {children}
     </AuthContext.Provider>

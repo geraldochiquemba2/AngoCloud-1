@@ -252,6 +252,45 @@ export async function registerRoutes(
     });
   });
 
+  // Enable encryption for legacy accounts
+  app.post("/api/auth/enable-encryption", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { encryptionSalt, password } = req.body;
+      
+      if (!encryptionSalt || typeof encryptionSalt !== 'string') {
+        return res.status(400).json({ message: "Salt de encriptação é obrigatório" });
+      }
+      
+      if (!password || typeof password !== 'string') {
+        return res.status(400).json({ message: "Password é obrigatória para verificação" });
+      }
+      
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      if (user.encryptionSalt) {
+        return res.status(400).json({ message: "Encriptação já está ativa para esta conta" });
+      }
+      
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Password incorreta" });
+      }
+      
+      await storage.updateEncryptionSalt(req.user!.id, encryptionSalt);
+      
+      res.json({ 
+        message: "Encriptação ativada com sucesso",
+        encryptionSalt 
+      });
+    } catch (error) {
+      console.error("Enable encryption error:", error);
+      res.status(500).json({ message: "Erro ao ativar encriptação" });
+    }
+  });
+
   // ========== FILES ROUTES ==========
 
   // Get all files for current user
