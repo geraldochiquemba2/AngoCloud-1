@@ -1,0 +1,140 @@
+- Plano de Desenvolvimento
+Visão do Produto
+"A nuvem de Angola, para angolanos. 15GB grátis, sem truques."
+
+Modelo de Preços (Competitivo)
+Plano	Armazenamento	Preço
+Grátis	15 GB	Kz 0
+Plus	100 GB	Kz 2.500/mês
+Pro	500 GB	Kz 7.500/mês
+Empresas	Ilimitado	Kz 25.000/mês
+Fases de Desenvolvimento
+📋 FASE 1: MVP (2-3 semanas)
+Versão mínima funcional para testar o mercado
+
+Funcionalidade	Prioridade
+Registro/Login de usuários	✅ Essencial
+Upload de arquivos (até 2GB)	✅ Essencial
+Lista de arquivos do usuário	✅ Essencial
+Download de arquivos	✅ Essencial
+Limite de 15GB por conta grátis	✅ Essencial
+Interface web responsiva	✅ Essencial
+📋 FASE 2: Funcionalidades Core (2-3 semanas)
+Experiência completa de nuvem
+
+Funcionalidade	Prioridade
+Criar pastas/organizar arquivos	✅ Alta
+Mover/renomear arquivos	✅ Alta
+Preview de imagens/vídeos/PDFs	✅ Alta
+Busca por nome de arquivo	✅ Alta
+Lixeira (recuperar arquivos deletados)	✅ Alta
+Compartilhar arquivo via link	✅ Alta
+📋 FASE 3: Monetização (1-2 semanas)
+Sistema de pagamentos
+
+Funcionalidade	Prioridade
+Integração Multicaixa Express	✅ Essencial
+Upgrade de plano	✅ Essencial
+Página de preços	✅ Essencial
+Histórico de pagamentos	⚡ Média
+Faturas em PDF	⚡ Média
+📋 FASE 4: App Mobile (3-4 semanas)
+Acesso pelo celular
+
+Funcionalidade	Prioridade
+PWA (funciona offline)	✅ Alta
+Upload de fotos/vídeos do celular	✅ Alta
+Backup automático da galeria	⚡ Média
+Notificações de upload completo	⚡ Média
+📋 FASE 5: Recursos Avançados (futuro)
+Diferenciação da concorrência
+
+Funcionalidade	Prioridade
+Sincronização desktop (Windows/Mac)	⚡ Média
+Compartilhamento com senha	⚡ Média
+Álbuns de fotos	⚡ Média
+Player de música	⚡ Baixa
+Colaboração em tempo real	⚡ Baixa
+Arquitetura Técnica
+┌──────────────────────────────────────────────────────────┐
+│                    FRONTEND                              │
+│  React + TailwindCSS + PWA                               │
+│  • angocloud.ao                                          │
+└────────────────────────┬─────────────────────────────────┘
+                         │
+┌────────────────────────▼─────────────────────────────────┐
+│                    BACKEND                               │
+│  Node.js + Express                                       │
+│  • Autenticação (sessões)                                │
+│  • API REST                                              │
+│  • Proxy de arquivos                                     │
+│  • Gestão de quotas                                      │
+└────────────────────────┬─────────────────────────────────┘
+                         │
+┌────────────────────────▼─────────────────────────────────┐
+│                   DATABASE                               │
+│  PostgreSQL                                              │
+│  • users (id, email, nome, plano, storage_used)          │
+│  • files (id, user_id, nome, tamanho, telegram_id, ...)  │
+│  • folders (id, user_id, nome, parent_id)                │
+│  • payments (id, user_id, valor, status, data)           │
+└────────────────────────┬─────────────────────────────────┘
+                         │
+┌────────────────────────▼─────────────────────────────────┐
+│              TELEGRAM BOT POOL                           │
+│  5+ Bots com load balancing                              │
+│  • Upload distribuído                                    │
+│  • Fallback automático                                   │
+│  • Cache de URLs                                         │
+└──────────────────────────────────────────────────────────┘
+
+Estrutura do Banco de Dados
+-- Usuários
+users:
+  id
+  email
+  password_hash
+  nome
+  plano (gratis, plus, pro, empresas)
+  storage_limit (bytes)
+  storage_used (bytes)
+  created_at
+-- Arquivos
+files:
+  id
+  user_id
+  folder_id
+  nome
+  tamanho (bytes)
+  tipo_mime
+  telegram_file_id
+  telegram_bot_id
+  is_deleted (lixeira)
+  shared_link_id
+  created_at
+-- Pastas
+folders:
+  id
+  user_id
+  parent_id
+  nome
+  created_at
+-- Compartilhamentos
+shares:
+  id
+  file_id
+  link_code
+  password_hash (opcional)
+  expires_at (opcional)
+  download_count
+  created_at
+-- Pagamentos
+payments:
+  id
+  user_id
+  valor
+  plano
+  referencia_multicaixa
+  status (pendente, pago, falhado)
+  created_at
+
