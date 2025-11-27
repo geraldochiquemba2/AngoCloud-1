@@ -172,22 +172,34 @@ export default function Home() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-6 md:px-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/40 pointer-events-none" />
+      <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex items-center">
+        {/* Fixed Video Background */}
+        <div className="fixed inset-0 w-full h-full -z-10">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="/pricing-video.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-black/50" />
+        </div>
         
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="max-w-7xl mx-auto relative z-10 w-full">
           <div className="text-center mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4">Planos Flexíveis</h2>
-            <p className="text-muted-foreground">Escolha o espaço que você precisa.</p>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Planos Flexíveis</h2>
+            <p className="text-white/80">Escolha o espaço que você precisa.</p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {pricingPlans.map((plan, i) => (
               <ThreeDCard key={i} className="w-full md:w-auto" containerClassName="md:!py-0">
-                <ThreeDCardBody className="bg-white relative group/card hover:shadow-lg hover:shadow-primary/[0.1] w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-primary/10 glass-card">
+                <ThreeDCardBody className="backdrop-blur-md bg-white/20 relative group/card hover:shadow-lg hover:shadow-white/20 w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30 glass-card">
                   <ThreeDCardItem
                     translateZ="50"
-                    className="text-xl font-bold text-foreground"
+                    className="text-xl font-bold text-white"
                   >
                     {plan.name}
                   </ThreeDCardItem>
@@ -195,21 +207,21 @@ export default function Home() {
                   <ThreeDCardItem
                     as="p"
                     translateZ="60"
-                    className="text-muted-foreground text-sm max-w-sm mt-2"
+                    className="text-white/70 text-sm max-w-sm mt-2"
                   >
                     Ideal para {plan.name === 'Empresas' ? 'negócios' : 'uso pessoal'}
                   </ThreeDCardItem>
 
                   <ThreeDCardItem translateZ="75" className="mt-4 mb-6 inline-block">
-                    <div className="bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-2 rounded-lg border border-primary/20">
-                      <span className="text-3xl font-bold text-primary font-display">{plan.storage}</span>
-                      <span className="text-xs text-muted-foreground ml-1">de armazenamento</span>
+                    <div className="bg-white/10 px-4 py-2 rounded-lg border border-white/30">
+                      <span className="text-3xl font-bold text-white font-display">{plan.storage}</span>
+                      <span className="text-xs text-white/60 ml-1">de armazenamento</span>
                     </div>
                   </ThreeDCardItem>
                   
                   <ThreeDCardItem translateZ="80" className="mb-8">
-                    <span className="text-4xl font-bold font-display">{plan.price}</span>
-                    {plan.period && <span className="text-muted-foreground text-sm">{plan.period}</span>}
+                    <span className="text-4xl font-bold font-display text-white">{plan.price}</span>
+                    {plan.period && <span className="text-white/60 text-sm">{plan.period}</span>}
                   </ThreeDCardItem>
                   
                   <div className="space-y-3 mb-8">
@@ -217,9 +229,9 @@ export default function Home() {
                       <ThreeDCardItem 
                         key={idx} 
                         translateZ={40 + (idx * 5)}
-                        className="flex items-center gap-3 text-sm text-muted-foreground"
+                        className="flex items-center gap-3 text-sm text-white/70"
                       >
-                        <Check className="w-4 h-4 text-primary" />
+                        <Check className="w-4 h-4 text-white" />
                         {feature}
                       </ThreeDCardItem>
                     ))}
@@ -232,10 +244,10 @@ export default function Home() {
                   >
                     <Button 
                       className={cn(
-                        "w-full rounded-lg", 
+                        "w-full rounded-lg font-bold", 
                         plan.highlight 
-                          ? "bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/25" 
-                          : "bg-white/10 hover:bg-white/20 text-white"
+                          ? "bg-white hover:bg-white/90 text-black shadow-lg shadow-white/30" 
+                          : "bg-white/20 hover:bg-white/30 text-white border border-white/40"
                       )}
                     >
                       Selecionar Plano
