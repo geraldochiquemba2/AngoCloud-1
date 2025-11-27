@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Signup() {
   const [, navigate] = useLocation();
@@ -11,10 +12,12 @@ export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const { login } = useAuth();
 
   const handleSignup = () => {
     if (fullName && email && password && confirmPassword && password === confirmPassword) {
-      navigate("/");
+      login(email);
+      navigate("/dashboard");
     }
   };
 

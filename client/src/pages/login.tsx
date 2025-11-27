@@ -4,15 +4,18 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
   const [, navigate] = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { login } = useAuth();
 
   const handleLogin = () => {
     if (email && password) {
-      navigate("/");
+      login(email);
+      navigate("/dashboard");
     }
   };
 

@@ -5,6 +5,8 @@ import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
@@ -13,6 +15,13 @@ import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { isLoggedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/dashboard");
+    }
+  }, [isLoggedIn, navigate]);
   const pricingPlans = [
     {
       name: "Grátis",

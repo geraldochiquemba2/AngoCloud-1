@@ -8,8 +8,10 @@ import Home from "@/pages/home";
 import About from "@/pages/about";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
+import Dashboard from "@/pages/dashboard";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 function Router() {
   const [location] = useLocation();
@@ -28,6 +30,7 @@ function Router() {
           <Route path="/about" component={About} />
           <Route path="/login" component={Login} />
           <Route path="/signup" component={Signup} />
+          <Route path="/dashboard" component={Dashboard} />
           <Route component={NotFound} />
         </Switch>
       </motion.div>
@@ -99,11 +102,13 @@ function PreloadAssets() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <PreloadAssets />
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <PreloadAssets />
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
