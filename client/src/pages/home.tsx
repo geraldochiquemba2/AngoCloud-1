@@ -199,7 +199,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {pricingPlans.map((plan, i) => (
               <ThreeDCard key={i} className="w-full md:w-auto" containerClassName="md:!py-0">
-                <ThreeDCardBody className="backdrop-blur-md bg-white/20 relative group/card hover:shadow-lg hover:shadow-white/20 w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30 glass-card">
+                <ThreeDCardBody className="backdrop-blur-lg bg-white/5 relative group/card hover:shadow-lg hover:shadow-white/20 w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/20 glass-card">
                   <ThreeDCardItem
                     translateZ="50"
                     className="text-xl font-bold text-white"
