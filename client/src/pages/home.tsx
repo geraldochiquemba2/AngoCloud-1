@@ -65,8 +65,8 @@ export default function Home() {
           <a href="#about" className="hover:text-white transition-colors">Sobre</a>
         </div>
         <div className="flex gap-4">
-          <Button className="hidden md:flex text-white hover:bg-white/10 rounded-full px-6">Login</Button>
-          <Button className="bg-white hover:bg-white/90 text-primary shadow-lg shadow-white/20 rounded-full px-6 font-bold">
+          <Button className="hidden md:flex text-white rounded-full px-6 border border-white/30 hover:bg-white/10 hover:border-white/50 backdrop-blur-sm transition-all">Login</Button>
+          <Button className="text-white rounded-full px-6 font-bold border border-white/30 hover:bg-white/10 hover:border-white/50 backdrop-blur-sm transition-all shadow-lg shadow-white/10">
             Criar Conta
           </Button>
         </div>
@@ -86,7 +86,7 @@ export default function Home() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="z-20"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/10 backdrop-blur-md text-xs font-medium text-white mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/5 backdrop-blur-md text-xs font-medium text-white mb-6">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
@@ -104,7 +104,7 @@ export default function Home() {
               <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-12 px-8 rounded-full shadow-xl text-base font-bold">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/40 hover:bg-white/10 text-white text-base">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 hover:bg-white/10 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all">
                 Ver Planos
               </Button>
             </div>
