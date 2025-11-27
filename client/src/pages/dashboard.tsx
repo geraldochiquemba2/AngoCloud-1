@@ -457,10 +457,13 @@ export default function Dashboard() {
   // File action handlers
   const deleteFile = async (fileId: string) => {
     try {
+      console.log("Deleting file:", fileId);
       const response = await fetch(`/api/files/${fileId}`, {
         method: "DELETE",
         credentials: "include"
       });
+      
+      console.log("Delete response status:", response.status);
       
       if (response.ok) {
         toast.success("Arquivo movido para a lixeira");
@@ -468,6 +471,7 @@ export default function Dashboard() {
         fetchContent();
       } else {
         const error = await response.json();
+        console.error("Delete error:", error);
         toast.error(error.message || "Erro ao eliminar arquivo");
       }
     } catch (err) {
@@ -477,15 +481,21 @@ export default function Dashboard() {
   };
 
   const renameFile = async () => {
-    if (!selectedFile || !newFileName.trim()) return;
+    if (!selectedFile || !newFileName.trim()) {
+      toast.error("Nome de arquivo inválido");
+      return;
+    }
     
     try {
+      console.log("Renaming file:", selectedFile.id, "to:", newFileName);
       const response = await fetch(`/api/files/${selectedFile.id}/rename`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nome: newFileName })
       });
+      
+      console.log("Rename response status:", response.status);
       
       if (response.ok) {
         toast.success("Arquivo renomeado com sucesso");
@@ -495,6 +505,7 @@ export default function Dashboard() {
         fetchContent();
       } else {
         const error = await response.json();
+        console.error("Rename error:", error);
         toast.error(error.message || "Erro ao renomear arquivo");
       }
     } catch (err) {
@@ -504,15 +515,21 @@ export default function Dashboard() {
   };
 
   const moveFile = async (targetFolderId: string | null) => {
-    if (!selectedFile) return;
+    if (!selectedFile) {
+      toast.error("Arquivo não selecionado");
+      return;
+    }
     
     try {
+      console.log("Moving file:", selectedFile.id, "to folder:", targetFolderId);
       const response = await fetch(`/api/files/${selectedFile.id}/move`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folderId: targetFolderId })
       });
+      
+      console.log("Move response status:", response.status);
       
       if (response.ok) {
         toast.success("Arquivo movido com sucesso");
@@ -521,6 +538,7 @@ export default function Dashboard() {
         fetchContent();
       } else {
         const error = await response.json();
+        console.error("Move error:", error);
         toast.error(error.message || "Erro ao mover arquivo");
       }
     } catch (err) {
