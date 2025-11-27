@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import aboutHeroVideo from "@assets/4351798-hd_1280_720_50fps_1764253527054.mp4";
 import aboutVideoFrame from "@assets/generated_images/about_page_video_first_frame.png";
+import valuesBackgroundImage from "@assets/pexels-yankrukov-7315485_1764254260497.jpg";
 
 export default function About() {
   const [, navigate] = useLocation();
@@ -110,8 +111,17 @@ export default function About() {
       </section>
 
       {/* Values Section */}
-      <section className="relative py-24 px-6 md:px-12 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
+      <section 
+        className="relative py-24 px-6 md:px-12 overflow-hidden"
+        style={{
+          backgroundImage: `url(${valuesBackgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -119,8 +129,8 @@ export default function About() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4">Nossos Valores</h2>
-            <p className="text-muted-foreground text-lg">O que nos move a cada dia</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4 text-white">Nossos Valores</h2>
+            <p className="text-white/80 text-lg">O que nos move a cada dia</p>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-8">
@@ -132,16 +142,16 @@ export default function About() {
                 whileHover={{ y: -8 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-500 group hover:shadow-lg hover:shadow-primary/10"
+                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 hover:border-white/50 transition-all duration-500 group hover:shadow-lg hover:shadow-white/20"
               >
                 <motion.div 
-                  className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300"
+                  className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center mb-6 group-hover:bg-white/30 transition-all duration-300"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                 >
-                  <value.icon className="w-7 h-7 text-primary" />
+                  <value.icon className="w-7 h-7 text-white" />
                 </motion.div>
-                <h3 className="text-2xl font-bold mb-3">{value.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{value.desc}</p>
+                <h3 className="text-2xl font-bold mb-3 text-white">{value.title}</h3>
+                <p className="text-white/80 leading-relaxed">{value.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -149,8 +159,17 @@ export default function About() {
       </section>
 
       {/* Stats Section */}
-      <section className="relative py-24 px-6 md:px-12 overflow-hidden bg-gradient-to-r from-primary/5 to-accent/5">
-        <div className="max-w-7xl mx-auto">
+      <section 
+        className="relative py-24 px-6 md:px-12 overflow-hidden"
+        style={{
+          backgroundImage: `url(${valuesBackgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
@@ -158,7 +177,7 @@ export default function About() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             viewport={{ once: true, margin: "-100px" }}
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4">Pelos Números</h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4 text-white">Pelos Números</h2>
           </motion.div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
@@ -170,15 +189,15 @@ export default function About() {
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="text-center backdrop-blur-md bg-white/5 p-8 rounded-2xl border border-primary/10 transition-all duration-300 hover:bg-white/10 hover:border-primary/20"
+                className="text-center backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 transition-all duration-300 hover:bg-white/20 hover:border-white/50"
               >
                 <motion.div 
-                  className="text-4xl sm:text-5xl font-display font-bold text-primary mb-2"
+                  className="text-4xl sm:text-5xl font-display font-bold text-white mb-2"
                   whileHover={{ scale: 1.1 }}
                 >
                   {stat.number}
                 </motion.div>
-                <p className="text-muted-foreground font-medium">{stat.label}</p>
+                <p className="text-white/80 font-medium">{stat.label}</p>
               </motion.div>
             ))}
           </div>
