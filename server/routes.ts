@@ -656,6 +656,82 @@ export async function registerRoutes(
     }
   });
 
+  // Stream shared file for preview (public, CORS enabled)
+  app.get("/api/shares/:linkCode/stream", async (req: Request, res: Response) => {
+    try {
+      const share = await storage.getShareByLinkCode(req.params.linkCode);
+      if (!share) {
+        return res.status(404).json({ message: "Link não encontrado" });
+      }
+
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+        return res.status(410).json({ message: "Link expirado" });
+      }
+
+      const file = await storage.getFile(share.fileId);
+      if (!file) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      const response = await fetch(downloadUrl);
+      if (!response.ok) {
+        return res.status(500).json({ message: "Erro ao buscar ficheiro" });
+      }
+
+      res.setHeader("Content-Type", file.tipoMime);
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (error) {
+      console.error("Stream error:", error);
+      res.status(500).json({ message: "Erro ao fazer stream" });
+    }
+  });
+
+  // Get preview URL for shared file (public)
+  app.get("/api/shares/:linkCode/preview", async (req: Request, res: Response) => {
+    try {
+      const share = await storage.getShareByLinkCode(req.params.linkCode);
+      if (!share) {
+        return res.status(404).json({ message: "Link não encontrado" });
+      }
+
+      if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
+        return res.status(410).json({ message: "Link expirado" });
+      }
+
+      const file = await storage.getFile(share.fileId);
+      if (!file) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Arquivo não disponível" });
+      }
+
+      const previewUrl = await telegramService.getDownloadUrl(
+        file.telegramFileId,
+        file.telegramBotId
+      );
+
+      res.json({ url: previewUrl, mimeType: file.tipoMime });
+    } catch (error) {
+      console.error("Preview error:", error);
+      res.status(500).json({ message: "Erro ao obter preview" });
+    }
+  });
+
   // ========== SYSTEM STATUS ROUTES ==========
 
   // Get Telegram bot status (for monitoring)
