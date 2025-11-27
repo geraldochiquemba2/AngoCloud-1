@@ -55,8 +55,8 @@ export default function Home() {
 
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
-        <div className="flex items-center gap-2 font-display font-bold text-2xl tracking-tighter">
-          <Cloud className="w-8 h-8 text-white fill-white/20" />
+        <div className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter">
+          <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
           <span className="text-white drop-shadow-md">AngoCloud</span>
         </div>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80 hover:text-white transition-colors">
@@ -79,7 +79,7 @@ export default function Home() {
           <VideoBackground videoSrc={heroVideo} posterSrc={heroImage} />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-center w-full max-w-7xl mx-auto relative z-10">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-12 items-center w-full max-w-7xl mx-auto relative z-10">
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -93,15 +93,15 @@ export default function Home() {
               </span>
               A Nuvem de Angola
             </div>
-            <h1 className="text-5xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
+            <h1 className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
               Armazenamento <br />
               <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras.</span>
             </h1>
-            <p className="text-lg text-white/90 mb-8 max-w-md leading-relaxed drop-shadow-md">
+            <p className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md">
               Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-12 px-8 rounded-full shadow-xl text-base font-bold">
+              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold">
                 Começar Grátis
               </Button>
               <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all">
@@ -109,7 +109,7 @@ export default function Home() {
               </Button>
             </div>
             
-            <div className="mt-12 flex items-center gap-8 text-sm font-medium text-white/80">
+            <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
@@ -138,13 +138,13 @@ export default function Home() {
       <section id="features" className="py-24 px-6 md:px-12 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Tecnologia de Ponta</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4">Tecnologia de Ponta</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               Infraestrutura local otimizada para a rede de internet angolana, garantindo a menor latência possível.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {[
               { title: "Servidores em Luanda", desc: "Acesso ultra-rápido sem depender de cabos submarinos internacionais.", icon: Zap },
               { title: "Privacidade Total", desc: "Seus dados são seus. Encriptação AES-256 em repouso e em trânsito.", icon: Shield },
@@ -172,14 +172,14 @@ export default function Home() {
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">Planos Flexíveis</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4">Planos Flexíveis</h2>
             <p className="text-muted-foreground">Escolha o espaço que você precisa.</p>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-8">
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8">
             {pricingPlans.map((plan, i) => (
               <ThreeDCard key={i} className="w-full md:w-auto" containerClassName="md:!py-0">
-                <ThreeDCardBody className="bg-white relative group/card hover:shadow-lg hover:shadow-primary/[0.1] w-[300px] md:w-[350px] h-auto rounded-xl p-6 border border-primary/10 glass-card">
+                <ThreeDCardBody className="bg-white relative group/card hover:shadow-lg hover:shadow-primary/[0.1] w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-primary/10 glass-card">
                   <ThreeDCardItem
                     translateZ="50"
                     className="text-xl font-bold text-foreground"
@@ -245,7 +245,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-12 border-t border-primary/10 bg-white/50">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left">
           <div className="flex items-center gap-2 font-display font-bold text-xl">
             <Cloud className="w-6 h-6 text-primary" />
             <span>AngoCloud</span>
