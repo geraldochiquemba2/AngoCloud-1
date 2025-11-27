@@ -98,6 +98,18 @@ app.use((req, res, next) => {
       const expiredFiles = await storage.purgeExpiredTrash(15);
       if (expiredFiles.length > 0) {
         log(`🗑️ Limpeza automática: ${expiredFiles.length} ficheiros expirados eliminados da lixeira`);
+        
+        // Try to delete from Telegram
+        for (const file of expiredFiles) {
+          if (file.telegramFileId && file.telegramBotId) {
+            try {
+              await telegramService.deleteFile(file.telegramFileId, file.telegramBotId);
+            } catch (telegramError) {
+              // Telegram doesn't support deletion, just log
+            }
+          }
+        }
+        
         // Update storage for each user whose files were deleted
         const userStorageUpdates: { [userId: string]: number } = {};
         for (const file of expiredFiles) {

@@ -19,7 +19,9 @@ AngoCloud é uma plataforma de armazenamento em nuvem projetada para fornecer ar
 - ✅ Sistema de quotas de armazenamento por plano
 - ✅ Compartilhamento de arquivos via links públicos
 - ✅ Dashboard completo com funcionalidades avançadas
-- ✅ Sistema de lixeira com recuperação
+- ✅ **🆕 Sistema de lixeira com 15 dias para recuperação**
+- ✅ **🆕 Confirmação de eliminação com diálogo**
+- ✅ **🆕 Eliminação automática após 15 dias**
 - ✅ Busca de arquivos integrada
 - ✅ Frontend totalmente funcional e responsivo
 
@@ -211,8 +213,10 @@ CREATE INDEX idx_folders_parent_id ON folders(parent_id);
 | Utilizadores simultâneos | 500 | Usar load balancer + múltiplos servidores |
 | Armazenamento total | Ilimitado* | Depende apenas de bots Telegram |
 | Robustez contra bloqueios | ✅ Robusto | Retry + Fallback + Health checks |
+| **Eliminação permanente | ⚠️ Limitada | Telegram não suporta deleção real** |
 
 *Cada bot Telegram tem limite de armazenamento teórico ilimitado
+**Ficheiros eliminados são removidos do BD local, mas ficam guardados no Telegram (limitação do Telegram)
 
 ### 5. Monitoramento Recomendado
 

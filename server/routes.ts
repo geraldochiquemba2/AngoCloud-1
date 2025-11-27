@@ -367,6 +367,15 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não encontrado" });
       }
 
+      // Try to delete from Telegram (Telegram doesn't support real deletion, but we try)
+      if (file.telegramFileId && file.telegramBotId) {
+        try {
+          await telegramService.deleteFile(file.telegramFileId, file.telegramBotId);
+        } catch (telegramError) {
+          console.log(`ℹ️ Não foi possível eliminar do Telegram: ${telegramError}`);
+        }
+      }
+
       // Decrease storage used
       await storage.updateUserStorage(req.user!.id, -file.tamanho);
       await storage.deleteFile(req.params.id);
