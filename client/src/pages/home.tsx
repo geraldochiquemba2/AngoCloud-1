@@ -86,43 +86,80 @@ export default function Home() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="z-20"
           >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/5 backdrop-blur-md text-xs font-medium text-white mb-6">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 bg-white/5 backdrop-blur-md text-xs font-medium text-white mb-6"
+            >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
               </span>
               A Nuvem de Angola
-            </div>
-            <h1 className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg">
+            </motion.div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+              className="text-3xl sm:text-4xl md:text-7xl font-display font-bold leading-[1.1] mb-6 text-white drop-shadow-lg"
+            >
               Armazenamento <br />
               <span className="bg-gradient-to-r from-white to-white/90 bg-clip-text text-transparent drop-shadow-lg">Sem Fronteiras.</span>
-            </h1>
-            <p className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md">
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+              className="text-sm sm:text-base md:text-lg text-white/90 mb-8 leading-relaxed drop-shadow-md"
+            >
               Guarde, partilhe e aceda aos seus ficheiros com a velocidade de servidores locais. 15GB grátis para todos os angolanos, sem truques.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold">
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4"
+            >
+              <Button size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold transition-all duration-300">
                 Começar Grátis
               </Button>
-              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all">
+              <Button size="lg" variant="outline" className="h-12 px-8 rounded-full border-white/30 bg-white/5 hover:bg-white/15 text-white text-base backdrop-blur-sm hover:border-white/50 transition-all duration-300">
                 Ver Planos
               </Button>
-            </div>
+            </motion.div>
             
-            <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80">
-              <div className="flex items-center gap-2">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+              className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80"
+            >
+              <motion.div 
+                whileHover={{ x: 5 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-2"
+              >
                 <Lock className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
-              </div>
-              <div className="flex items-center gap-2">
+              </motion.div>
+              <motion.div 
+                whileHover={{ x: 5 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-2"
+              >
                 <Server className="w-4 h-4 text-white" />
                 <span>Alta Velocidade</span>
-              </div>
-              <div className="flex items-center gap-2">
+              </motion.div>
+              <motion.div 
+                whileHover={{ x: 5 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-2"
+              >
                 <Cloud className="w-4 h-4 text-white" />
                 <span>15GB Grátis</span>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </motion.div>
 
           <motion.div 
@@ -142,12 +179,18 @@ export default function Home() {
         backgroundAttachment: 'fixed'
       }}>
         <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            viewport={{ once: true, margin: "-100px" }}
+          >
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Tecnologia de Ponta</h2>
             <p className="text-white/80 max-w-2xl mx-auto">
               Infraestrutura local otimizada para a rede de internet angolana, garantindo a menor latência possível.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
             {[

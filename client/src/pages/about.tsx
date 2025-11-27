@@ -122,13 +122,17 @@ export default function About() {
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -8 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-300 group hover:shadow-lg hover:shadow-primary/10"
+                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-500 group hover:shadow-lg hover:shadow-primary/10"
               >
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
+                <motion.div 
+                  className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-all duration-300"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                >
                   <value.icon className="w-7 h-7 text-primary" />
-                </div>
+                </motion.div>
                 <h3 className="text-2xl font-bold mb-3">{value.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{value.desc}</p>
               </motion.div>
@@ -156,13 +160,17 @@ export default function About() {
                 key={i}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
+                whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="text-center backdrop-blur-md bg-white/5 p-8 rounded-2xl border border-primary/10"
+                className="text-center backdrop-blur-md bg-white/5 p-8 rounded-2xl border border-primary/10 transition-all duration-300 hover:bg-white/10 hover:border-primary/20"
               >
-                <div className="text-4xl sm:text-5xl font-display font-bold text-primary mb-2">
+                <motion.div 
+                  className="text-4xl sm:text-5xl font-display font-bold text-primary mb-2"
+                  whileHover={{ scale: 1.1 }}
+                >
                   {stat.number}
-                </div>
+                </motion.div>
                 <p className="text-muted-foreground font-medium">{stat.label}</p>
               </motion.div>
             ))}
@@ -190,13 +198,17 @@ export default function About() {
                 key={i}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -8 }}
                 transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-300 text-center group hover:shadow-lg hover:shadow-primary/10"
+                className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-primary/20 hover:border-primary/40 transition-all duration-500 text-center group hover:shadow-lg hover:shadow-primary/10"
               >
-                <div className="text-6xl mb-4 group-hover:scale-110 transition-transform duration-300">
+                <motion.div 
+                  className="text-6xl mb-4 transition-transform duration-300"
+                  whileHover={{ scale: 1.2, rotate: 10 }}
+                >
                   {member.icon}
-                </div>
+                </motion.div>
                 <h3 className="text-xl font-bold mb-2">{member.name}</h3>
                 <p className="text-primary font-medium text-sm">{member.role}</p>
               </motion.div>
@@ -229,7 +241,13 @@ export default function About() {
       </section>
 
       {/* Footer */}
-      <footer className="relative py-12 px-6 md:px-12 border-t border-primary/10 bg-black/20 backdrop-blur-sm">
+      <motion.footer 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        viewport={{ once: true, margin: "-100px" }}
+        className="relative py-12 px-6 md:px-12 border-t border-primary/10 bg-black/20 backdrop-blur-sm"
+      >
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left">
           <div className="flex items-center gap-2 font-display font-bold text-xl text-white">
             <Cloud className="w-6 h-6 text-white" />
@@ -249,7 +267,7 @@ export default function About() {
              {/* Social icons would go here */}
           </div>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
