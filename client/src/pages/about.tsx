@@ -184,7 +184,7 @@ export default function About() {
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-display font-bold mb-4 text-white">Pelos Números</h2>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {stats.map((stat, i) => (
               <motion.div
                 key={i}
@@ -193,15 +193,15 @@ export default function About() {
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
-                className="text-center backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 transition-all duration-300 hover:bg-white/20 hover:border-white/50"
+                className="text-center backdrop-blur-md bg-white/10 p-6 sm:p-8 rounded-2xl border border-white/30 transition-all duration-300 hover:bg-white/20 hover:border-white/50"
               >
                 <motion.div 
-                  className="text-4xl sm:text-5xl font-display font-bold text-white mb-2"
+                  className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-white mb-2"
                   whileHover={{ scale: 1.1 }}
                 >
                   {stat.number}
                 </motion.div>
-                <p className="text-white/80 font-medium">{stat.label}</p>
+                <p className="text-xs sm:text-sm lg:text-base text-white/80 font-medium">{stat.label}</p>
               </motion.div>
             ))}
           </div>
