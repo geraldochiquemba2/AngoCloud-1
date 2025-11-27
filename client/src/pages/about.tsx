@@ -1,4 +1,4 @@
-import { Cloud, Heart, Rocket, Zap, Shield } from "lucide-react";
+import { Cloud, Heart, Cloud as CloudMission, CloudOff, CloudCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
@@ -13,22 +13,19 @@ export default function About() {
 
   const values = [
     {
-      icon: Rocket,
+      icon: Cloud,
       title: "Missão",
-      desc: "Fornecer armazenamento em nuvem acessível, seguro e rápido para todos os angolanos.",
-      gradient: "from-orange-500 to-red-500"
+      desc: "Fornecer armazenamento em nuvem acessível, seguro e rápido para todos os angolanos."
     },
     {
-      icon: Zap,
+      icon: CloudCheck,
       title: "Visão",
-      desc: "Ser a plataforma de confiança para armazenamento digital em Angola.",
-      gradient: "from-yellow-500 to-orange-500"
+      desc: "Ser a plataforma de confiança para armazenamento digital em Angola."
     },
     {
-      icon: Shield,
+      icon: CloudOff,
       title: "Compromisso",
-      desc: "Priorizar privacidade, segurança e infraestrutura local de qualidade.",
-      gradient: "from-blue-500 to-cyan-500"
+      desc: "Priorizar privacidade, segurança e infraestrutura local de qualidade."
     }
   ];
 
@@ -150,10 +147,10 @@ export default function About() {
                 className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 hover:border-white/50 transition-all duration-500 group hover:shadow-lg hover:shadow-white/20"
               >
                 <motion.div 
-                  className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${value.gradient} flex items-center justify-center mb-6 shadow-lg shadow-${value.gradient.split(' ')[1]}/50 transition-all duration-300`}
-                  whileHover={{ scale: 1.15, rotate: -5 }}
+                  className="w-16 h-16 rounded-xl bg-white/10 border border-white/30 flex items-center justify-center mb-6 group-hover:bg-white/20 transition-all duration-300"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
                 >
-                  <value.icon className="w-10 h-10 text-white drop-shadow-lg" strokeWidth={1.5} />
+                  <value.icon className="w-8 h-8 text-white" strokeWidth={1.5} />
                 </motion.div>
                 <h3 className="text-2xl font-bold mb-3 text-white">{value.title}</h3>
                 <p className="text-white/80 leading-relaxed">{value.desc}</p>
