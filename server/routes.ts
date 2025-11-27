@@ -540,7 +540,6 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Link não encontrado" });
       }
 
-      // Check expiration
       if (share.expiresAt && new Date(share.expiresAt) < new Date()) {
         return res.status(410).json({ message: "Link expirado" });
       }
@@ -550,7 +549,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não encontrado" });
       }
 
-      res.json({ share, file });
+      res.json({ 
+        share, 
+        file: {
+          ...file,
+          tipoMime: file.originalMimeType || file.tipoMime,
+          tamanho: file.originalSize || file.tamanho,
+        }
+      });
     } catch (error) {
       res.status(500).json({ message: "Erro ao buscar compartilhamento" });
     }

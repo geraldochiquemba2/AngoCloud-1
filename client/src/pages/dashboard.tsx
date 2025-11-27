@@ -195,19 +195,45 @@ export default function Dashboard() {
     if (fileThumbnails[fileId]) return;
     
     try {
-      if (mimeType.startsWith("video/")) {
-        try {
-          const thumbnailDataUrl = await generateVideoThumbnail(`/api/files/${fileId}/stream`);
-          setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
-        } catch (err) {
-          console.error("Error generating video thumbnail:", err);
-          setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+      const metaResponse = await fetch(`/api/files/${fileId}/download-data`, { credentials: "include" });
+      if (!metaResponse.ok) return;
+      
+      const meta = await metaResponse.json();
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      if (meta.isEncrypted && encryptionKey) {
+        const fileResponse = await fetch(meta.downloadUrl);
+        if (!fileResponse.ok) return;
+        
+        const encryptedBuffer = await fileResponse.arrayBuffer();
+        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+        const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
+        const url = createDownloadUrl(blob);
+        
+        if (meta.originalMimeType.startsWith("video/")) {
+          try {
+            const thumbnailDataUrl = await generateVideoThumbnail(url);
+            revokeDownloadUrl(url);
+            setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+          } catch (err) {
+            console.error("Error generating video thumbnail:", err);
+            revokeDownloadUrl(url);
+            setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+          }
+        } else {
+          setFileThumbnails(prev => ({ ...prev, [fileId]: url }));
         }
       } else {
-        const response = await fetch(`/api/files/${fileId}/preview`, { credentials: "include" });
-        if (response.ok) {
-          const data = await response.json();
-          setFileThumbnails(prev => ({ ...prev, [fileId]: data.url }));
+        if (mimeType.startsWith("video/") || meta.originalMimeType?.startsWith("video/")) {
+          try {
+            const thumbnailDataUrl = await generateVideoThumbnail(`/api/files/${fileId}/stream`);
+            setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+          } catch (err) {
+            console.error("Error generating video thumbnail:", err);
+            setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+          }
+        } else {
+          setFileThumbnails(prev => ({ ...prev, [fileId]: meta.downloadUrl }));
         }
       }
     } catch (err) {
@@ -234,10 +260,27 @@ export default function Dashboard() {
     setPreviewUrl(null);
     
     try {
-      const response = await fetch(`/api/files/${file.id}/preview`, { credentials: "include" });
-      if (response.ok) {
-        const data = await response.json();
-        setPreviewUrl(data.url);
+      const metaResponse = await fetch(`/api/files/${file.id}/download-data`, { credentials: "include" });
+      if (!metaResponse.ok) {
+        throw new Error("Could not fetch file data");
+      }
+      
+      const meta = await metaResponse.json();
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      if (meta.isEncrypted && encryptionKey) {
+        const fileResponse = await fetch(meta.downloadUrl);
+        if (!fileResponse.ok) {
+          throw new Error("Could not fetch encrypted file");
+        }
+        
+        const encryptedBuffer = await fileResponse.arrayBuffer();
+        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+        const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
+        const url = createDownloadUrl(blob);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(meta.downloadUrl);
       }
     } catch (err) {
       console.error("Error loading preview:", err);

@@ -1,4 +1,4 @@
-import { Cloud, Download, FileText, File, Image, Video, Music, FileArchive, FileCode, AlertCircle, X, Play, Maximize2 } from "lucide-react";
+import { Cloud, Download, FileText, File, Image, Video, Music, FileArchive, FileCode, AlertCircle, X, Play, Maximize2, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { useEffect, useState, useCallback } from "react";
@@ -9,6 +9,9 @@ interface FileInfo {
   tamanho: number;
   tipoMime: string;
   createdAt: string;
+  isEncrypted?: boolean;
+  originalMimeType?: string;
+  originalSize?: number;
 }
 
 interface ShareInfo {
