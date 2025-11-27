@@ -1735,25 +1735,25 @@ export default function Dashboard() {
                     <p className="text-white/50 text-sm">A carregar...</p>
                   </div>
                 ) : previewUrl ? (
-                  previewFile.tipoMime.startsWith("image/") ? (
+                  getEffectiveMimeType(previewFile).startsWith("image/") ? (
                     <img 
                       src={previewUrl} 
                       alt={previewFile.nome}
                       className="max-w-full max-h-[70vh] object-contain"
                     />
-                  ) : previewFile.tipoMime.startsWith("video/") ? (
+                  ) : getEffectiveMimeType(previewFile).startsWith("video/") ? (
                     <video 
                       src={previewUrl} 
                       controls 
                       autoPlay
                       className="max-w-full max-h-[70vh]"
                     />
-                  ) : previewFile.tipoMime.startsWith("audio/") ? (
+                  ) : getEffectiveMimeType(previewFile).startsWith("audio/") ? (
                     <div className="flex flex-col items-center gap-4 p-8">
                       <Music className="w-20 h-20 text-white/50" />
                       <audio src={previewUrl} controls autoPlay className="w-full max-w-md" />
                     </div>
-                  ) : previewFile.tipoMime === "application/pdf" ? (
+                  ) : getEffectiveMimeType(previewFile) === "application/pdf" ? (
                     <iframe 
                       src={previewUrl} 
                       className="w-full h-[70vh]"
@@ -1761,7 +1761,7 @@ export default function Dashboard() {
                     />
                   ) : (
                     <div className="flex flex-col items-center gap-4 p-8">
-                      {getFileIcon(previewFile.tipoMime)}
+                      {getFileIcon(getEffectiveMimeType(previewFile))}
                       <p className="text-white/70 text-center">
                         Preview não disponível para este tipo de ficheiro.
                         <br />
@@ -1776,7 +1776,7 @@ export default function Dashboard() {
                   )
                 ) : (
                   <div className="flex flex-col items-center gap-4 p-8">
-                    {getFileIcon(previewFile.tipoMime)}
+                    {getFileIcon(getEffectiveMimeType(previewFile))}
                     <p className="text-white/50">Não foi possível carregar o preview</p>
                   </div>
                 )}
