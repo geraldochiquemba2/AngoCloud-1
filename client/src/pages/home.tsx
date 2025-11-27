@@ -46,7 +46,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen w-full overflow-hidden bg-background text-foreground selection:bg-primary/10">
+    <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
       {/* Background Elements */}
       <div className="fixed inset-0 z-[-1]">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
