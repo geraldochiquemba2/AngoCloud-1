@@ -247,8 +247,21 @@ export default function SharePage() {
             </div>
           ) : file && share ? (
             <div className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/30 text-center">
-              {/* Preview Thumbnail */}
-              {isMediaFile(file) && (
+              {/* Encrypted file warning */}
+              {file.isEncrypted && (
+                <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Lock className="w-5 h-5 text-amber-400" />
+                    <span className="text-amber-400 font-medium">Ficheiro Encriptado</span>
+                  </div>
+                  <p className="text-white/70 text-sm">
+                    Este ficheiro está protegido com encriptação. O preview não está disponível, mas podes fazer download.
+                  </p>
+                </div>
+              )}
+              
+              {/* Preview Thumbnail - only for non-encrypted files */}
+              {!file.isEncrypted && isMediaFile(file) && (
                 <div 
                   className="relative mb-6 rounded-xl overflow-hidden cursor-pointer group"
                   onClick={openFullPreview}
@@ -291,18 +304,25 @@ export default function SharePage() {
                 </div>
               )}
               
-              {/* File Icon for non-media files */}
-              {!isMediaFile(file) && (
+              {/* File Icon for non-media files OR encrypted files */}
+              {(!isMediaFile(file) || file.isEncrypted) && (
                 <div className="mb-6 flex justify-center">
-                  {getFileIcon(getEffectiveMimeType(file))}
+                  {file.isEncrypted ? (
+                    <div className="relative">
+                      {getFileIcon(getEffectiveMimeType(file))}
+                      <Lock className="absolute -bottom-1 -right-1 w-5 h-5 text-amber-400 bg-slate-800 rounded-full p-0.5" />
+                    </div>
+                  ) : (
+                    getFileIcon(getEffectiveMimeType(file))
+                  )}
                 </div>
               )}
               
               <h1 className="text-xl font-bold text-white mb-2 break-words">{file.nome}</h1>
               <p className="text-white/60 text-sm mb-6">{formatFileSize(file.tamanho)}</p>
               
-              {/* Preview Button for previewable files */}
-              {canPreview(file) && (
+              {/* Preview Button for previewable files - not for encrypted files */}
+              {!file.isEncrypted && canPreview(file) && (
                 <button
                   onClick={openFullPreview}
                   className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors mb-3"
