@@ -154,7 +154,7 @@ export default function Login() {
               whileHover={!isLoading ? { scale: 1.02 } : {}}
               onClick={handleLogin}
               disabled={isLoading}
-              className="w-full bg-white hover:bg-white/90 text-primary font-bold py-3 rounded-lg transition-all duration-300 mb-4 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
+              className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md font-bold py-3 rounded-lg transition-all duration-300 mb-4 disabled:opacity-50 disabled:cursor-not-allowed mt-6"
               data-testid="button-login"
             >
               {isLoading ? "Entrando..." : "Entrar"}
