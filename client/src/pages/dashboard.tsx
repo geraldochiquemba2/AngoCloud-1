@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import dashboardBgImage from "@/assets/dashboard-bg.jpg";
+import LoadingScreen from "@/components/LoadingScreen";
 import { 
   encryptFile, 
   decryptBuffer, 
@@ -108,7 +109,7 @@ export default function Dashboard() {
   const [menuOpenTime, setMenuOpenTime] = useState<number>(0);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+          <ImagePreloader />
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
@@ -167,15 +168,25 @@ export default function Dashboard() {
   const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; plan: string} | null>(null);
   const [showApprovedSection, setShowApprovedSection] = useState(true);
   const [showRejectedSection, setShowRejectedSection] = useState(true);
+  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
-    fetchContent();
-    fetchPendingInvitations();
-    fetchUpgradeRequests();
+    // Show loading and preload images
+    setShowLoading(true);
+    const loadAndFetch = async () => {
+      await Promise.all([
+        fetchContent(),
+        fetchPendingInvitations(),
+        fetchUpgradeRequests(),
+      ]);
+      // Simulate slight delay for better UX
+      setTimeout(() => setShowLoading(false), 500);
+    };
+    loadAndFetch();
   }, [user, navigate, currentFolderId, viewMode]);
 
   const fetchUpgradeRequests = async () => {
@@ -1353,6 +1364,7 @@ export default function Dashboard() {
           </div>
         </motion.div>
       )}
+      <LoadingScreen isVisible={showLoading} />
       {/* Main Content */}
       <div 
         className={`${needsEncryptionSetup ? 'pt-32' : 'pt-20'} px-4 md:px-8 pb-8`}

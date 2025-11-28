@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
 import adminBgImage from "@/assets/dashboard-bg.jpg";
+import LoadingScreen from "@/components/LoadingScreen";
 import { 
   ArrowLeft, 
   Users, 
@@ -114,6 +115,7 @@ export default function AdminPage() {
   const [rejectingRequest, setRejectingRequest] = useState<UpgradeRequest | null>(null);
   const [rejectNote, setRejectNote] = useState("");
   const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [showLoading, setShowLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && (!user || !user.isAdmin)) {
@@ -123,7 +125,8 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (user?.isAdmin) {
-      fetchData();
+      setShowLoading(true);
+      fetchData().then(() => setTimeout(() => setShowLoading(false), 300));
     }
   }, [user]);
 
@@ -289,15 +292,17 @@ export default function AdminPage() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900"
-      style={{
-        backgroundImage: `url(${adminBgImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
+    <>
+      <LoadingScreen isVisible={showLoading} />
+      <div 
+        className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900"
+        style={{
+          backgroundImage: `url(${adminBgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -816,6 +821,7 @@ export default function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 }
