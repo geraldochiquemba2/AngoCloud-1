@@ -204,6 +204,12 @@ export default function Dashboard() {
     loadAndFetch();
   }, [user, navigate, currentFolderId, viewMode]);
 
+  useEffect(() => {
+    if (viewMode === "shared") {
+      fetchSharedContent();
+    }
+  }, [currentSharedFolderId, viewMode]);
+
   const fetchUpgradeRequests = async () => {
     try {
       const response = await fetch("/api/my-upgrade-requests", { credentials: "include" });
