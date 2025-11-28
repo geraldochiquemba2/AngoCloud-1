@@ -1997,11 +1997,9 @@ export default function Dashboard() {
                         {sharedFolderFolders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                           {sharedFolderFiles.map((file) => (
-                            <motion.div
+                            <div
                               key={file.id}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-all overflow-hidden ${
+                              className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-colors overflow-hidden ${
                                 file.isEncrypted ? 'border-amber-500/50' : 'border-white/20'
                               }`}
                               data-testid={`shared-subfolder-file-item-${file.id}`}
@@ -2049,7 +2047,7 @@ export default function Dashboard() {
                                   </button>
                                 )}
                               </div>
-                            </motion.div>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -2070,11 +2068,9 @@ export default function Dashboard() {
                     <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros Partilhados</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                       {sharedFiles.map((file) => (
-                        <motion.div
+                        <div
                           key={file.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-all overflow-hidden ${
+                          className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-colors overflow-hidden ${
                             file.isEncrypted ? 'border-amber-500/50' : 'border-blue-500/30'
                           }`}
                           data-testid={`shared-file-item-${file.id}`}
@@ -2170,7 +2166,7 @@ export default function Dashboard() {
                               <X className="w-3 h-3" />
                             </button>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
