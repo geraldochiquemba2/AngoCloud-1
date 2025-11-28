@@ -360,6 +360,10 @@ export async function registerRoutes(
 
   // Upload file
   app.post("/api/files/upload", requireAuth, upload.single("file"), async (req: Request, res: Response) => {
+    // Extend timeout for large file uploads (15 minutes)
+    req.setTimeout(900000);
+    res.setTimeout(900000);
+    
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Nenhum arquivo enviado" });

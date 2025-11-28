@@ -134,6 +134,12 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
+  
+  // Configure HTTP server timeouts for large file uploads (15 minutes)
+  httpServer.timeout = 900000; // 15 minutes
+  httpServer.keepAliveTimeout = 900000;
+  httpServer.headersTimeout = 910000; // Slightly higher than keepAliveTimeout
+  
   httpServer.listen(
     {
       port,
@@ -143,6 +149,7 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       log(`🚀 Sistema com retry/fallback e cache ativo`);
+      log(`⏱️ Timeout do servidor: 15 minutos para uploads grandes`);
       
       // Iniciar sistema de keep-alive para evitar hibernação no Render (plano free)
       startKeepAlive(port, log);
