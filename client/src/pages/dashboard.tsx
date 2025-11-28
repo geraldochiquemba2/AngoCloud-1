@@ -184,11 +184,11 @@ export default function Dashboard() {
           fetchPendingInvitations(),
           fetchUpgradeRequests(),
         ]);
+        // Hide loading after data loads
+        setShowLoading(false);
       } catch (err) {
         console.error("Error loading dashboard:", err);
-      } finally {
-        // Simulate slight delay for better UX
-        setTimeout(() => setShowLoading(false), 1000);
+        setShowLoading(false);
       }
     };
     loadAndFetch();
