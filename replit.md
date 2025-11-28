@@ -37,7 +37,9 @@ AngoCloud é uma plataforma de armazenamento em nuvem projetada para fornecer ar
 - ✅ **Zero-Knowledge** - Servidor nunca tem acesso aos ficheiros desencriptados
 - ✅ **Previews Encriptados** - Thumbnails e previews são desencriptados no cliente
 - ✅ **Download Seguro** - Ficheiros desencriptados automaticamente ao baixar
-- ⚠️ **Compartilhamento** - Links partilhados não podem ser desencriptados por terceiros (limitação intencional)
+- ✅ **🆕 Partilha com Chave** - Ao partilhar ficheiro encriptado com utilizador registado, a chave é também partilhada
+- ✅ **🆕 Revogação Automática** - Ao remover partilha, a chave é automaticamente revogada
+- ⚠️ **Links Públicos** - Links públicos de partilha não incluem chave (ficheiros encriptados não são acessíveis por links públicos)
 
 ## User Preferences
 
