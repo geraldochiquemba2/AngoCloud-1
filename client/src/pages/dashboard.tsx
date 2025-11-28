@@ -3333,7 +3333,7 @@ export default function Dashboard() {
                   )}
                   <div className="text-center mb-4">
                     <h3 className="text-lg font-bold text-white mb-1">Grátis</h3>
-                    <div className="text-3xl font-bold text-white">Kz 0<span className="text-sm font-normal text-white/50">/mês</span></div>
+                    <div className="text-3xl font-bold text-white">Kz 0<span className="text-sm font-normal text-white/50">/trimestre</span></div>
                   </div>
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2 text-white/70">
@@ -3373,7 +3373,7 @@ export default function Dashboard() {
                   )}
                   <div className="text-center mb-4">
                     <h3 className="text-lg font-bold text-blue-400 mb-1">Básico</h3>
-                    <div className="text-3xl font-bold text-white">Kz 2.500<span className="text-sm font-normal text-white/50">/mês</span></div>
+                    <div className="text-3xl font-bold text-white">Kz 7.500<span className="text-sm font-normal text-white/50">/trimestre</span></div>
                   </div>
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2 text-white/70">
@@ -3425,7 +3425,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-center mb-4">
                     <h3 className="text-lg font-bold text-purple-400 mb-1">Profissional</h3>
-                    <div className="text-3xl font-bold text-white">Kz 5.000<span className="text-sm font-normal text-white/50">/mês</span></div>
+                    <div className="text-3xl font-bold text-white">Kz 15.000<span className="text-sm font-normal text-white/50">/trimestre</span></div>
                   </div>
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2 text-white/70">
@@ -3474,7 +3474,7 @@ export default function Dashboard() {
                   )}
                   <div className="text-center mb-4">
                     <h3 className="text-lg font-bold text-amber-400 mb-1">Empresarial</h3>
-                    <div className="text-3xl font-bold text-white">Kz 15.000<span className="text-sm font-normal text-white/50">/mês</span></div>
+                    <div className="text-3xl font-bold text-white">Kz 45.000<span className="text-sm font-normal text-white/50">/trimestre</span></div>
                   </div>
                   <ul className="space-y-2 mb-6 text-sm">
                     <li className="flex items-center gap-2 text-white/70">
