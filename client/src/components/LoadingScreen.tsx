@@ -15,6 +15,7 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{
+        backgroundColor: '#0f172a',
         backgroundImage: `url(${loadingBg})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',

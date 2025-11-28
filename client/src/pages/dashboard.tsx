@@ -184,7 +184,7 @@ export default function Dashboard() {
         fetchUpgradeRequests(),
       ]);
       // Simulate slight delay for better UX
-      setTimeout(() => setShowLoading(false), 500);
+      setTimeout(() => setShowLoading(false), 1000);
     };
     loadAndFetch();
   }, [user, navigate, currentFolderId, viewMode]);
