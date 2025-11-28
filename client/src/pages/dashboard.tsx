@@ -1605,6 +1605,36 @@ export default function Dashboard() {
                 <h2 className="text-xl font-bold text-white">Partilhados Comigo</h2>
               </div>
               
+              {/* Shared Folder Breadcrumb */}
+              {currentSharedFolderId && sharedFolderPath.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-2 mb-4 text-white/70"
+                >
+                  <button 
+                    onClick={() => { setCurrentSharedFolderId(null); setSharedFolderPath([]); }}
+                    className="flex items-center gap-1 hover:text-white transition-colors"
+                    data-testid="button-back-shared-root"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Voltar</span>
+                  </button>
+                  {sharedFolderPath.map((folder, index) => (
+                    <span key={folder.id} className="flex items-center gap-2">
+                      <span>/</span>
+                      <button
+                        onClick={() => setCurrentSharedFolderId(folder.id)}
+                        className="hover:text-white transition-colors"
+                        data-testid={`breadcrumb-shared-folder-${folder.id}`}
+                      >
+                        {folder.nome}
+                      </button>
+                    </span>
+                  ))}
+                </motion.div>
+              )}
+              
               {/* Pending Invitations */}
               {pendingInvitations.length > 0 && (
                 <div className="mb-6 backdrop-blur-md bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/30">
