@@ -557,6 +557,16 @@ export default function Dashboard() {
     });
   }, [sharedFiles, loadThumbnail]);
 
+  // Load thumbnails for shared folder files
+  useEffect(() => {
+    const mediaFiles = sharedFolderFiles.filter(isMediaFile);
+    mediaFiles.forEach(file => {
+      if (!fileThumbnails[file.id]) {
+        loadThumbnail(file.id, getEffectiveMimeType(file));
+      }
+    });
+  }, [sharedFolderFiles, loadThumbnail]);
+
   // Open file preview
   const openPreview = async (file: FileItem) => {
     setPreviewFile(file);
