@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { toast } from "sonner";
+import dashboardBgImage from "@/assets/dashboard-bg.jpg";
 import { 
   encryptFile, 
   decryptBuffer, 
@@ -1353,7 +1354,15 @@ export default function Dashboard() {
         </motion.div>
       )}
       {/* Main Content */}
-      <div className={`${needsEncryptionSetup ? 'pt-32' : 'pt-20'} px-4 md:px-8 pb-8`}>
+      <div 
+        className={`${needsEncryptionSetup ? 'pt-32' : 'pt-20'} px-4 md:px-8 pb-8`}
+        style={{
+          backgroundImage: `url(${dashboardBgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
         <div className="max-w-7xl mx-auto">
           {/* Mobile Search */}
           <div className="md:hidden mb-6 mt-4">
