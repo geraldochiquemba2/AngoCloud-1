@@ -1625,8 +1625,8 @@ export default function Dashboard() {
                 <h2 className="text-xl font-bold text-white">Partilhados Comigo</h2>
               </div>
               
-              {/* Shared Folder Breadcrumb */}
-              {currentSharedFolderId && sharedFolderPath.length > 0 && (
+              {/* Shared Folder Breadcrumb - Back Button */}
+              {currentSharedFolderId && (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -1640,7 +1640,7 @@ export default function Dashboard() {
                     <ArrowLeft className="w-4 h-4" />
                     <span>Voltar</span>
                   </button>
-                  {sharedFolderPath.map((folder, index) => (
+                  {sharedFolderPath.map((folder) => (
                     <span key={folder.id} className="flex items-center gap-2">
                       <span>/</span>
                       <button
@@ -1795,7 +1795,7 @@ export default function Dashboard() {
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-blue-500/30 cursor-pointer transition-all"
-                          onClick={() => setCurrentSharedFolderId(folder.id)}
+                          onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([]); }}
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
                           <div className="absolute top-1 right-1 flex items-center gap-1 transition-opacity">
@@ -1840,7 +1840,7 @@ export default function Dashboard() {
                               initial={{ opacity: 0, scale: 0.9 }}
                               animate={{ opacity: 1, scale: 1 }}
                               className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/20 cursor-pointer transition-all"
-                              onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([...sharedFolderPath, folder]); }}
+                              onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([...sharedFolderPath, {id: folder.id, nome: folder.nome} as SharedFolderItem]); }}
                               data-testid={`shared-subfolder-item-${folder.id}`}
                             >
                               <Folder className="w-10 h-10 text-blue-400 mb-2" />
