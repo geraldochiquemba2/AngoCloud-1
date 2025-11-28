@@ -148,6 +148,10 @@ export default function Dashboard() {
   const [sharedFolders, setSharedFolders] = useState<SharedFolderItem[]>([]);
   const [currentSharedFolderId, setCurrentSharedFolderId] = useState<string | null>(null);
   const [sharedFolderPath, setSharedFolderPath] = useState<SharedFolderItem[]>([]);
+  
+  // Plans modal
+  const [showPlansModal, setShowPlansModal] = useState(false);
+  const [requestingPlan, setRequestingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -1422,9 +1426,16 @@ export default function Dashboard() {
                 <span>Usado: {formatStorageUsed()}</span>
                 <span>Disponível: {formatStorageAvailable()}</span>
               </div>
-              <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                <p className="text-xs text-white/70">Plano: <span className="font-bold text-white capitalize">{user.plano}</span></p>
-              </div>
+              <button 
+                onClick={() => setShowPlansModal(true)}
+                className="w-full p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
+                data-testid="button-open-plans"
+              >
+                <p className="text-xs text-white/70">
+                  Plano: <span className="font-bold text-white capitalize">{user.plano}</span>
+                  <span className="ml-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Ver planos</span>
+                </p>
+              </button>
             </motion.div>
           </div>
 
@@ -2631,6 +2642,304 @@ export default function Dashboard() {
               <p className="text-white/40 text-xs text-center mt-4">
                 O utilizador receberá uma notificação no painel quando entrar
               </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Plans Modal */}
+      <AnimatePresence>
+        {showPlansModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+            onClick={() => setShowPlansModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-4xl border border-white/20 my-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
+                    <Cloud className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Planos AngoCloud</h2>
+                    <p className="text-white/50 text-sm">Escolha o plano ideal para as suas necessidades</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowPlansModal(false)} className="text-white/50 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Plano Grátis */}
+                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "gratis" ? "bg-gray-500/20 border-gray-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}>
+                  {user.plano === "gratis" && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-500 rounded-full text-xs font-bold text-white">
+                      Plano Atual
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-bold text-white mb-1">Grátis</h3>
+                    <div className="text-3xl font-bold text-white">Kz 0<span className="text-sm font-normal text-white/50">/mês</span></div>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>15 GB de armazenamento</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>50 uploads máximos</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Partilha de ficheiros</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Encriptação de ficheiros</span>
+                    </li>
+                  </ul>
+                  {user.plano === "gratis" ? (
+                    <button disabled className="w-full py-2 rounded-lg bg-gray-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
+                      Plano Atual
+                    </button>
+                  ) : (
+                    <button disabled className="w-full py-2 rounded-lg bg-white/10 text-white/50 cursor-not-allowed text-sm font-medium">
+                      Plano Básico
+                    </button>
+                  )}
+                </div>
+
+                {/* Plano Básico */}
+                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "basico" ? "bg-blue-500/20 border-blue-500" : "bg-white/5 border-white/10 hover:border-blue-500/50"}`}>
+                  {user.plano === "basico" && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 rounded-full text-xs font-bold text-white">
+                      Plano Atual
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-bold text-blue-400 mb-1">Básico</h3>
+                    <div className="text-3xl font-bold text-white">Kz 2.500<span className="text-sm font-normal text-white/50">/mês</span></div>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>50 GB de armazenamento</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>200 uploads máximos</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Tudo do plano Grátis</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Suporte por email</span>
+                    </li>
+                  </ul>
+                  {user.plano === "basico" ? (
+                    <button disabled className="w-full py-2 rounded-lg bg-blue-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
+                      Plano Atual
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={async () => {
+                        setRequestingPlan("basico");
+                        try {
+                          const response = await fetch("/api/upgrade-requests", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ requestedPlan: "basico" })
+                          });
+                          if (response.ok) {
+                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
+                            setShowPlansModal(false);
+                          } else {
+                            const data = await response.json();
+                            toast.error(data.message || "Erro ao solicitar upgrade");
+                          }
+                        } catch {
+                          toast.error("Erro ao solicitar upgrade");
+                        } finally {
+                          setRequestingPlan(null);
+                        }
+                      }}
+                      disabled={requestingPlan === "basico"}
+                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      data-testid="button-request-basico"
+                    >
+                      {requestingPlan === "basico" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Solicitar Upgrade
+                    </button>
+                  )}
+                </div>
+
+                {/* Plano Profissional */}
+                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "profissional" ? "bg-purple-500/20 border-purple-500" : "bg-white/5 border-white/10 hover:border-purple-500/50"}`}>
+                  {user.plano === "profissional" && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-purple-500 rounded-full text-xs font-bold text-white">
+                      Plano Atual
+                    </div>
+                  )}
+                  <div className="absolute -top-3 right-3 px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-xs font-bold text-white">
+                    Popular
+                  </div>
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-bold text-purple-400 mb-1">Profissional</h3>
+                    <div className="text-3xl font-bold text-white">Kz 5.000<span className="text-sm font-normal text-white/50">/mês</span></div>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>100 GB de armazenamento</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>1.000 uploads máximos</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Tudo do plano Básico</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Suporte prioritário</span>
+                    </li>
+                  </ul>
+                  {user.plano === "profissional" ? (
+                    <button disabled className="w-full py-2 rounded-lg bg-purple-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
+                      Plano Atual
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={async () => {
+                        setRequestingPlan("profissional");
+                        try {
+                          const response = await fetch("/api/upgrade-requests", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ requestedPlan: "profissional" })
+                          });
+                          if (response.ok) {
+                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
+                            setShowPlansModal(false);
+                          } else {
+                            const data = await response.json();
+                            toast.error(data.message || "Erro ao solicitar upgrade");
+                          }
+                        } catch {
+                          toast.error("Erro ao solicitar upgrade");
+                        } finally {
+                          setRequestingPlan(null);
+                        }
+                      }}
+                      disabled={requestingPlan === "profissional"}
+                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      data-testid="button-request-profissional"
+                    >
+                      {requestingPlan === "profissional" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Solicitar Upgrade
+                    </button>
+                  )}
+                </div>
+
+                {/* Plano Empresarial */}
+                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "empresarial" ? "bg-amber-500/20 border-amber-500" : "bg-white/5 border-white/10 hover:border-amber-500/50"}`}>
+                  {user.plano === "empresarial" && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold text-white">
+                      Plano Atual
+                    </div>
+                  )}
+                  <div className="text-center mb-4">
+                    <h3 className="text-lg font-bold text-amber-400 mb-1">Empresarial</h3>
+                    <div className="text-3xl font-bold text-white">Kz 15.000<span className="text-sm font-normal text-white/50">/mês</span></div>
+                  </div>
+                  <ul className="space-y-2 mb-6 text-sm">
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>500 GB de armazenamento</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Uploads ilimitados</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Tudo do plano Profissional</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-white/70">
+                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>Suporte dedicado 24/7</span>
+                    </li>
+                  </ul>
+                  {user.plano === "empresarial" ? (
+                    <button disabled className="w-full py-2 rounded-lg bg-amber-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
+                      Plano Atual
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={async () => {
+                        setRequestingPlan("empresarial");
+                        try {
+                          const response = await fetch("/api/upgrade-requests", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ requestedPlan: "empresarial" })
+                          });
+                          if (response.ok) {
+                            toast.success("Solicitação de upgrade enviada! Aguarde aprovação.");
+                            setShowPlansModal(false);
+                          } else {
+                            const data = await response.json();
+                            toast.error(data.message || "Erro ao solicitar upgrade");
+                          }
+                        } catch {
+                          toast.error("Erro ao solicitar upgrade");
+                        } finally {
+                          setRequestingPlan(null);
+                        }
+                      }}
+                      disabled={requestingPlan === "empresarial"}
+                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      data-testid="button-request-empresarial"
+                    >
+                      {requestingPlan === "empresarial" ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                      Solicitar Upgrade
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="mt-6 p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
+                    <Shield className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-white font-medium text-sm mb-1">Como funciona o upgrade?</h4>
+                    <p className="text-white/50 text-xs">
+                      Ao solicitar um upgrade, a nossa equipa irá entrar em contacto consigo para confirmar o pagamento. 
+                      Após confirmação, o seu plano será activado imediatamente. 
+                      Para pagamento, aceitamos Multicaixa Express e transferência bancária.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
