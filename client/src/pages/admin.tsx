@@ -126,7 +126,13 @@ export default function AdminPage() {
   useEffect(() => {
     if (user?.isAdmin) {
       setShowLoading(true);
-      fetchData().then(() => setTimeout(() => setShowLoading(false), 300));
+      const startTime = Date.now();
+      fetchData().then(() => {
+        // Ensure loading lasts at least 3 seconds
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 3000 - elapsedTime);
+        setTimeout(() => setShowLoading(false), remainingTime);
+      });
     }
   }, [user]);
 

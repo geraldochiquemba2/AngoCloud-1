@@ -177,6 +177,8 @@ export default function Dashboard() {
     }
     // Show loading and preload images
     setShowLoading(true);
+    const startTime = Date.now();
+    
     const loadAndFetch = async () => {
       try {
         await Promise.all([
@@ -184,11 +186,13 @@ export default function Dashboard() {
           fetchPendingInvitations(),
           fetchUpgradeRequests(),
         ]);
-        // Hide loading after data loads
-        setShowLoading(false);
       } catch (err) {
         console.error("Error loading dashboard:", err);
-        setShowLoading(false);
+      } finally {
+        // Ensure loading lasts at least 3 seconds
+        const elapsedTime = Date.now() - startTime;
+        const remainingTime = Math.max(0, 3000 - elapsedTime);
+        setTimeout(() => setShowLoading(false), remainingTime);
       }
     };
     loadAndFetch();
