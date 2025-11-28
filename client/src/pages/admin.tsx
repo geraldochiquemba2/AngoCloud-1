@@ -14,7 +14,8 @@ import {
   HardDrive,
   Upload,
   Mail,
-  Calendar
+  Calendar,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -106,6 +107,7 @@ export default function AdminPage() {
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectingRequest, setRejectingRequest] = useState<UpgradeRequest | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
 
   useEffect(() => {
     if (!loading && (!user || !user.isAdmin)) {
@@ -496,13 +498,28 @@ export default function AdminPage() {
             <TabsContent value="users">
               <Card className="bg-black/30 border-white/10 backdrop-blur-md">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Users className="w-5 h-5" />
-                    Gestão de Utilizadores
-                  </CardTitle>
-                  <CardDescription className="text-white/60">
-                    Visualize e gerencie todos os utilizadores do sistema
-                  </CardDescription>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-white flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        Gestão de Utilizadores
+                      </CardTitle>
+                      <CardDescription className="text-white/60">
+                        Visualize e gerencie todos os utilizadores do sistema
+                      </CardDescription>
+                    </div>
+                    <div className="relative w-full md:w-64">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                      <input
+                        type="text"
+                        placeholder="Buscar por nome ou email..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
+                        data-testid="input-search-users"
+                      />
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {loadingData ? (
@@ -527,7 +544,13 @@ export default function AdminPage() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {users.map((u) => (
+                          {users
+                            .filter((u) => {
+                              if (!userSearchQuery.trim()) return true;
+                              const query = userSearchQuery.toLowerCase();
+                              return u.nome.toLowerCase().includes(query) || u.email.toLowerCase().includes(query);
+                            })
+                            .map((u) => (
                             <TableRow 
                               key={u.id} 
                               className="border-white/10 hover:bg-white/5"
