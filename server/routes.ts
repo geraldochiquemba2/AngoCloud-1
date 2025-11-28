@@ -1361,13 +1361,16 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Acesso negado" });
       }
 
-      if (!file.telegramFileId || !file.telegramBotId) {
+      if (!file.telegramFileId) {
         return res.status(404).json({ message: "Arquivo não disponível" });
       }
 
+      // Use provided botId or get first available bot
+      const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
+
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
-        file.telegramBotId
+        botId
       );
 
       const response = await fetch(downloadUrl);
@@ -1401,13 +1404,16 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Acesso negado" });
       }
 
-      if (!file.telegramFileId || !file.telegramBotId) {
+      if (!file.telegramFileId) {
         return res.status(404).json({ message: "Arquivo não disponível para download" });
       }
 
+      // Use provided botId or get first available bot
+      const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
+
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
-        file.telegramBotId
+        botId
       );
 
       res.redirect(downloadUrl);
@@ -1431,13 +1437,16 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Acesso negado" });
       }
 
-      if (!file.telegramFileId || !file.telegramBotId) {
+      if (!file.telegramFileId) {
         return res.status(404).json({ message: "Arquivo não disponível para download" });
       }
 
+      // Use provided botId or get first available bot
+      const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
+
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
-        file.telegramBotId
+        botId
       );
 
       // Check if current user is the file owner
