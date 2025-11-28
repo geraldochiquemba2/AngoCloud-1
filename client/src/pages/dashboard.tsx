@@ -210,7 +210,7 @@ export default function Dashboard() {
   // Handle shared folder navigation
   useEffect(() => {
     if (viewMode === "shared" && currentSharedFolderId) {
-      fetchSharedFolderContent(currentSharedFolderId);
+      fetchSharedContent();
     }
   }, [currentSharedFolderId]);
 
