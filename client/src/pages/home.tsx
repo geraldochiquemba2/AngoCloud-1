@@ -109,7 +109,7 @@ export default function Home() {
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
         >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
-          <span className="text-white drop-shadow-md">OrbitalDrive</span>
+          <span className="text-white drop-shadow-md">OrbitalCloud</span>
         </button>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <a href="#features" className="hover:text-white transition-colors cursor-pointer">Funcionalidades</a>
@@ -379,10 +379,10 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-6 md:px-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6 text-center md:text-left">
             <div className="flex items-center gap-2 font-display font-bold text-xl text-white">
               <Cloud className="w-6 h-6 text-white" />
-              <span>OrbitalDrive</span>
+              <span>OrbitalCloud</span>
             </div>
             <div className="text-sm text-white/70 flex items-center gap-2">
-              <span>&copy; 2024 OrbitalDrive. Feito em Luanda com</span>
+              <span>&copy; 2024 OrbitalCloud. Feito em Luanda com</span>
               <motion.div
                 animate={{ scale: [1, 1.2, 1] }}
                 transition={{ duration: 0.6, repeat: Infinity }}

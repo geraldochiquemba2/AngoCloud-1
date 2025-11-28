@@ -32,7 +32,7 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
         {/* Logo text */}
         <div className="text-center">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-2xl">
-            OrbitalDrive
+            OrbitalCloud
           </h1>
           <p className="text-cyan-300/80 text-sm mt-2 font-medium tracking-widest">
             Carregando...
