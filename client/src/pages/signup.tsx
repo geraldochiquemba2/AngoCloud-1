@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { useState } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
 import { useAuth } from "@/contexts/AuthContext";
+import LoadingScreen from "@/components/LoadingScreen";
 
 export default function Signup() {
   const [, navigate] = useLocation();
@@ -46,17 +47,19 @@ export default function Signup() {
   };
 
   return (
-    <div 
-      className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10 flex flex-col"
-      style={{
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      {/* Background Overlay */}
-      <div className="fixed inset-0 z-[-1] bg-black/40" />
+    <>
+      <LoadingScreen isVisible={isLoading} />
+      <div 
+        className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10 flex flex-col"
+        style={{
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundAttachment: 'fixed'
+        }}
+      >
+        {/* Background Overlay */}
+        <div className="fixed inset-0 z-[-1] bg-black/40" />
 
       {/* Navigation */}
       <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50">
@@ -240,6 +243,7 @@ export default function Signup() {
           </div>
         </div>
       </motion.footer>
-    </div>
+      </div>
+    </>
   );
 }
