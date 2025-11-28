@@ -390,7 +390,7 @@ export default function AdminPage() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex justify-between items-baseline">
-                          <span className="text-white/50 text-sm">Utilizadores</span>
+                          <span className="text-white text-sm">Utilizadores</span>
                           <span className="text-white font-bold text-xl">{count}</span>
                         </div>
                         <div className="w-full bg-white/10 rounded-full h-2">
@@ -399,11 +399,11 @@ export default function AdminPage() {
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
-                        <p className="text-white/40 text-xs">{percentage}% do total</p>
+                        <p className="text-white text-xs">{percentage}% do total</p>
                         <div className="pt-2 border-t border-white/10">
                           <div className="flex justify-between items-baseline">
-                            <span className="text-white/50 text-xs">Armazenamento</span>
-                            <span className="text-white/70 text-sm font-medium">{formatBytes(storage)}</span>
+                            <span className="text-white text-xs">Armazenamento</span>
+                            <span className="text-white text-sm font-medium">{formatBytes(storage)}</span>
                           </div>
                         </div>
                       </div>
