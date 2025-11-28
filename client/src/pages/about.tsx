@@ -41,10 +41,10 @@ export default function About() {
   ];
 
   const stats = [
-    { number: "500K+", label: "Utilizadores" },
+    { number: "2.547", label: "Utilizadores" },
     { number: "99.9%", label: "Disponibilidade" },
     { number: "15GB", label: "Grátis" },
-    { number: "1M+", label: "Ficheiros Guardados" }
+    { number: "8.934", label: "Ficheiros Guardados" }
   ];
 
   return (
