@@ -83,6 +83,7 @@ export const filePermissions = pgTable("file_permissions", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("viewer"), // 'viewer' ou 'editor'
   grantedBy: varchar("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sharedEncryptionKey: text("shared_encryption_key"), // Chave de encriptação partilhada (base64)
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -237,6 +238,8 @@ export const insertInvitationSchema = createInsertSchema(invitations).omit({
 export const insertFilePermissionSchema = createInsertSchema(filePermissions).omit({
   id: true,
   createdAt: true,
+}).extend({
+  sharedEncryptionKey: z.string().optional(),
 });
 
 export const insertFolderPermissionSchema = createInsertSchema(folderPermissions).omit({
