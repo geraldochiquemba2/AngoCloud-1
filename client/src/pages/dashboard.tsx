@@ -466,6 +466,12 @@ export default function Dashboard() {
       const meta = await metaResponse.json();
       const encryptionKey = await getActiveEncryptionKey();
       
+      // Check if this is an encrypted shared file (not owned by current user)
+      if (meta.isEncrypted && !meta.isOwner) {
+        toast.error("Este ficheiro está encriptado e não pode ser visualizado. Apenas o dono pode ver ficheiros encriptados.");
+        throw new Error("Cannot decrypt shared encrypted file");
+      }
+      
       if (meta.isEncrypted && encryptionKey) {
         const fileResponse = await fetch(`/api/files/${file.id}/content`, { credentials: "include" });
         if (!fileResponse.ok) {
@@ -485,7 +491,7 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error("Error loading preview:", err);
-      toast.error("Erro ao carregar preview");
+      toast.error("Não foi possível carregar o preview");
     } finally {
       setPreviewLoading(false);
     }
@@ -882,6 +888,12 @@ export default function Dashboard() {
       const encryptionKey = await getActiveEncryptionKey();
       
       let fileBlob: Blob;
+      
+      // Check if this is an encrypted shared file (not owned by current user)
+      if (data.isEncrypted && !data.isOwner) {
+        toast.error("Este ficheiro está encriptado e não pode ser baixado. Apenas o dono pode baixar ficheiros encriptados.");
+        throw new Error("Cannot decrypt shared encrypted file");
+      }
       
       if (data.isEncrypted) {
         if (!encryptionKey) {
@@ -1577,34 +1589,54 @@ export default function Dashboard() {
                           key={file.id}
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-blue-500/30 transition-all overflow-hidden"
+                          className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border transition-all overflow-hidden ${
+                            file.isEncrypted ? 'border-amber-500/50' : 'border-blue-500/30'
+                          }`}
                           data-testid={`shared-file-item-${file.id}`}
                         >
                           <div 
-                            className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
-                            onClick={() => openPreview(file)}
+                            className={`aspect-square flex items-center justify-center bg-black/20 overflow-hidden ${
+                              file.isEncrypted ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                            }`}
+                            onClick={() => !file.isEncrypted && openPreview(file)}
+                            title={file.isEncrypted ? "Ficheiro encriptado - não pode ser visualizado" : "Clique para ver"}
                           >
-                            <div className="w-full h-full flex items-center justify-center p-4">
+                            <div className="w-full h-full flex items-center justify-center p-4 relative">
                               <div className="w-12 h-12 flex items-center justify-center">
                                 {getFileIcon(getEffectiveMimeType(file))}
                               </div>
+                              {file.isEncrypted && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                  <div className="flex flex-col items-center">
+                                    <Lock className="w-6 h-6 text-amber-400" />
+                                    <span className="text-[8px] text-amber-400 mt-1">Encriptado</span>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                           
                           <div className="p-2 flex-1">
                             <p className="text-white text-xs font-medium truncate" title={file.nome}>{file.nome}</p>
-                            <p className="text-blue-300/60 text-[10px]">{file.ownerName}</p>
+                            <div className="flex items-center gap-1">
+                              <p className="text-blue-300/60 text-[10px]">{file.ownerName}</p>
+                              {file.isEncrypted && (
+                                <span title="Encriptado"><Lock className="w-2.5 h-2.5 text-amber-400" /></span>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="absolute top-1 right-1 flex items-center gap-1">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
-                              className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
-                              title="Download"
-                              data-testid={`button-download-shared-${file.id}`}
-                            >
-                              <Download className="w-3 h-3" />
-                            </button>
+                            {!file.isEncrypted && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
+                                className="p-1.5 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                title="Download"
+                                data-testid={`button-download-shared-${file.id}`}
+                              >
+                                <Download className="w-3 h-3" />
+                              </button>
+                            )}
                             <button
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromSharedFiles(file.id); }}
                               className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"

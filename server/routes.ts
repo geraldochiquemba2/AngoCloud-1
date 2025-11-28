@@ -1333,9 +1333,13 @@ export async function registerRoutes(
         file.telegramBotId
       );
 
+      // Check if current user is the file owner
+      const isOwner = file.userId === req.user!.id;
+
       res.json({
         downloadUrl,
         isEncrypted: file.isEncrypted || false,
+        isOwner,
         originalMimeType: file.originalMimeType || file.tipoMime,
         originalSize: file.originalSize || file.tamanho,
         nome: file.nome,
