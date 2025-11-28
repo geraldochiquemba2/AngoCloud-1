@@ -1399,7 +1399,7 @@ export default function Dashboard() {
               className="lg:col-span-2 backdrop-blur-md bg-white/10 p-6 rounded-2xl border border-white/30"
             >
               <h1 className="text-2xl md:text-3xl font-display font-bold text-white mb-2">
-                Olá, {user.nome}! 👋
+                Olá, {user.nome}! 
               </h1>
               <p className="text-white/70">Gerencie os seus ficheiros na nuvem</p>
               
