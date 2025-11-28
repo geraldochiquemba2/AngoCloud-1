@@ -109,7 +109,7 @@ export default function Dashboard() {
   const [menuOpenTime, setMenuOpenTime] = useState<number>(0);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-          <ImagePreloader />
+  const [showShareModal, setShowShareModal] = useState(false);
   const [shareLink, setShareLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
