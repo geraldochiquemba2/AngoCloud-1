@@ -59,6 +59,7 @@ interface InvitationItem {
   resourceId: string;
   resourceName: string;
   ownerName: string;
+  inviteeEmail: string;
   role: string;
   status: string;
   createdAt: string;
@@ -144,6 +145,8 @@ export default function Dashboard() {
   const [inviteResourceId, setInviteResourceId] = useState("");
   const [inviteResourceName, setInviteResourceName] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [resourceInvitations, setResourceInvitations] = useState<InvitationItem[]>([]);
+  const [resourceInvitationsLoading, setResourceInvitationsLoading] = useState(false);
   
   // Shared content
   const [sharedFiles, setSharedFiles] = useState<SharedFileItem[]>([]);
@@ -332,6 +335,22 @@ export default function Dashboard() {
     }
   };
 
+  const fetchResourceInvitations = async (type: "file" | "folder", id: string) => {
+    setResourceInvitationsLoading(true);
+    try {
+      const response = await fetch(`/api/invitations/resource/${type}/${id}`, { credentials: "include" });
+      if (response.ok) {
+        const invitations = await response.json();
+        setResourceInvitations(invitations);
+      }
+    } catch (err) {
+      console.error("Error fetching resource invitations:", err);
+      setResourceInvitations([]);
+    } finally {
+      setResourceInvitationsLoading(false);
+    }
+  };
+
   const openInviteModal = (type: "file" | "folder", id: string, name: string) => {
     setInviteResourceType(type);
     setInviteResourceId(id);
@@ -341,6 +360,7 @@ export default function Dashboard() {
     if (type === "file") {
       fetchFileShares(id);
     }
+    fetchResourceInvitations(type, id);
     setShowInviteModal(true);
   };
 
@@ -1039,19 +1059,15 @@ export default function Dashboard() {
   const fetchFileShares = async (fileId: string) => {
     setSharesLoading(true);
     try {
-      console.log("📥 Fetching shares for file:", fileId);
       const response = await fetch(`/api/files/${fileId}/shares`, { credentials: "include" });
-      console.log("📥 Response status:", response.status);
       if (response.ok) {
         const shares = await response.json();
-        console.log("📥 Shares data:", shares);
         setFileShares(shares);
       } else {
-        console.error("📥 Failed to fetch shares:", response.statusText);
         setFileShares([]);
       }
     } catch (err) {
-      console.error("📥 Error fetching shares:", err);
+      console.error("Error fetching shares:", err);
       setFileShares([]);
     } finally {
       setSharesLoading(false);
@@ -2764,6 +2780,53 @@ export default function Dashboard() {
               <p className="text-white/40 text-xs text-center mt-4">
                 O utilizador receberá uma notificação no painel quando entrar
               </p>
+
+              {/* Resource Invitations Status */}
+              {resourceInvitations.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-white/10">
+                  <h3 className="text-white/70 text-sm font-medium mb-3">Estado de Convites ({resourceInvitations.length})</h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {resourceInvitations.map((inv) => (
+                      <div 
+                        key={inv.id}
+                        className={`p-3 rounded-lg border ${
+                          inv.status === "pending" 
+                            ? "bg-blue-500/10 border-blue-500/30" 
+                            : inv.status === "accepted"
+                            ? "bg-green-500/10 border-green-500/30"
+                            : "bg-red-500/10 border-red-500/30"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-sm font-medium truncate">{inv.inviteeEmail}</p>
+                            <p className={`text-xs ${
+                              inv.status === "pending" 
+                                ? "text-blue-400" 
+                                : inv.status === "accepted"
+                                ? "text-green-400"
+                                : "text-red-400"
+                            }`}>
+                              {inv.status === "pending" ? "⏳ Pendente" : inv.status === "accepted" ? "✓ Aceito" : "✗ Rejeitado"}
+                            </p>
+                          </div>
+                          {inv.status === "pending" && (
+                            <button
+                              onClick={() => {
+                                setResourceInvitations(prevInvitations => prevInvitations.filter(i => i.id !== inv.id));
+                              }}
+                              className="ml-2 p-1.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/40 transition-colors flex-shrink-0"
+                              title="Cancelar convite"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Current Shares List */}
               {inviteResourceType === "file" && (
