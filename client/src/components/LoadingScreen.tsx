@@ -1,4 +1,4 @@
-import loadingBg from "@/assets/pexels-steve-29586678_1764345410863.jpg";
+import loadingBg from "@/assets/pexels-shvets-production-7562349_1764345797027.jpg";
 
 interface LoadingScreenProps {
   isVisible: boolean;
