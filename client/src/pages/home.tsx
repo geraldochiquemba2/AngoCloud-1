@@ -49,6 +49,14 @@ export default function Home() {
       navigate(path);
     }, 100);
   };
+
+  const handleSelectPlan = () => {
+    if (isLoggedIn) {
+      handleNavigateWithLoading("/dashboard");
+    } else {
+      handleNavigateWithLoading("/login");
+    }
+  };
   const pricingPlans = [
     {
       name: "Grátis",
@@ -350,6 +358,7 @@ export default function Home() {
                       className="w-full"
                     >
                       <Button 
+                        onClick={handleSelectPlan}
                         className={cn(
                           "w-full rounded-lg font-bold", 
                           plan.highlight 
