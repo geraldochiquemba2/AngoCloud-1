@@ -1799,14 +1799,16 @@ export default function Dashboard() {
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
                           <div className="absolute top-1 right-1 flex items-center gap-1 transition-opacity">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removeFolderPermission(folder.id); }}
-                              className="p-1.5 rounded bg-amber-500/80 text-white hover:bg-amber-500 transition-colors"
-                              title="Remover permissão"
-                              data-testid={`button-remove-folder-permission-${folder.id}`}
-                            >
-                              <UserX className="w-3 h-3" />
-                            </button>
+                            {user.email === folder.ownerEmail && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeFolderPermission(folder.id); }}
+                                className="p-1.5 rounded bg-amber-500/80 text-white hover:bg-amber-500 transition-colors"
+                                title="Remover permissão"
+                                data-testid={`button-remove-folder-permission-${folder.id}`}
+                              >
+                                <UserX className="w-3 h-3" />
+                              </button>
+                            )}
                             <button
                               onClick={(e) => { e.stopPropagation(); removeFromSharedFolders(folder.id); }}
                               className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
