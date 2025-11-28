@@ -177,16 +177,15 @@ export default function Dashboard() {
   const [showLoading, setShowLoading] = useState(true);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
+  // Initial load - only run once when user is available
   useEffect(() => {
     if (!user) {
       navigate("/login");
       return;
     }
-    // Show loading and preload images
-    setShowLoading(true);
-    const startTime = Date.now();
     
-    const loadAndFetch = async () => {
+    const loadInitialData = async () => {
+      setShowLoading(true);
       try {
         await Promise.all([
           fetchContent(),
@@ -196,20 +195,24 @@ export default function Dashboard() {
       } catch (err) {
         console.error("Error loading dashboard:", err);
       } finally {
-        // Ensure loading lasts at least 3 seconds
-        const elapsedTime = Date.now() - startTime;
-        const remainingTime = Math.max(0, 3000 - elapsedTime);
-        setTimeout(() => setShowLoading(false), remainingTime);
+        setShowLoading(false);
       }
     };
-    loadAndFetch();
-  }, [user, navigate, currentFolderId, viewMode]);
+    loadInitialData();
+  }, [user, navigate]);
 
+  // Reload content when folder or view mode changes (without reloading invitations/upgrades)
   useEffect(() => {
-    if (viewMode === "shared") {
-      fetchSharedContent();
+    if (!user) return;
+    fetchContent();
+  }, [currentFolderId, viewMode]);
+
+  // Handle shared folder navigation
+  useEffect(() => {
+    if (viewMode === "shared" && currentSharedFolderId) {
+      fetchSharedFolderContent(currentSharedFolderId);
     }
-  }, [currentSharedFolderId, viewMode]);
+  }, [currentSharedFolderId]);
 
   const fetchUpgradeRequests = async () => {
     try {
