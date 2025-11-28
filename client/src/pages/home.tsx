@@ -221,8 +221,7 @@ export default function Home() {
       <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden" style={{
         backgroundImage: 'url(/features-bg.jpg)',
         backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
+        backgroundPosition: 'center'
       }}>
         <div className="max-w-7xl mx-auto relative z-10">
           <motion.div 
