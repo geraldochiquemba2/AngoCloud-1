@@ -1364,31 +1364,6 @@ export default function Dashboard() {
         }}
       >
         <div className="max-w-7xl mx-auto">
-          {/* Mobile Search */}
-          <div className="md:hidden mb-6 mt-4">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar ficheiros..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full pl-10 pr-4 py-2 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
-                  data-testid="input-search-mobile"
-                />
-              </div>
-              <button 
-                onClick={handleSearch}
-                className="p-2 rounded-full bg-primary hover:bg-primary/80 text-white transition-colors"
-                data-testid="button-search-mobile"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
           {/* Header & Storage */}
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             {/* Welcome */}
@@ -1599,6 +1574,31 @@ export default function Dashboard() {
               )}
             </motion.div>
           )}
+
+          {/* Mobile Search */}
+          <div className="md:hidden mb-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar ficheiros..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  className="w-full pl-10 pr-4 py-2 rounded-full bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
+                  data-testid="input-search-mobile"
+                />
+              </div>
+              <button 
+                onClick={handleSearch}
+                className="p-2 rounded-full bg-primary hover:bg-primary/80 text-white transition-colors"
+                data-testid="button-search-mobile"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
 
           {/* Content Grid */}
           <motion.div
