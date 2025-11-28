@@ -1167,6 +1167,28 @@ export default function Dashboard() {
     }
   };
 
+  const cloneFile = async (file: FileItem) => {
+    try {
+      toast.info("A clonar ficheiro...");
+      const response = await fetch(`/api/shared/files/${file.id}/clone`, {
+        method: "POST",
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        toast.success("Ficheiro clonado com sucesso nos seus ficheiros!");
+        await fetchContent();
+        await refreshUser();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao clonar ficheiro");
+      }
+    } catch (err) {
+      console.error("Error cloning file:", err);
+      toast.error("Erro ao clonar ficheiro");
+    }
+  };
+
   const removeFromSharedFolders = async (folderId: string) => {
     try {
       const response = await fetch(`/api/shared/folders/${folderId}`, {
@@ -1807,6 +1829,14 @@ export default function Dashboard() {
                                 <Download className="w-3 h-3" />
                               </button>
                             )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); e.preventDefault(); cloneFile(file); }}
+                              className="p-1.5 rounded bg-green-500/80 text-white hover:bg-green-500 transition-colors"
+                              title="Clonar para meus ficheiros"
+                              data-testid={`button-clone-shared-${file.id}`}
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); removeFromSharedFiles(file.id); }}
                               className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"

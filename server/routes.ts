@@ -985,6 +985,59 @@ export async function registerRoutes(
     }
   });
 
+  // Clone file from shared (invitee clones the file to their own files)
+  app.post("/api/shared/files/:fileId/clone", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const fileId = req.params.fileId;
+      const userId = req.user!.id;
+      
+      // Get the file to check access
+      const file = await storage.getFile(fileId);
+      if (!file) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+      
+      // User must have permission to this file
+      const permission = await storage.getFilePermission(fileId, userId);
+      if (!permission && file.userId !== userId) {
+        return res.status(403).json({ message: "Você não tem acesso a este ficheiro" });
+      }
+      
+      // Get the user to check storage quota
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      // Check if user has enough storage
+      if (user.storageUsed + file.tamanho > user.storageLimit) {
+        return res.status(400).json({ message: "Sem espaço suficiente para clonar este ficheiro" });
+      }
+      
+      // Create a clone of the file with a new name
+      const clonedFile = await storage.createFile({
+        userId,
+        nome: file.nome.includes("(Cópia)") ? file.nome : `${file.nome.substring(0, file.nome.lastIndexOf("."))} (Cópia)${file.nome.substring(file.nome.lastIndexOf("."))}`,
+        tamanho: file.tamanho,
+        tipoMime: file.tipoMime,
+        telegramFileId: file.telegramFileId,
+        folderId: null,
+        isDeleted: false,
+        isEncrypted: file.isEncrypted,
+        originalMimeType: file.originalMimeType || undefined,
+        originalSize: file.originalSize || undefined,
+      });
+      
+      // Update user storage
+      await storage.updateUserStorage(userId, user.storageUsed + file.tamanho);
+      
+      res.json({ success: true, message: "Ficheiro clonado com sucesso", file: clonedFile });
+    } catch (error) {
+      console.error("Clone shared file error:", error);
+      res.status(500).json({ message: "Erro ao clonar ficheiro" });
+    }
+  });
+
   // Remove file from shared list (invitee removes themselves from the share)
   app.delete("/api/shared/files/:fileId", requireAuth, async (req: Request, res: Response) => {
     try {
