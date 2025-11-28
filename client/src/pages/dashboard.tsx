@@ -2698,35 +2698,35 @@ export default function Dashboard() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-800 rounded-2xl p-6 w-full max-w-4xl border border-white/20 my-8"
+              className="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-7xl border border-white/20 my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20">
-                    <Cloud className="w-6 h-6 text-primary" />
+              <div className="flex justify-between items-start sm:items-center mb-6 gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-accent/20 flex-shrink-0">
+                    <Cloud className="w-5 sm:w-6 h-5 sm:h-6 text-primary" />
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white">Planos AngoCloud</h2>
-                    <p className="text-white/50 text-sm">Escolha o plano ideal para as suas necessidades</p>
+                  <div className="min-w-0">
+                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">Planos AngoCloud</h2>
+                    <p className="text-white/50 text-xs sm:text-sm truncate">Escolha o plano ideal para as suas necessidades</p>
                   </div>
                 </div>
-                <button onClick={() => setShowPlansModal(false)} className="text-white/50 hover:text-white">
+                <button onClick={() => setShowPlansModal(false)} className="text-white/50 hover:text-white flex-shrink-0">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Pending Requests */}
               {upgradeRequests.some(r => r.status === "pending") && (
-                <div className="mb-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                  <h3 className="text-blue-400 font-medium mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Solicitações Pendentes ({upgradeRequests.filter(r => r.status === "pending").length})
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                  <h3 className="text-blue-400 font-medium mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <Clock className="w-4 h-4 flex-shrink-0" />
+                    <span>Solicitações Pendentes ({upgradeRequests.filter(r => r.status === "pending").length})</span>
                   </h3>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "pending").map(req => (
-                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-blue-500/20">
-                        <p className="text-white text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span> - Aguardando aprovação</p>
+                      <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-blue-500/20">
+                        <p className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span> - Aguardando aprovação</p>
                       </div>
                     ))}
                   </div>
@@ -2735,15 +2735,15 @@ export default function Dashboard() {
 
               {/* Approved Requests */}
               {upgradeRequests.some(r => r.status === "approved") && (
-                <div className="mb-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
-                  <h3 className="text-green-400 font-medium mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Solicitações Aprovadas ({upgradeRequests.filter(r => r.status === "approved").length})
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                  <h3 className="text-green-400 font-medium mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>Solicitações Aprovadas ({upgradeRequests.filter(r => r.status === "approved").length})</span>
                   </h3>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "approved").map(req => (
-                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-green-500/20">
-                        <p className="text-white text-sm">Upgrade para <span className="font-bold capitalize text-green-400">{req.requestedPlan}</span> - ✓ Aprovado</p>
+                      <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-green-500/20">
+                        <p className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize text-green-400">{req.requestedPlan}</span> - ✓ Aprovado</p>
                       </div>
                     ))}
                   </div>
@@ -2752,23 +2752,23 @@ export default function Dashboard() {
 
               {/* Rejected Requests */}
               {upgradeRequests.some(r => r.status === "rejected") && (
-                <div className="mb-6 p-4 bg-red-500/10 rounded-lg border border-red-500/30">
-                  <h3 className="text-red-400 font-medium mb-3 flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4" />
-                    Solicitações Rejeitadas ({upgradeRequests.filter(r => r.status === "rejected").length})
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-500/10 rounded-lg border border-red-500/30">
+                  <h3 className="text-red-400 font-medium mb-2 sm:mb-3 flex items-center gap-2 text-sm sm:text-base">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>Solicitações Rejeitadas ({upgradeRequests.filter(r => r.status === "rejected").length})</span>
                   </h3>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "rejected").map(req => (
-                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-red-500/20">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-white text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span></span>
+                      <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-red-500/20">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                          <span className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span></span>
                           {req.adminNote && (
                             <button
                               onClick={() => {
                                 setSelectedRejection({id: req.id, message: req.adminNote, plan: req.requestedPlan});
                                 setShowRejectionModal(true);
                               }}
-                              className="text-blue-400 text-xs hover:text-blue-300"
+                              className="text-blue-400 text-xs hover:text-blue-300 text-left sm:text-right whitespace-nowrap"
                             >
                               Ver motivo
                             </button>
@@ -2779,7 +2779,7 @@ export default function Dashboard() {
                             setSelectedPlanForUpgrade(req.requestedPlan);
                             setShowUpgradeProofModal(true);
                           }}
-                          className="text-xs px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                          className="text-xs px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white transition-colors w-full sm:w-auto"
                         >
                           Tentar Novamente
                         </button>
@@ -2789,7 +2789,7 @@ export default function Dashboard() {
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {/* Plano Grátis */}
                 <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "gratis" ? "bg-gray-500/20 border-gray-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}>
                   {user.plano === "gratis" && (
@@ -2981,13 +2981,13 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              <div className="mt-6 p-4 bg-white/5 rounded-lg border border-white/10">
-                <div className="flex items-start gap-3">
+              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-start gap-2 sm:gap-3">
                   <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
                     <Shield className="w-4 h-4 text-blue-400" />
                   </div>
-                  <div>
-                    <h4 className="text-white font-medium text-sm mb-1">Como funciona o upgrade?</h4>
+                  <div className="min-w-0">
+                    <h4 className="text-white font-medium text-xs sm:text-sm mb-1">Como funciona o upgrade?</h4>
                     <p className="text-white/50 text-xs">
                       Ao solicitar um upgrade, envie o comprovativo de pagamento (PDF ou imagem). 
                       Após verificação, o seu plano será activado imediatamente. 
