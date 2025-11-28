@@ -1896,11 +1896,9 @@ export default function Dashboard() {
                     <h3 className="text-sm font-medium text-white/50 mb-3">Pastas</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       {folders.map((folder) => (
-                        <motion.div
+                        <div
                           key={folder.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-all"
+                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition-colors"
                           onClick={() => navigateToFolder(folder.id)}
                           data-testid={`folder-item-${folder.id}`}
                         >
@@ -1923,7 +1921,7 @@ export default function Dashboard() {
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1935,11 +1933,9 @@ export default function Dashboard() {
                     <h3 className="text-sm font-medium text-white/50 mb-3">Pastas Partilhadas</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                       {sharedFolders.map((folder) => (
-                        <motion.div
+                        <div
                           key={folder.id}
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-blue-500/30 cursor-pointer transition-all"
+                          className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-blue-500/30 cursor-pointer transition-colors"
                           onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([]); }}
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
@@ -1968,7 +1964,7 @@ export default function Dashboard() {
                           <span className="text-blue-300/60 text-[10px]">
                             {folder.ownerName} | {folder.role === "collaborator" ? "Colaborador" : "Visualizador"}
                           </span>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -1982,17 +1978,15 @@ export default function Dashboard() {
                         <h3 className="text-sm font-medium text-white/50 mb-3">Pastas</h3>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                           {sharedFolderFolders.map((folder) => (
-                            <motion.div
+                            <div
                               key={folder.id}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/20 cursor-pointer transition-all"
+                              className="group relative flex flex-col items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/20 cursor-pointer transition-colors"
                               onClick={() => { setCurrentSharedFolderId(folder.id); setSharedFolderPath([...sharedFolderPath, {id: folder.id, nome: folder.nome} as SharedFolderItem]); }}
                               data-testid={`shared-subfolder-item-${folder.id}`}
                             >
                               <Folder className="w-10 h-10 text-blue-400 mb-2" />
                               <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
-                            </motion.div>
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -2222,11 +2216,9 @@ export default function Dashboard() {
                         {!searchResults && folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                           {displayFiles.map((file) => (
-                            <motion.div
+                            <div
                               key={file.id}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all overflow-hidden"
+                              className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors overflow-hidden"
                               data-testid={`file-item-${file.id}`}
                             >
                               <div 
@@ -2346,7 +2338,7 @@ export default function Dashboard() {
                                   </>
                                 )}
                               </div>
-                            </motion.div>
+                            </div>
                           ))}
                         </div>
                       </div>
