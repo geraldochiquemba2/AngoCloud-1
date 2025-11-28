@@ -54,7 +54,7 @@ export default function Home() {
       name: "Grátis",
       storage: "15 GB",
       price: "Kz 0",
-      features: ["Armazenamento Básico", "Acesso Web", "Suporte da Comunidade"],
+      features: ["Armazenamento Básico", "Encriptação Ponta-a-Ponta", "Acesso Web", "Suporte da Comunidade"],
       highlight: false,
     },
     {
@@ -62,7 +62,7 @@ export default function Home() {
       storage: "100 GB",
       price: "Kz 2.500",
       period: "/mês",
-      features: ["Backup Automático", "Suporte Prioritário"],
+      features: ["Encriptação Ponta-a-Ponta", "Backup Automático", "Suporte Prioritário"],
       highlight: true,
     },
     {
@@ -78,7 +78,7 @@ export default function Home() {
       storage: "Ilimitado",
       price: "Kz 25.000",
       period: "/mês",
-      features: ["Gestão de Usuários", "SLA Garantido", "Suporte Dedicado 24/7"],
+      features: ["Encriptação Ponta-a-Ponta", "Gestão de Usuários", "SLA Garantido", "Suporte Dedicado 24/7"],
       highlight: false,
     },
   ];
