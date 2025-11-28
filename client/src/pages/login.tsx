@@ -2,7 +2,7 @@ import { Cloud, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -12,8 +12,16 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { login } = useAuth();
+
+  useEffect(() => {
+    // Show loading for 3 seconds when page loads
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,10 +34,12 @@ export default function Login() {
     
     try {
       await login(email, password);
-      navigate("/dashboard");
+      // Keep loading for 3 seconds before navigating
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
     } catch (err: any) {
       setError(err.message || "Erro ao fazer login");
-    } finally {
       setIsLoading(false);
     }
   };

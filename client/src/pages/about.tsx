@@ -15,10 +15,10 @@ export default function About() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Show loading for 2 seconds when page loads
+    // Show loading for 3 seconds when page loads
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 2000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 

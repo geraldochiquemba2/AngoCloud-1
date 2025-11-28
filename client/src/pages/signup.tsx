@@ -2,7 +2,7 @@ import { Cloud, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -14,8 +14,16 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { signup } = useAuth();
+
+  useEffect(() => {
+    // Show loading for 3 seconds when page loads
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSignup = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
@@ -38,10 +46,12 @@ export default function Signup() {
     
     try {
       await signup(email, password, fullName);
-      navigate("/dashboard");
+      // Keep loading for 3 seconds before navigating
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 3000);
     } catch (err: any) {
       setError(err.message || "Erro ao criar conta");
-    } finally {
       setIsLoading(false);
     }
   };
