@@ -433,10 +433,15 @@ export async function registerRoutes(
         });
       }
 
-      const uploadResult = await telegramService.uploadFile(
+      // Use large file upload for files over 45MB (handles chunking automatically)
+      const uploadResult = await telegramService.uploadLargeFile(
         req.file.buffer,
         req.file.originalname
       );
+
+      // For chunked files, use first chunk's ID for the file record
+      const mainFileId = uploadResult.chunks[0].fileId;
+      const mainBotId = uploadResult.chunks[0].botId;
 
       const file = await storage.createFile({
         userId: fileOwnerId,
@@ -445,12 +450,26 @@ export async function registerRoutes(
         nome: req.file.originalname,
         tamanho: fileSize,
         tipoMime: isEncrypted ? 'application/octet-stream' : originalMimeType,
-        telegramFileId: uploadResult.fileId,
-        telegramBotId: uploadResult.botId,
+        telegramFileId: mainFileId,
+        telegramBotId: mainBotId,
         isEncrypted,
         originalMimeType,
         originalSize,
+        isChunked: uploadResult.isChunked,
+        totalChunks: uploadResult.chunks.length,
       });
+
+      // If file is chunked, save chunk information
+      if (uploadResult.isChunked && uploadResult.chunks.length > 1) {
+        const chunksData = uploadResult.chunks.map(chunk => ({
+          fileId: file.id,
+          chunkIndex: chunk.chunkIndex,
+          telegramFileId: chunk.fileId,
+          telegramBotId: chunk.botId,
+          chunkSize: chunk.chunkSize,
+        }));
+        await storage.createFileChunks(chunksData);
+      }
 
       // Update storage for the storage owner (folder owner if shared folder)
       await storage.updateUserStorage(storageOwnerId, originalSize);
@@ -1434,7 +1453,46 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível" });
       }
 
-      // Use provided botId or get first available bot
+      // Handle chunked files - validate before setting headers
+      if (file.isChunked && file.totalChunks > 1) {
+        const chunks = await storage.getFileChunks(file.id);
+        
+        if (chunks.length === 0) {
+          return res.status(500).json({ message: "Erro: nenhum chunk encontrado" });
+        }
+        if (chunks.length !== file.totalChunks) {
+          return res.status(500).json({ 
+            message: `Erro: dados do ficheiro incompletos (${chunks.length}/${file.totalChunks})` 
+          });
+        }
+
+        try {
+          res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : (file.originalMimeType || file.tipoMime));
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Cache-Control", "public, max-age=3600");
+
+          const chunkData = chunks.map(c => ({ 
+            fileId: c.telegramFileId, 
+            botId: c.telegramBotId, 
+            chunkIndex: c.chunkIndex,
+            chunkSize: c.chunkSize
+          }));
+          
+          for await (const buffer of telegramService.streamLargeFile(chunkData)) {
+            res.write(buffer);
+          }
+          
+          return res.end();
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          if (!res.headersSent) {
+            return res.status(500).json({ message: "Erro ao fazer streaming" });
+          }
+          return res.end();
+        }
+      }
+
+      // Single file - fetch and return
       const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
 
       const downloadUrl = await telegramService.getDownloadUrl(
@@ -1446,7 +1504,7 @@ export async function registerRoutes(
       if (!response.ok) {
         return res.status(500).json({ message: "Erro ao buscar arquivo" });
       }
-
+      
       res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : (file.originalMimeType || file.tipoMime));
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cache-Control", "public, max-age=3600");
@@ -1459,7 +1517,7 @@ export async function registerRoutes(
     }
   });
 
-  // Download file (legacy redirect)
+  // Download file (streams full file including chunked files)
   app.get("/api/files/:id/download", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
@@ -1477,9 +1535,49 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível para download" });
       }
 
-      // Use provided botId or get first available bot
-      const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
+      // Handle chunked files - validate and stream all chunks
+      if (file.isChunked && file.totalChunks > 1) {
+        const chunks = await storage.getFileChunks(file.id);
+        
+        // Validate chunk count before setting headers
+        if (chunks.length === 0) {
+          return res.status(500).json({ message: "Erro: nenhum chunk encontrado para o ficheiro" });
+        }
+        if (chunks.length !== file.totalChunks) {
+          return res.status(500).json({ 
+            message: `Erro: dados do ficheiro fragmentado incompletos (${chunks.length}/${file.totalChunks} chunks)` 
+          });
+        }
 
+        try {
+          // Stream chunks using generator for memory efficiency
+          res.setHeader("Content-Type", file.originalMimeType || file.tipoMime);
+          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.nome)}"`);
+          res.setHeader("Content-Length", file.originalSize || file.tamanho);
+
+          const chunkData = chunks.map(c => ({ 
+            fileId: c.telegramFileId, 
+            botId: c.telegramBotId, 
+            chunkIndex: c.chunkIndex,
+            chunkSize: c.chunkSize
+          }));
+          
+          for await (const buffer of telegramService.streamLargeFile(chunkData)) {
+            res.write(buffer);
+          }
+          
+          return res.end();
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          if (!res.headersSent) {
+            return res.status(500).json({ message: "Erro ao fazer streaming do ficheiro" });
+          }
+          return res.end();
+        }
+      }
+
+      // Single file - use simple redirect
+      const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
         botId
@@ -1513,11 +1611,6 @@ export async function registerRoutes(
       // Use provided botId or get first available bot
       const botId = file.telegramBotId || telegramService.getBotStatus()[0]?.id || "bot_1";
 
-      const downloadUrl = await telegramService.getDownloadUrl(
-        file.telegramFileId,
-        botId
-      );
-
       // Check if current user is the file owner
       const isOwner = file.userId === req.user!.id;
       
@@ -1537,15 +1630,45 @@ export async function registerRoutes(
         }
       }
 
-      res.json({
-        downloadUrl,
-        isEncrypted: file.isEncrypted || false,
-        isOwner,
-        sharedEncryptionKey,
-        originalMimeType: file.originalMimeType || file.tipoMime,
-        originalSize: file.originalSize || file.tamanho,
-        nome: file.nome,
-      });
+      // Handle chunked files
+      if (file.isChunked && file.totalChunks > 1) {
+        const chunks = await storage.getFileChunks(file.id);
+        const chunkUrls = await Promise.all(
+          chunks.map(async (chunk) => ({
+            chunkIndex: chunk.chunkIndex,
+            downloadUrl: await telegramService.getDownloadUrl(chunk.telegramFileId, chunk.telegramBotId),
+            chunkSize: chunk.chunkSize,
+          }))
+        );
+        
+        res.json({
+          isChunked: true,
+          totalChunks: file.totalChunks,
+          chunks: chunkUrls,
+          isEncrypted: file.isEncrypted || false,
+          isOwner,
+          sharedEncryptionKey,
+          originalMimeType: file.originalMimeType || file.tipoMime,
+          originalSize: file.originalSize || file.tamanho,
+          nome: file.nome,
+        });
+      } else {
+        const downloadUrl = await telegramService.getDownloadUrl(
+          file.telegramFileId,
+          botId
+        );
+
+        res.json({
+          isChunked: false,
+          downloadUrl,
+          isEncrypted: file.isEncrypted || false,
+          isOwner,
+          sharedEncryptionKey,
+          originalMimeType: file.originalMimeType || file.tipoMime,
+          originalSize: file.originalSize || file.tamanho,
+          nome: file.nome,
+        });
+      }
     } catch (error) {
       console.error("Download data error:", error);
       res.status(500).json({ message: "Erro ao obter dados de download" });
@@ -1574,10 +1697,52 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível para download" });
       }
 
-      // Increment download count
+      // Handle chunked files - validate and stream all chunks
+      if (file.isChunked && file.totalChunks > 1) {
+        const chunks = await storage.getFileChunks(file.id);
+        
+        if (chunks.length === 0) {
+          return res.status(500).json({ message: "Erro: nenhum chunk encontrado" });
+        }
+        if (chunks.length !== file.totalChunks) {
+          return res.status(500).json({ 
+            message: `Erro: dados do ficheiro incompletos (${chunks.length}/${file.totalChunks})` 
+          });
+        }
+
+        try {
+          // Increment download count after validation
+          await storage.incrementShareDownload(share.id);
+          
+          res.setHeader("Content-Type", file.originalMimeType || file.tipoMime);
+          res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.nome)}"`);
+          res.setHeader("Content-Length", file.originalSize || file.tamanho);
+
+          const chunkData = chunks.map(c => ({ 
+            fileId: c.telegramFileId, 
+            botId: c.telegramBotId, 
+            chunkIndex: c.chunkIndex,
+            chunkSize: c.chunkSize
+          }));
+          
+          for await (const buffer of telegramService.streamLargeFile(chunkData)) {
+            res.write(buffer);
+          }
+          
+          return res.end();
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          if (!res.headersSent) {
+            return res.status(500).json({ message: "Erro ao fazer streaming do ficheiro" });
+          }
+          return res.end();
+        }
+      }
+
+      // Increment download count for single file
       await storage.incrementShareDownload(share.id);
 
-      // Get download URL from Telegram
+      // Get download URL from Telegram for single file
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
         file.telegramBotId
@@ -1612,6 +1777,45 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível" });
       }
 
+      // Handle chunked files - validate before setting headers
+      if (file.isChunked && file.totalChunks > 1) {
+        const chunks = await storage.getFileChunks(file.id);
+        
+        if (chunks.length === 0) {
+          return res.status(500).json({ message: "Erro: nenhum chunk encontrado" });
+        }
+        if (chunks.length !== file.totalChunks) {
+          return res.status(500).json({ 
+            message: `Erro: dados do ficheiro incompletos (${chunks.length}/${file.totalChunks})` 
+          });
+        }
+
+        try {
+          res.setHeader("Content-Type", file.originalMimeType || file.tipoMime);
+          res.setHeader("Access-Control-Allow-Origin", "*");
+          res.setHeader("Cache-Control", "public, max-age=3600");
+
+          const chunkData = chunks.map(c => ({ 
+            fileId: c.telegramFileId, 
+            botId: c.telegramBotId, 
+            chunkIndex: c.chunkIndex,
+            chunkSize: c.chunkSize
+          }));
+          
+          for await (const buffer of telegramService.streamLargeFile(chunkData)) {
+            res.write(buffer);
+          }
+          
+          return res.end();
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          if (!res.headersSent) {
+            return res.status(500).json({ message: "Erro ao fazer streaming" });
+          }
+          return res.end();
+        }
+      }
+
       const downloadUrl = await telegramService.getDownloadUrl(
         file.telegramFileId,
         file.telegramBotId
@@ -1621,8 +1825,8 @@ export async function registerRoutes(
       if (!response.ok) {
         return res.status(500).json({ message: "Erro ao buscar ficheiro" });
       }
-
-      res.setHeader("Content-Type", file.tipoMime);
+      
+      res.setHeader("Content-Type", file.originalMimeType || file.tipoMime);
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cache-Control", "public, max-age=3600");
       

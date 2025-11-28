@@ -51,6 +51,8 @@ export const files = pgTable("files", {
   isEncrypted: boolean("is_encrypted").notNull().default(false),
   originalMimeType: text("original_mime_type"),
   originalSize: bigint("original_size", { mode: "number" }),
+  isChunked: boolean("is_chunked").notNull().default(false),
+  totalChunks: integer("total_chunks").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -122,6 +124,16 @@ export const upgradeRequests = pgTable("upgrade_requests", {
   proofTelegramBotId: text("proof_telegram_bot_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   processedAt: timestamp("processed_at"),
+});
+
+export const fileChunks = pgTable("file_chunks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fileId: varchar("file_id").notNull().references(() => files.id, { onDelete: "cascade" }),
+  chunkIndex: integer("chunk_index").notNull(),
+  telegramFileId: text("telegram_file_id").notNull(),
+  telegramBotId: text("telegram_bot_id").notNull(),
+  chunkSize: bigint("chunk_size", { mode: "number" }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Relations
@@ -283,6 +295,11 @@ export const insertUpgradeRequestSchema = createInsertSchema(upgradeRequests).om
   adminNote: true,
 });
 
+export const insertFileChunkSchema = createInsertSchema(fileChunks).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -310,3 +327,6 @@ export type InsertFolderPermission = z.infer<typeof insertFolderPermissionSchema
 
 export type UpgradeRequest = typeof upgradeRequests.$inferSelect;
 export type InsertUpgradeRequest = z.infer<typeof insertUpgradeRequestSchema>;
+
+export type FileChunk = typeof fileChunks.$inferSelect;
+export type InsertFileChunk = z.infer<typeof insertFileChunkSchema>;

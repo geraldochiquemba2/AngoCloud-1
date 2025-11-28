@@ -8,6 +8,7 @@ import {
   filePermissions,
   folderPermissions,
   upgradeRequests,
+  fileChunks,
   PLANS,
   type User, 
   type InsertUser,
@@ -27,6 +28,8 @@ import {
   type InsertFolderPermission,
   type UpgradeRequest,
   type InsertUpgradeRequest,
+  type FileChunk,
+  type InsertFileChunk,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, or } from "drizzle-orm";
@@ -125,6 +128,11 @@ export interface IStorage {
   getUpgradeRequestsByUser(userId: string): Promise<UpgradeRequest[]>;
   processUpgradeRequest(id: string, status: string, adminNote?: string): Promise<void>;
   cancelOtherUpgradeRequests(userId: string, excludeRequestId: string): Promise<void>;
+
+  // File Chunks (for large file support)
+  createFileChunks(chunks: InsertFileChunk[]): Promise<FileChunk[]>;
+  getFileChunks(fileId: string): Promise<FileChunk[]>;
+  deleteFileChunks(fileId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -723,6 +731,25 @@ export class DatabaseStorage implements IStorage {
           sql`${upgradeRequests.id} != ${excludeRequestId}`
         )
       );
+  }
+
+  // File Chunks (for large file support)
+  async createFileChunks(chunks: InsertFileChunk[]): Promise<FileChunk[]> {
+    if (chunks.length === 0) return [];
+    const result = await db.insert(fileChunks).values(chunks).returning();
+    return result;
+  }
+
+  async getFileChunks(fileId: string): Promise<FileChunk[]> {
+    return db
+      .select()
+      .from(fileChunks)
+      .where(eq(fileChunks.fileId, fileId))
+      .orderBy(fileChunks.chunkIndex);
+  }
+
+  async deleteFileChunks(fileId: string): Promise<void> {
+    await db.delete(fileChunks).where(eq(fileChunks.fileId, fileId));
   }
 }
 

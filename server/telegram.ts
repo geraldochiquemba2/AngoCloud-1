@@ -24,6 +24,19 @@ interface UploadResult {
   botId: string;
 }
 
+interface ChunkUploadResult {
+  chunks: Array<{
+    chunkIndex: number;
+    fileId: string;
+    botId: string;
+    chunkSize: number;
+  }>;
+  isChunked: boolean;
+}
+
+const CHUNK_SIZE = 45 * 1024 * 1024; // 45MB per chunk (with safety margin)
+const MAX_SINGLE_FILE_SIZE = 48 * 1024 * 1024; // 48MB - files larger than this will be chunked
+
 interface RetryConfig {
   maxRetries: number;
   initialDelayMs: number;
@@ -229,6 +242,144 @@ class TelegramService {
     }
 
     throw new Error(`Falha ao fazer upload após ${this.retryConfig.maxRetries + 1} tentativas: ${lastError?.message}`);
+  }
+
+  /**
+   * Faz upload de ficheiros grandes dividindo em chunks
+   * Suporta ficheiros até 2GB
+   */
+  public async uploadLargeFile(fileBuffer: Buffer, fileName: string): Promise<ChunkUploadResult> {
+    const fileSize = fileBuffer.length;
+    
+    // Se ficheiro for pequeno, usa upload normal
+    if (fileSize <= MAX_SINGLE_FILE_SIZE) {
+      const result = await this.uploadFile(fileBuffer, fileName);
+      return {
+        chunks: [{
+          chunkIndex: 0,
+          fileId: result.fileId,
+          botId: result.botId,
+          chunkSize: fileSize,
+        }],
+        isChunked: false,
+      };
+    }
+
+    // Divide ficheiro em chunks
+    const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+    console.log(`📦 Ficheiro grande (${(fileSize / 1024 / 1024).toFixed(2)}MB) - dividindo em ${totalChunks} partes`);
+    
+    const chunks: ChunkUploadResult['chunks'] = [];
+    
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE;
+      const end = Math.min(start + CHUNK_SIZE, fileSize);
+      const chunkBuffer = fileBuffer.subarray(start, end);
+      const chunkFileName = `${fileName}.part${i.toString().padStart(4, '0')}`;
+      
+      console.log(`📤 Enviando parte ${i + 1}/${totalChunks} (${(chunkBuffer.length / 1024 / 1024).toFixed(2)}MB)`);
+      
+      const result = await this.uploadFile(chunkBuffer, chunkFileName);
+      
+      chunks.push({
+        chunkIndex: i,
+        fileId: result.fileId,
+        botId: result.botId,
+        chunkSize: chunkBuffer.length,
+      });
+    }
+    
+    console.log(`✅ Upload de ficheiro grande concluído: ${totalChunks} partes enviadas`);
+    
+    return {
+      chunks,
+      isChunked: true,
+    };
+  }
+
+  /**
+   * Download de ficheiro grande (com chunks) - versão com validação
+   * Para ficheiros pequenos/médios onde carregar em memória é aceitável
+   */
+  public async downloadLargeFile(chunks: Array<{fileId: string; botId: string; chunkIndex: number; chunkSize?: number}>): Promise<Buffer> {
+    if (chunks.length === 0) {
+      throw new Error("Nenhum chunk fornecido para download");
+    }
+
+    // Ordena chunks pelo índice
+    const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+    
+    // Valida que os índices são sequenciais
+    for (let i = 0; i < sortedChunks.length; i++) {
+      if (sortedChunks[i].chunkIndex !== i) {
+        throw new Error(`Índice de chunk em falta: esperado ${i}, encontrado ${sortedChunks[i].chunkIndex}`);
+      }
+    }
+    
+    console.log(`📥 Descarregando ficheiro grande: ${sortedChunks.length} partes`);
+    
+    const buffers: Buffer[] = [];
+    
+    for (const chunk of sortedChunks) {
+      try {
+        console.log(`📥 Descarregando parte ${chunk.chunkIndex + 1}/${sortedChunks.length}`);
+        const buffer = await this.downloadFile(chunk.fileId, chunk.botId);
+        
+        // Valida que o buffer não está vazio
+        if (!buffer || buffer.length === 0) {
+          throw new Error(`Chunk ${chunk.chunkIndex} retornou vazio`);
+        }
+        
+        // Valida tamanho se disponível
+        if (chunk.chunkSize !== undefined && buffer.length !== chunk.chunkSize) {
+          console.warn(`⚠️ Tamanho do chunk ${chunk.chunkIndex} difere: esperado ${chunk.chunkSize}, recebido ${buffer.length}`);
+        }
+        
+        buffers.push(buffer);
+      } catch (error) {
+        console.error(`❌ Falha ao descarregar chunk ${chunk.chunkIndex}:`, error);
+        throw new Error(`Falha ao descarregar chunk ${chunk.chunkIndex}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+    
+    console.log(`✅ Download de ficheiro grande concluído: ${buffers.length} partes`);
+    
+    return Buffer.concat(buffers);
+  }
+
+  /**
+   * Generator para streaming de chunks grandes
+   * Para ficheiros muito grandes onde não se pode carregar tudo em memória
+   */
+  public async *streamLargeFile(chunks: Array<{fileId: string; botId: string; chunkIndex: number; chunkSize?: number}>): AsyncGenerator<Buffer> {
+    if (chunks.length === 0) {
+      throw new Error("Nenhum chunk fornecido para download");
+    }
+
+    // Ordena chunks pelo índice
+    const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+    
+    // Valida que os índices são sequenciais
+    for (let i = 0; i < sortedChunks.length; i++) {
+      if (sortedChunks[i].chunkIndex !== i) {
+        throw new Error(`Índice de chunk em falta: esperado ${i}, encontrado ${sortedChunks[i].chunkIndex}`);
+      }
+    }
+    
+    console.log(`📥 Streaming ficheiro grande: ${sortedChunks.length} partes`);
+    
+    for (const chunk of sortedChunks) {
+      console.log(`📥 Streaming parte ${chunk.chunkIndex + 1}/${sortedChunks.length}`);
+      const buffer = await this.downloadFile(chunk.fileId, chunk.botId);
+      
+      if (!buffer || buffer.length === 0) {
+        throw new Error(`Chunk ${chunk.chunkIndex} retornou vazio`);
+      }
+      
+      yield buffer;
+    }
+    
+    console.log(`✅ Streaming de ficheiro grande concluído`);
   }
 
   /**
