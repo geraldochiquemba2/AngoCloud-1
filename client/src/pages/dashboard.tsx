@@ -2800,15 +2800,20 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
                             <p className="text-white text-sm font-medium truncate">{inv.inviteeEmail}</p>
-                            <p className={`text-xs ${
-                              inv.status === "pending" 
-                                ? "text-blue-400" 
-                                : inv.status === "accepted"
-                                ? "text-green-400"
-                                : "text-red-400"
-                            }`}>
-                              {inv.status === "pending" ? "⏳ Pendente" : inv.status === "accepted" ? "✓ Aceito" : "✗ Rejeitado"}
-                            </p>
+                            <div className="flex flex-col gap-0.5">
+                              <p className="text-white/50 text-xs">
+                                {inv.role === "editor" ? "👥 Colaborador" : inv.role === "collaborator" ? "👥 Colaborador" : "👁️ Visualizador"}
+                              </p>
+                              <p className={`text-xs ${
+                                inv.status === "pending" 
+                                  ? "text-blue-400" 
+                                  : inv.status === "accepted"
+                                  ? "text-green-400"
+                                  : "text-red-400"
+                              }`}>
+                                {inv.status === "pending" ? "⏳ Pendente" : inv.status === "accepted" ? "✓ Aceito" : "✗ Rejeitado"}
+                              </p>
+                            </div>
                           </div>
                           {inv.status === "pending" && (
                             <button
