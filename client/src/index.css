@@ -108,3 +108,24 @@ html, body, #root {
     @apply font-display tracking-tight;
   }
 }
+
+/* Mobile: All text white */
+@media (max-width: 768px) {
+  body,
+  body *,
+  p, span, h1, h2, h3, h4, h5, h6,
+  a, button, label, input, textarea, select,
+  li, td, th, div {
+    color: white !important;
+  }
+  
+  .text-gradient {
+    background: white !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: white !important;
+  }
+  
+  ::placeholder {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+}
