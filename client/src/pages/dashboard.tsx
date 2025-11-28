@@ -81,7 +81,7 @@ type ViewMode = "files" | "trash" | "shared";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const { user, logout, refreshUser, needsEncryptionSetup, enableEncryption, hasEncryptionKey } = useAuth();
+  const { user, logout, refreshUser, needsEncryptionSetup, enableEncryption, hasEncryptionKey, loading: authLoading } = useAuth();
   const [files, setFiles] = useState<FileItem[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -184,6 +184,11 @@ export default function Dashboard() {
 
   // Initial load - only run once when user is available
   useEffect(() => {
+    // Wait for auth check to complete before redirecting
+    if (authLoading) {
+      return;
+    }
+    
     if (!user) {
       navigate("/login");
       return;
@@ -204,7 +209,7 @@ export default function Dashboard() {
       }
     };
     loadInitialData();
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   // Reload content when folder or view mode changes (without reloading invitations/upgrades)
   useEffect(() => {
@@ -1509,8 +1514,8 @@ export default function Dashboard() {
     return `${(availableGB * 1024).toFixed(2)} MB`;
   };
 
-  // Show loading screen immediately if user not loaded yet
-  if (!user) {
+  // Show loading screen while auth is being checked or if user not loaded yet
+  if (authLoading || !user) {
     return <LoadingScreen isVisible={true} />;
   }
 
