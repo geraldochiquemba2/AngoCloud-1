@@ -272,3 +272,68 @@ const status = telegramService.getBotStatus();
 - `❌ Bot X falhou` - registra falhas
 - `✅ Bot X recuperado` - mostra recuperação
 - `🔴 Bot X marcado como inativo` - após 5 falhas consecutivas
+
+## Deploy no Render (Plano Free)
+
+### Configuração para Render
+
+O projeto está configurado para deploy no Render com sistema de keep-alive integrado para evitar hibernação.
+
+### Ficheiros de Configuração
+
+- `render.yaml` - Configuração automática do serviço
+- `server/keep-alive.ts` - Sistema interno de keep-alive (ping a cada 14 minutos)
+
+### Passos para Deploy
+
+1. **Criar conta no Render** - https://render.com
+
+2. **Conectar repositório Git**
+   - Fork ou push do código para GitHub/GitLab
+   - No Render, criar "New Web Service"
+   - Selecionar o repositório
+
+3. **Configurar Variáveis de Ambiente**
+   - `DATABASE_URL` - URL da base de dados PostgreSQL (Neon ou outro)
+   - `SESSION_SECRET` - Gerado automaticamente
+   - `TELEGRAM_BOT_TOKEN_1` até `TELEGRAM_BOT_TOKEN_10` - Tokens dos bots
+   - `TELEGRAM_CHAT_ID_1` até `TELEGRAM_CHAT_ID_10` - IDs dos chats
+
+4. **Configuração Automática**
+   - Build: `npm install && npm run build`
+   - Start: `npm start`
+   - Porta: Render usa a variável `PORT` automaticamente
+
+### Sistema Keep-Alive
+
+O sistema de keep-alive interno evita que a aplicação entre em hibernação no plano free do Render:
+
+- **Intervalo:** 14 minutos (antes dos 15 minutos de timeout do Render)
+- **Endpoint:** `/api/health`
+- **Ativação:** Automática em produção (`NODE_ENV=production`)
+- **Desativado:** Em desenvolvimento para não interferir
+
+### Endpoint de Health Check
+
+```
+GET /api/health
+Response: {
+  "status": "ok",
+  "timestamp": "2025-11-28T05:00:00.000Z",
+  "uptime": 3600
+}
+```
+
+### Limitações do Plano Free
+
+- Hibernação após 15 minutos de inatividade (resolvido com keep-alive)
+- 512MB RAM
+- Builds limitados por mês
+- Domínio `.onrender.com`
+
+### Alternativa: UptimeRobot
+
+Se preferir monitoramento externo adicional:
+1. Criar conta em https://uptimerobot.com
+2. Adicionar monitor HTTP para `https://seu-app.onrender.com/api/health`
+3. Intervalo de 5 minutos (plano free)

@@ -164,6 +164,15 @@ export async function registerRoutes(
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // ========== HEALTH CHECK ROUTE (Keep-Alive) ==========
+  app.get("/api/health", (_req: Request, res: Response) => {
+    res.status(200).json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // ========== AUTH ROUTES ==========
 
   // Register

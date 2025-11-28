@@ -5,6 +5,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { telegramService } from "./telegram";
 import { storage } from "./storage";
+import { startKeepAlive } from "./keep-alive";
 
 const app = express();
 const httpServer = createServer(app);
@@ -142,6 +143,9 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       log(`🚀 Sistema com retry/fallback e cache ativo`);
+      
+      // Iniciar sistema de keep-alive para evitar hibernação no Render (plano free)
+      startKeepAlive(port, log);
     },
   );
 })();
