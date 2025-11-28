@@ -170,7 +170,7 @@ export default function Home() {
               transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Button onClick={() => handleNavigateWithLoading("/signup")} size="lg" className="bg-white hover:bg-white/90 text-primary h-11 sm:h-12 px-6 sm:px-8 rounded-full shadow-xl text-sm sm:text-base font-bold transition-all duration-300">
+              <Button onClick={() => handleNavigateWithLoading("/signup")} size="lg" className="bg-white/10 hover:bg-white/20 text-white h-11 sm:h-12 px-6 sm:px-8 rounded-full backdrop-blur-md border border-white/30 hover:border-white/50 text-sm sm:text-base font-bold transition-all duration-300">
                 Começar Grátis
               </Button>
               <button 
