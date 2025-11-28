@@ -2,6 +2,7 @@ import { Cloud, Download, FileText, File, Image, Video, Music, FileArchive, File
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useRoute } from "wouter";
 import { useEffect, useState, useCallback } from "react";
+import LoadingScreen from "@/components/LoadingScreen";
 
 interface FileInfo {
   id: string;
@@ -206,9 +207,11 @@ export default function SharePage() {
   };
 
   return (
-    <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground">
-      {/* Navigation */}
-      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center">
+    <>
+      <LoadingScreen isVisible={loading} />
+      <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground">
+        {/* Navigation */}
+        <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center">
         <button 
           onClick={() => navigate("/")}
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
@@ -217,16 +220,16 @@ export default function SharePage() {
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
           <span className="text-white drop-shadow-md">AngoCloud</span>
         </button>
-      </nav>
+        </nav>
 
-      {/* Main Content */}
-      <div className="flex items-center justify-center min-h-[calc(100vh-200px)] px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md"
-        >
+        {/* Main Content */}
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="w-full max-w-md"
+          >
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
@@ -448,15 +451,16 @@ export default function SharePage() {
               </div>
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>
 
-      {/* Footer */}
-      <footer className="py-6 px-6 md:px-12 text-center">
-        <p className="text-white/50 text-sm">
-          &copy; 2024 AngoCloud. A nuvem de Angola.
-        </p>
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="py-6 px-6 md:px-12 text-center">
+          <p className="text-white/50 text-sm">
+            &copy; 2024 AngoCloud. A nuvem de Angola.
+          </p>
+        </footer>
+      </div>
+    </>
   );
 }

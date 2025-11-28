@@ -4,12 +4,23 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
+import LoadingScreen from "@/components/LoadingScreen";
 import aboutHeroVideo from "@assets/4351798-hd_1280_720_50fps_1764253527054.mp4";
 import aboutVideoFrame from "@assets/generated_images/about_page_video_first_frame.png";
 import valuesBackgroundImage from "@assets/pexels-yankrukov-7315485_1764254260497.jpg";
+import { useState, useEffect } from "react";
 
 export default function About() {
   const [, navigate] = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Show loading for 2 seconds when page loads
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const values = [
     {
@@ -37,15 +48,17 @@ export default function About() {
   ];
 
   return (
-    <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
-      {/* Background Elements */}
-      <div className="fixed inset-0 z-[-1]">
+    <>
+      <LoadingScreen isVisible={isLoading} />
+      <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-background text-foreground selection:bg-primary/10">
+        {/* Background Elements */}
+        <div className="fixed inset-0 z-[-1]">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-accent/3 blur-[120px]" />
-      </div>
+        </div>
 
-      {/* Navigation */}
-      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 fixed top-0 left-0 backdrop-blur-md bg-black/10">
+        {/* Navigation */}
+        <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 fixed top-0 left-0 backdrop-blur-md bg-black/10">
         <button 
           onClick={() => navigate("/")}
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity"
@@ -62,10 +75,10 @@ export default function About() {
             Criar Conta
           </button>
         </div>
-      </nav>
+        </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
+        {/* Hero Section */}
+        <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
           <VideoBackground videoSrc={aboutHeroVideo} posterSrc={aboutVideoFrame} />
@@ -99,10 +112,10 @@ export default function About() {
             </button>
           </motion.div>
         </div>
-      </section>
+        </section>
 
-      {/* Values Section */}
-      <section 
+        {/* Values Section */}
+        <section 
         className="relative py-24 px-6 md:px-12 overflow-hidden"
         style={{
           backgroundImage: `url(${valuesBackgroundImage})`,
@@ -231,10 +244,10 @@ export default function About() {
             </button>
           </motion.div>
         </div>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <motion.footer 
+        {/* Footer */}
+        <motion.footer 
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -269,6 +282,7 @@ export default function About() {
           </div>
         </div>
       </motion.footer>
-    </div>
+      </div>
+    </>
   );
 }
