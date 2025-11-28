@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
+import adminBgImage from "@/assets/dashboard-bg.jpg";
 import { 
   ArrowLeft, 
   Users, 
@@ -288,7 +289,15 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900"
+      style={{
+        backgroundImage: `url(${adminBgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
