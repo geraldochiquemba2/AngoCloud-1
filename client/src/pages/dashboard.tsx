@@ -1660,7 +1660,7 @@ export default function Dashboard() {
                         >
                           <Folder className="w-10 h-10 text-yellow-400 mb-2" />
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
-                          <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
                             <button
                               onClick={(e) => { e.stopPropagation(); openInviteModal("folder", folder.id, folder.nome); }}
                               className="p-1 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40"
@@ -1697,7 +1697,7 @@ export default function Dashboard() {
                           onClick={() => setCurrentSharedFolderId(folder.id)}
                           data-testid={`shared-folder-item-${folder.id}`}
                         >
-                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-1 right-1 transition-opacity">
                             <button
                               onClick={(e) => { e.stopPropagation(); removeFromSharedFolders(folder.id); }}
                               className="p-1.5 rounded bg-red-500/80 text-white hover:bg-red-500 transition-colors"
@@ -1796,7 +1796,7 @@ export default function Dashboard() {
                             </div>
                           </div>
                           
-                          <div className="absolute top-1 right-1 flex items-center gap-1">
+                          <div className="absolute top-1 right-1 flex items-center gap-1 opacity-100">
                             {!file.isEncrypted && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); downloadFile(file); }}
