@@ -1658,12 +1658,14 @@ export async function registerRoutes(
     res.json(PLANS);
   });
 
-  // Request plan upgrade
-  app.post("/api/upgrade-requests", requireAuth, async (req: Request, res: Response) => {
+  // Request plan upgrade with proof of payment
+  app.post("/api/upgrade-requests", requireAuth, upload.single("proof"), async (req: Request, res: Response) => {
     try {
-      const { requestedPlan } = z.object({
-        requestedPlan: z.string(),
-      }).parse(req.body);
+      const requestedPlan = req.body.requestedPlan;
+      
+      if (!requestedPlan) {
+        return res.status(400).json({ message: "Plano não especificado" });
+      }
       
       const planConfig = PLANS[requestedPlan as keyof typeof PLANS];
       if (!planConfig) {
@@ -1685,16 +1687,77 @@ export async function registerRoutes(
       if (hasPending) {
         return res.status(400).json({ message: "Já existe uma solicitação pendente" });
       }
+
+      // Require proof file
+      if (!req.file) {
+        return res.status(400).json({ message: "Comprovativo de pagamento é obrigatório" });
+      }
+
+      // Validate file type (PDF or image)
+      const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/jpg"];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        return res.status(400).json({ message: "Apenas ficheiros PDF ou imagens são aceites" });
+      }
+
+      // Upload proof to Telegram
+      let proofTelegramFileId: string | null = null;
+      let proofTelegramBotId: string | null = null;
+
+      if (telegramService.isAvailable()) {
+        try {
+          const result = await telegramService.uploadFile(
+            req.file.buffer,
+            req.file.originalname,
+            req.file.mimetype
+          );
+          proofTelegramFileId = result.fileId;
+          proofTelegramBotId = result.botId;
+        } catch (uploadError) {
+          console.error("Erro ao fazer upload do comprovativo:", uploadError);
+          return res.status(500).json({ message: "Erro ao fazer upload do comprovativo" });
+        }
+      } else {
+        return res.status(500).json({ message: "Sistema de armazenamento indisponível" });
+      }
       
       const request = await storage.createUpgradeRequest({
         userId: user.id,
         currentPlan: user.plano,
         requestedPlan,
+        proofFileName: req.file.originalname,
+        proofFileSize: req.file.size,
+        proofTelegramFileId,
+        proofTelegramBotId,
       });
       
-      res.json({ message: "Solicitação enviada com sucesso", request });
+      res.json({ message: "Solicitação enviada com sucesso! Aguarde aprovação.", request });
     } catch (error) {
+      console.error("Upgrade request error:", error);
       res.status(500).json({ message: "Erro ao solicitar upgrade" });
+    }
+  });
+
+  // Download proof of payment (admin only)
+  app.get("/api/admin/upgrade-requests/:id/proof", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const request = await storage.getUpgradeRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ message: "Solicitação não encontrada" });
+      }
+
+      if (!request.proofTelegramFileId || !request.proofTelegramBotId) {
+        return res.status(404).json({ message: "Comprovativo não disponível" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(
+        request.proofTelegramFileId,
+        request.proofTelegramBotId
+      );
+
+      res.redirect(downloadUrl);
+    } catch (error) {
+      console.error("Proof download error:", error);
+      res.status(500).json({ message: "Erro ao baixar comprovativo" });
     }
   });
 

@@ -114,6 +114,10 @@ export const upgradeRequests = pgTable("upgrade_requests", {
   requestedPlan: text("requested_plan").notNull(),
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   adminNote: text("admin_note"),
+  proofFileName: text("proof_file_name"),
+  proofFileSize: bigint("proof_file_size", { mode: "number" }),
+  proofTelegramFileId: text("proof_telegram_file_id"),
+  proofTelegramBotId: text("proof_telegram_bot_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   processedAt: timestamp("processed_at"),
 });
