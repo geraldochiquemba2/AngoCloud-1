@@ -359,12 +359,7 @@ export default function Home() {
                     >
                       <Button 
                         onClick={handleSelectPlan}
-                        className={cn(
-                          "w-full rounded-lg font-bold", 
-                          plan.highlight 
-                            ? "bg-white hover:bg-white/90 text-black shadow-lg shadow-white/30" 
-                            : "bg-white/20 hover:bg-white/30 text-white border border-white/40"
-                        )}
+                        className="w-full rounded-lg font-bold bg-white/10 hover:bg-white/20 text-white border border-white/30 hover:border-white/50 backdrop-blur-md transition-all duration-300"
                       >
                         Selecionar Plano
                       </Button>
