@@ -8,6 +8,7 @@ import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import assets
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
@@ -20,6 +21,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [videosLoaded, setVideosLoaded] = useState(0);
   const totalVideos = 2; // Hero video + Pricing video
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -253,10 +255,10 @@ export default function Home() {
             ].map((feature, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: isMobile ? 0 : 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -5 }}
-                transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.1 }}
+                whileHover={isMobile ? {} : { y: -5 }}
+                transition={{ duration: isMobile ? 0.3 : 0.6, ease: "easeOut", delay: isMobile ? 0 : i * 0.1 }}
                 viewport={{ once: true, margin: "-100px" }}
                 className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300 ease-out group"
               >
@@ -305,9 +307,9 @@ export default function Home() {
               {pricingPlans.map((plan, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 40 }}
+                  initial={{ opacity: 0, y: isMobile ? 0 : 40 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, ease: "easeOut", delay: i * 0.12 }}
+                  transition={{ duration: isMobile ? 0.3 : 0.6, ease: "easeOut", delay: isMobile ? 0 : i * 0.12 }}
                   viewport={{ once: true, margin: "-100px" }}
                 >
                   <ThreeDCard className="w-full md:w-auto" containerClassName="md:!py-0">
