@@ -318,7 +318,7 @@ export default function AdminPage() {
           transition={{ duration: 0.5 }}
         >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <Card className="backdrop-blur-md bg-white/10 border border-white/30">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <Users className="w-8 h-8 text-blue-400" />
@@ -330,7 +330,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <Card className="backdrop-blur-md bg-white/10 border border-white/30">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <HardDrive className="w-8 h-8 text-green-400" />
@@ -342,7 +342,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <Card className="backdrop-blur-md bg-white/10 border border-white/30">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <Upload className="w-8 h-8 text-purple-400" />
@@ -354,7 +354,7 @@ export default function AdminPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+            <Card className="backdrop-blur-md bg-white/10 border border-white/30">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <Clock className="w-8 h-8 text-amber-400" />
@@ -368,7 +368,7 @@ export default function AdminPage() {
           </div>
           
           {/* Users by Plan Section */}
-          <Card className="bg-black/30 border-white/10 backdrop-blur-md mb-8">
+          <Card className="backdrop-blur-md bg-white/10 border border-white/30 mb-8">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Crown className="w-5 h-5 text-amber-400" />
@@ -423,7 +423,7 @@ export default function AdminPage() {
           
           {/* Pending Upgrade Requests Alert */}
           {pendingRequests.length > 0 && (
-            <Card className="bg-amber-500/10 border-amber-500/30 backdrop-blur-md mb-8">
+            <Card className="backdrop-blur-md bg-amber-500/10 border border-amber-500/30 mb-8">
               <CardHeader>
                 <CardTitle className="text-amber-400 flex items-center gap-2">
                   <Clock className="w-5 h-5 animate-pulse" />
@@ -502,7 +502,7 @@ export default function AdminPage() {
             </TabsList>
 
             <TabsContent value="users">
-              <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+              <Card className="backdrop-blur-md bg-white/10 border border-white/30">
                 <CardHeader>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -649,7 +649,7 @@ export default function AdminPage() {
             <TabsContent value="requests">
               <div className="space-y-6">
                 {pendingRequests.length > 0 && (
-                  <Card className="bg-black/30 border-amber-500/30 backdrop-blur-md">
+                  <Card className="backdrop-blur-md bg-amber-500/10 border border-amber-500/30">
                     <CardHeader>
                       <CardTitle className="text-white flex items-center gap-2">
                         <Clock className="w-5 h-5 text-amber-500" />
@@ -729,7 +729,7 @@ export default function AdminPage() {
                   </Card>
                 )}
 
-                <Card className="bg-black/30 border-white/10 backdrop-blur-md">
+                <Card className="backdrop-blur-md bg-white/10 border border-white/30">
                   <CardHeader>
                     <CardTitle className="text-white flex items-center gap-2">
                       <Crown className="w-5 h-5" />
@@ -773,7 +773,7 @@ export default function AdminPage() {
       </main>
 
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent className="bg-gray-900 border-white/10">
+        <DialogContent className="backdrop-blur-md bg-white/10 border border-white/30">
           <DialogHeader>
             <DialogTitle className="text-white">Rejeitar Solicitação</DialogTitle>
             <DialogDescription className="text-white/60">
