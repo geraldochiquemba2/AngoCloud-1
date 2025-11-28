@@ -480,11 +480,11 @@ export default function AdminPage() {
 
           <Tabs defaultValue="users" className="space-y-6">
             <TabsList className="bg-black/30 border border-white/10">
-              <TabsTrigger value="users" className="data-[state=active]:bg-white/10">
+              <TabsTrigger value="users" className="data-[state=active]:bg-white/10 text-white">
                 <Users className="w-4 h-4 mr-2" />
                 Utilizadores
               </TabsTrigger>
-              <TabsTrigger value="requests" className="data-[state=active]:bg-white/10">
+              <TabsTrigger value="requests" className="data-[state=active]:bg-white/10 text-white">
                 <Crown className="w-4 h-4 mr-2" />
                 Solicitações de Upgrade
                 {pendingRequests.length > 0 && (
