@@ -472,6 +472,7 @@ export default function AdminPage() {
                           variant="destructive"
                           onClick={() => openRejectDialog(req)}
                           disabled={processingRequest === req.id}
+                          className="text-white"
                           data-testid={`button-quick-reject-${req.id}`}
                         >
                           <X className="w-4 h-4 mr-1" />
@@ -714,6 +715,7 @@ export default function AdminPage() {
                                 variant="destructive"
                                 onClick={() => openRejectDialog(req)}
                                 disabled={processingRequest === req.id}
+                                className="text-white"
                                 data-testid={`button-reject-${req.id}`}
                               >
                                 <X className="w-4 h-4 mr-1" />
@@ -797,6 +799,7 @@ export default function AdminPage() {
               variant="destructive"
               onClick={handleRejectRequest}
               disabled={processingRequest !== null}
+              className="text-white"
               data-testid="button-confirm-reject"
             >
               Confirmar Rejeição
