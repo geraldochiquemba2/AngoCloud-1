@@ -2716,11 +2716,46 @@ export default function Dashboard() {
                 </button>
               </div>
 
+              {/* Pending Requests */}
+              {upgradeRequests.some(r => r.status === "pending") && (
+                <div className="mb-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                  <h3 className="text-blue-400 font-medium mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Solicitações Pendentes ({upgradeRequests.filter(r => r.status === "pending").length})
+                  </h3>
+                  <div className="space-y-2">
+                    {upgradeRequests.filter(r => r.status === "pending").map(req => (
+                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-blue-500/20">
+                        <p className="text-white text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span> - Aguardando aprovação</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Approved Requests */}
+              {upgradeRequests.some(r => r.status === "approved") && (
+                <div className="mb-6 p-4 bg-green-500/10 rounded-lg border border-green-500/30">
+                  <h3 className="text-green-400 font-medium mb-3 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" />
+                    Solicitações Aprovadas ({upgradeRequests.filter(r => r.status === "approved").length})
+                  </h3>
+                  <div className="space-y-2">
+                    {upgradeRequests.filter(r => r.status === "approved").map(req => (
+                      <div key={req.id} className="p-3 bg-white/5 rounded-lg border border-green-500/20">
+                        <p className="text-white text-sm">Upgrade para <span className="font-bold capitalize text-green-400">{req.requestedPlan}</span> - ✓ Aprovado</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rejected Requests */}
               {upgradeRequests.some(r => r.status === "rejected") && (
                 <div className="mb-6 p-4 bg-red-500/10 rounded-lg border border-red-500/30">
                   <h3 className="text-red-400 font-medium mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Solicitações Rejeitadas
+                    Solicitações Rejeitadas ({upgradeRequests.filter(r => r.status === "rejected").length})
                   </h3>
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "rejected").map(req => (
