@@ -1747,16 +1747,28 @@ export default function Dashboard() {
                 <span>Usado: {formatStorageUsed()}</span>
                 <span>Disponível: {formatStorageAvailable()}</span>
               </div>
-              <button 
-                onClick={() => setShowPlansModal(true)}
-                className="w-full p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
-                data-testid="button-open-plans"
-              >
-                <p className="text-xs text-white/70">
-                  Plano: <span className="font-bold text-white capitalize">{user.plano}</span>
-                  <span className="ml-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Ver planos</span>
-                </p>
-              </button>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowPlansModal(true)}
+                  className="flex-1 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 hover:border-primary/50 transition-all text-left group"
+                  data-testid="button-open-plans"
+                >
+                  <p className="text-xs text-white/70">
+                    Plano: <span className="font-bold text-white capitalize">{user.plano}</span>
+                    <span className="ml-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Ver planos</span>
+                  </p>
+                </button>
+                <button
+                  onClick={() => setShowPlansModal(true)}
+                  className="flex-1 p-3 bg-primary/10 rounded-lg border border-primary/30 hover:bg-primary/20 transition-all text-left group"
+                  data-testid="button-request-more-gb"
+                >
+                  <p className="text-xs text-white/70">
+                    <span className="text-primary font-bold">+GB</span>
+                    <span className="ml-2 text-primary opacity-0 group-hover:opacity-100 transition-opacity">Solicitar</span>
+                  </p>
+                </button>
+              </div>
             </motion.div>
           </div>
 
