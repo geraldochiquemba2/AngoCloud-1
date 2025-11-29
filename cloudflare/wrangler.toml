@@ -2,7 +2,7 @@
 # Configuração moderna (2025) - Workers com Assets integrados
 # https://developers.cloudflare.com/workers/
 
-name = "orbitalcloud"
+name = "app"
 main = "worker/index.ts"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
