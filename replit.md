@@ -29,7 +29,25 @@ The architecture supports scalability through:
 - **Database Optimizations:** Recommended PostgreSQL indices for efficient querying of millions of files.
 - **Server Scalability:** Options for scaling include increasing Replit resources, or migrating to a distributed architecture with Redis for session caching, message queues for background uploads, and CDNs for popular file downloads.
 - **Robust Retry/Fallback System:** Implemented with exponential backoff, bot health checks, and rate limit handling to ensure reliable file operations even during Telegram API issues.
-- **Monitoring:** Endpoints for bot status and recommended metrics for uploads, errors, latency, and database usage.
+- **Monitoring System:** Comprehensive monitoring with health checks, metrics tracking, quota management, and alerting.
+- **Fallback Storage Providers:** Interface ready for Cloudflare R2 and Backblaze B2 as backup storage options.
+
+### Beta Phase Limits
+
+The platform is in beta phase with conservative limits to ensure stability:
+- **Free Storage:** 5GB per user (reduced from 20GB during beta)
+- **Max File Size:** 100MB per file
+- **Daily Upload Limit:** 20 uploads/day for free users, 1GB/day
+- **Rate Limiting:** Enforced through monitoring system
+
+### Monitoring & Alerting
+
+The `server/monitoring.ts` module provides:
+- Real-time health checks for all Telegram bots
+- Daily quota tracking per user
+- Automatic alert generation for system issues
+- Admin API endpoints for monitoring dashboard
+- Error rate tracking and trend analysis
 
 ## External Dependencies
 

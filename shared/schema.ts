@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   nome: text("nome").notNull(),
   plano: text("plano").notNull().default("gratis"),
-  storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(21474836480), // 20GB em bytes
+  storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(5368709120), // 5GB em bytes (beta)
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),
   uploadsCount: integer("uploads_count").notNull().default(0),
   uploadLimit: integer("upload_limit").notNull().default(-1), // -1 = ilimitado, limite é pelo espaço
@@ -19,16 +19,26 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Novo modelo de preços: 20GB grátis + 500Kz por GB extra
+// Novo modelo de preços: 5GB grátis (beta) + 500Kz por GB extra
 export const PRICING = {
-  freeStorageGB: 20, // 20GB grátis
-  freeStorageBytes: 21474836480, // 20GB em bytes
+  freeStorageGB: 5, // 5GB grátis (reduzido para beta)
+  freeStorageBytes: 5368709120, // 5GB em bytes
   pricePerGB: 500, // 500Kz por GB
+  isBeta: true,
+} as const;
+
+// Limites de segurança para fase beta
+export const BETA_LIMITS = {
+  maxFileSizeMB: 100, // Máximo 100MB por ficheiro
+  maxFileSizeBytes: 104857600, // 100MB em bytes
+  dailyUploadLimit: 20, // Máximo 20 uploads por dia (grátis)
+  dailyUploadBytes: 1073741824, // 1GB por dia (grátis)
+  maxUsersBeta: 1000, // Limite de utilizadores em beta
 } as const;
 
 // Planos mantidos para compatibilidade (apenas o grátis é usado)
 export const PLANS = {
-  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 21474836480, preco: 0 }, // 20GB
+  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 5368709120, preco: 0 }, // 5GB (beta)
 } as const;
 
 export const folders = pgTable("folders", {

@@ -367,6 +367,9 @@ export async function registerRoutes(
     res.setTimeout(900000);
     
     try {
+      // Import monitoring service for limits and tracking
+      const { monitoringService } = await import("./monitoring");
+      
       if (!req.file) {
         return res.status(400).json({ message: "Nenhum arquivo enviado" });
       }
@@ -378,6 +381,18 @@ export async function registerRoutes(
       const originalMimeType = req.body.originalMimeType || req.file.mimetype;
       const originalSize = req.body.originalSize ? parseInt(req.body.originalSize, 10) : fileSize;
       const folderId = req.body.folderId || null;
+      
+      // Get full user data for plan info
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser) {
+        return res.status(500).json({ message: "Erro ao verificar utilizador" });
+      }
+      
+      // Check daily limits and file size using monitoring service
+      const canUploadCheck = monitoringService.canUpload(user.id, originalSize, fullUser.plano);
+      if (!canUploadCheck.allowed) {
+        return res.status(400).json({ message: canUploadCheck.reason });
+      }
       
       // Determine who owns the storage (folder owner if uploading to shared folder)
       let storageOwnerId = user.id;
@@ -482,10 +497,16 @@ export async function registerRoutes(
       
       // Increment upload count for the uploader
       await storage.incrementUserUploadCount(user.id);
+      
+      // Record upload in monitoring system
+      monitoringService.recordUpload(user.id, originalSize);
 
       res.json(file);
     } catch (error) {
       console.error("Upload error:", error);
+      // Record error in monitoring
+      const { monitoringService: ms } = await import("./monitoring");
+      ms.recordError('upload', error instanceof Error ? error.message : 'Unknown error');
       res.status(500).json({ message: "Erro ao fazer upload" });
     }
   });
@@ -2255,6 +2276,114 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ message: "Erro ao obter estatísticas" });
+    }
+  });
+
+  // ========== MONITORING ROUTES (Admin) ==========
+  
+  // System status overview (admin)
+  app.get("/api/admin/monitoring/status", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      res.json(monitoringService.getSystemStatus());
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter status de monitorização" });
+    }
+  });
+  
+  // Detailed metrics (admin)
+  app.get("/api/admin/monitoring/metrics", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      const metrics = monitoringService.getDetailedMetrics();
+      res.json({
+        ...metrics,
+        system: {
+          ...metrics.system,
+          activeUsers24h: metrics.system.activeUsers24h.size,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter métricas detalhadas" });
+    }
+  });
+  
+  // Alerts list (admin)
+  app.get("/api/admin/monitoring/alerts", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      const unresolvedOnly = req.query.unresolved === 'true';
+      const category = req.query.category as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 100;
+      
+      res.json(monitoringService.getAlerts({ 
+        unresolved: unresolvedOnly, 
+        category, 
+        limit 
+      }));
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter alertas" });
+    }
+  });
+  
+  // Resolve alert (admin)
+  app.post("/api/admin/monitoring/alerts/:id/resolve", requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      monitoringService.resolveAlert(req.params.id);
+      res.json({ message: "Alerta resolvido" });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao resolver alerta" });
+    }
+  });
+  
+  // System limits info (public - for frontend)
+  app.get("/api/system/limits", async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      res.json({
+        limits: monitoringService.LIMITS,
+        isBeta: true,
+        betaMessage: "OrbitalCloud está em fase beta. Para maior segurança dos seus ficheiros, recomendamos manter cópias locais dos ficheiros importantes.",
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter limites" });
+    }
+  });
+  
+  // User quota info (authenticated)
+  app.get("/api/user/quota", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      const user = await storage.getUser(req.user!.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      const dailyQuota = monitoringService.getUserDailyQuota(req.user!.id);
+      const limits = monitoringService.LIMITS;
+      
+      res.json({
+        storage: {
+          used: user.storageUsed,
+          limit: user.storageLimit,
+          percentage: Math.round((user.storageUsed / user.storageLimit) * 100),
+        },
+        daily: {
+          uploads: dailyQuota.uploadsCount,
+          maxUploads: user.plano === 'gratis' ? limits.DAILY_UPLOAD_LIMIT_FREE : -1,
+          bytesUploaded: dailyQuota.uploadBytes,
+          maxBytes: user.plano === 'gratis' ? limits.DAILY_UPLOAD_BYTES_FREE : -1,
+        },
+        limits: {
+          maxFileSize: limits.MAX_FILE_SIZE_BYTES,
+          maxFileSizeMB: limits.MAX_FILE_SIZE_MB,
+        },
+        plan: user.plano,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao obter quota" });
     }
   });
 
