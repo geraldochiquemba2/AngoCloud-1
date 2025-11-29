@@ -190,6 +190,80 @@ export default function Dashboard() {
   const [showLoading, setShowLoading] = useState(true);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
+  // WebSocket connection for real-time updates
+  const { on: wsOn } = useWebSocket(user?.id, user?.isAdmin);
+
+  // Ref to store the refresh function (will be set after fetchContent is defined)
+  const refreshContentRef = useRef<(() => Promise<void>) | null>(null);
+
+  // WebSocket event listeners - stable subscription, refresh function is called via ref
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribeFileUploaded = wsOn("file_uploaded", () => {
+      refreshContentRef.current?.();
+      refreshUser();
+    });
+
+    const unsubscribeFileDeleted = wsOn("file_deleted", () => {
+      refreshContentRef.current?.();
+      refreshUser();
+    });
+
+    const unsubscribeFileRestored = wsOn("file_restored", () => {
+      refreshContentRef.current?.();
+      refreshUser();
+    });
+
+    const unsubscribeFolderCreated = wsOn("folder_created", () => {
+      refreshContentRef.current?.();
+    });
+
+    const unsubscribeFolderDeleted = wsOn("folder_deleted", () => {
+      refreshContentRef.current?.();
+    });
+
+    const unsubscribeUpgradeCreated = wsOn("upgrade_request_created", (msg) => {
+      const newRequest = msg.data;
+      setUpgradeRequests(prev => {
+        if (prev.some(r => r.id === newRequest.id)) return prev;
+        return [newRequest, ...prev];
+      });
+    });
+
+    const unsubscribeUpgradeProcessed = wsOn("upgrade_request_processed", (msg) => {
+      const updatedRequest = msg.data;
+      setUpgradeRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r));
+      if (updatedRequest.status === "approved") {
+        toast.success("O seu pedido de armazenamento extra foi aprovado!");
+        refreshUser();
+      } else if (updatedRequest.status === "rejected") {
+        toast.error("O seu pedido de armazenamento extra foi rejeitado");
+      }
+    });
+
+    const unsubscribeStorageUpdated = wsOn("storage_updated", () => {
+      refreshUser();
+    });
+
+    const unsubscribeInvitationReceived = wsOn("invitation_received", () => {
+      fetchPendingInvitations();
+      toast.info("Recebeu um novo convite de partilha!");
+    });
+
+    return () => {
+      unsubscribeFileUploaded();
+      unsubscribeFileDeleted();
+      unsubscribeFileRestored();
+      unsubscribeFolderCreated();
+      unsubscribeFolderDeleted();
+      unsubscribeUpgradeCreated();
+      unsubscribeUpgradeProcessed();
+      unsubscribeStorageUpdated();
+      unsubscribeInvitationReceived();
+    };
+  }, [user?.id, wsOn, refreshUser]);
+
   // Initial load - only run once when user is available
   useEffect(() => {
     // Wait for auth check to complete before redirecting
@@ -501,6 +575,11 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  // Update ref so WebSocket handlers can call fetchContent with latest state
+  useEffect(() => {
+    refreshContentRef.current = fetchContent;
+  });
 
   const fetchAllFolders = async () => {
     try {

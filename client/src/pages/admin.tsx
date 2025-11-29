@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { motion } from "framer-motion";
 import adminBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -109,6 +110,9 @@ export default function AdminPage() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [showLoading, setShowLoading] = useState(true);
 
+  // WebSocket connection for real-time admin updates
+  const { on: wsOn } = useWebSocket(user?.id, true);
+
   useEffect(() => {
     if (!loading && (!user || !user.isAdmin)) {
       setLocation("/dashboard");
@@ -127,6 +131,33 @@ export default function AdminPage() {
       });
     }
   }, [user]);
+
+  // WebSocket event listeners for admin notifications
+  useEffect(() => {
+    if (!user?.isAdmin) return;
+
+    const unsubscribeNewRequest = wsOn("new_upgrade_request", (msg) => {
+      const newRequest = msg.data as UpgradeRequest;
+      setUpgradeRequests(prev => {
+        if (prev.some(r => r.id === newRequest.id)) return prev;
+        toast({
+          title: "Novo Pedido",
+          description: `${newRequest.userName} solicitou ${newRequest.requestedExtraGB}GB extra`,
+        });
+        return [newRequest, ...prev];
+      });
+    });
+
+    const unsubscribeRequestUpdated = wsOn("upgrade_request_updated", (msg) => {
+      const updatedRequest = msg.data as UpgradeRequest;
+      setUpgradeRequests(prev => prev.map(r => r.id === updatedRequest.id ? updatedRequest : r));
+    });
+
+    return () => {
+      unsubscribeNewRequest();
+      unsubscribeRequestUpdated();
+    };
+  }, [user?.isAdmin, wsOn, toast]);
 
   const fetchData = async () => {
     setLoadingData(true);
