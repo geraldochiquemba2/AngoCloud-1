@@ -6,6 +6,7 @@ import { createServer } from "http";
 import { telegramService } from "./telegram";
 import { storage } from "./storage";
 import { startKeepAlive } from "./keep-alive";
+import { wsManager } from "./websocket";
 
 const app = express();
 const httpServer = createServer(app);
@@ -143,6 +144,9 @@ app.use((req, res, next) => {
   httpServer.keepAliveTimeout = 900000;
   httpServer.headersTimeout = 910000; // Slightly higher than keepAliveTimeout
   
+  // Initialize WebSocket server
+  wsManager.initialize(httpServer);
+  
   httpServer.listen(
     {
       port,
@@ -153,6 +157,7 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
       log(`🚀 Sistema com retry/fallback e cache ativo`);
       log(`⏱️ Timeout do servidor: 15 minutos para uploads grandes`);
+      log(`🔌 WebSocket server ativo em /ws`);
       
       // Iniciar sistema de keep-alive para evitar hibernação no Render (plano free)
       startKeepAlive(port, log);
