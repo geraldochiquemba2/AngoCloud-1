@@ -3721,7 +3721,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
                   data-testid={`button-restore-${selectedFile.id}`}
                 >
-                  <RefreshCw className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <RefreshCw className="w-4 h-4 text-white flex-shrink-0" />
                   Restaurar
                 </button>
                 <button
@@ -3729,7 +3729,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
                   data-testid={`button-permanent-delete-${selectedFile.id}`}
                 >
-                  <Trash2 className="w-4 h-4 flex-shrink-0" />
+                  <Trash2 className="w-4 h-4 text-white flex-shrink-0" />
                   Eliminar permanentemente
                 </button>
               </>
@@ -3740,7 +3740,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
                   data-testid={`button-download-${selectedFile.id}`}
                 >
-                  <Download className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <Download className="w-4 h-4 text-white flex-shrink-0" />
                   Download
                 </button>
                 <button
@@ -3748,7 +3748,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
                   data-testid={`button-share-${selectedFile.id}`}
                 >
-                  <Share2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  <Share2 className="w-4 h-4 text-white flex-shrink-0" />
                   Partilhar
                 </button>
                 <button
@@ -3761,7 +3761,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
                   data-testid={`button-rename-${selectedFile.id}`}
                 >
-                  <Edit className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  <Edit className="w-4 h-4 text-white flex-shrink-0" />
                   Renomear
                 </button>
                 <button
@@ -3774,7 +3774,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
                   data-testid={`button-move-${selectedFile.id}`}
                 >
-                  <Move className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <Move className="w-4 h-4 text-white flex-shrink-0" />
                   Mover
                 </button>
                 <button
@@ -3786,7 +3786,7 @@ export default function Dashboard() {
                   className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
                   data-testid={`button-delete-${selectedFile.id}`}
                 >
-                  <Trash2 className="w-4 h-4 flex-shrink-0" />
+                  <Trash2 className="w-4 h-4 text-white flex-shrink-0" />
                   Eliminar
                 </button>
               </>
