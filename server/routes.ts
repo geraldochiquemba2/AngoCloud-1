@@ -2081,7 +2081,11 @@ export async function registerRoutes(
         await storage.cancelOtherUpgradeRequests(upgradeRequest.userId, req.params.id);
       }
       
-      await storage.processUpgradeRequest(req.params.id, status, adminNote);
+      const processedRequest = await storage.processUpgradeRequest(req.params.id, status, adminNote);
+      
+      // Notify user and admins via WebSocket
+      wsManager.notifyUpgradeRequestProcessed(upgradeRequest.userId, { ...upgradeRequest, status, adminNote });
+      
       res.json({ message: status === "approved" ? "Solicitação aprovada" : "Solicitação rejeitada" });
     } catch (error) {
       res.status(500).json({ message: "Erro ao processar solicitação" });
@@ -2193,6 +2197,9 @@ export async function registerRoutes(
         proofTelegramFileId,
         proofTelegramBotId,
       });
+      
+      // Notify user and admins via WebSocket
+      wsManager.notifyUpgradeRequestCreated(user.id, request);
       
       res.json({ message: "Solicitação enviada com sucesso! Aguarde aprovação.", request });
     } catch (error) {

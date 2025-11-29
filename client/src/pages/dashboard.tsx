@@ -11,6 +11,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { toast } from "sonner";
 import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
