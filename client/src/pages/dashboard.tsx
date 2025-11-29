@@ -167,13 +167,11 @@ export default function Dashboard() {
   const [sharedFolderFiles, setSharedFolderFiles] = useState<FileItem[]>([]);
   const [sharedFolderFolders, setSharedFolderFolders] = useState<FolderItem[]>([]);
   
-  // Plans modal
+  // Extra storage modal
   const [showPlansModal, setShowPlansModal] = useState(false);
-  const [requestingPlan, setRequestingPlan] = useState<string | null>(null);
   
-  // Upgrade proof upload modal
+  // Extra storage proof upload modal
   const [showUpgradeProofModal, setShowUpgradeProofModal] = useState(false);
-  const [selectedPlanForUpgrade, setSelectedPlanForUpgrade] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [uploadingProof, setUploadingProof] = useState(false);
   const proofInputRef = useRef<HTMLInputElement>(null);
