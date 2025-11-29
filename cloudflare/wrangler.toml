@@ -1,50 +1,63 @@
 # Cloudflare Worker Configuration for AngoCloud
-# https://developers.cloudflare.com/workers/wrangler/configuration/
+# Configuração moderna (2025) - Workers com Assets integrados
+# https://developers.cloudflare.com/workers/
 
-name = "angocloud-api"
+name = "angocloud"
 main = "worker/index.ts"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Account and zone configuration (fill these after creating your Cloudflare account)
-# account_id = "your-account-id"
-# zone_id = "your-zone-id"
+# Assets estáticos - frontend React servido pelo Worker
+[assets]
+directory = "../dist/public"
+not_found_handling = "single-page-application"
 
+# Variáveis de ambiente (não sensíveis)
 [vars]
 ENVIRONMENT = "production"
 
-# KV Namespaces for session storage (create these in Cloudflare dashboard)
+# Account configuration (preencher após criar conta Cloudflare)
+# account_id = "your-account-id"
+
+# KV Namespaces para sessões (opcional)
 # [[kv_namespaces]]
 # binding = "SESSIONS"
 # id = "your-kv-namespace-id"
 
-# D1 Database (optional - if you want to use Cloudflare's SQLite)
+# D1 Database (opcional - se quiser usar SQLite da Cloudflare)
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "angocloud"
 # database_id = "your-d1-database-id"
 
-# Environment variables (set these in Cloudflare dashboard or use wrangler secret)
-# Required secrets:
-# - DATABASE_URL: Your Neon PostgreSQL connection string
-# - JWT_SECRET: Secret key for JWT tokens
-# - TELEGRAM_BOT_1_TOKEN: First Telegram bot token
-# - TELEGRAM_BOT_2_TOKEN: Second Telegram bot token (optional)
-# - TELEGRAM_STORAGE_CHAT_ID: Telegram chat ID for file storage
+# R2 Storage (opcional - para arquivos maiores)
+# [[r2_buckets]]
+# binding = "FILES"
+# bucket_name = "angocloud-files"
+
+# Secrets a configurar via wrangler secret put:
+# - DATABASE_URL: Connection string PostgreSQL (Neon)
+# - JWT_SECRET: Chave secreta para tokens JWT
+# - TELEGRAM_BOT_1_TOKEN: Token do primeiro bot Telegram
+# - TELEGRAM_BOT_2_TOKEN: Token do segundo bot (opcional)
+# - TELEGRAM_BOT_3_TOKEN: Token do terceiro bot (opcional)
+# - TELEGRAM_BOT_4_TOKEN: Token do quarto bot (opcional)
+# - TELEGRAM_BOT_5_TOKEN: Token do quinto bot (opcional)
+# - TELEGRAM_STORAGE_CHAT_ID: ID do chat para armazenamento
 
 [build]
-command = "npm run build:worker"
+command = "npm run build"
 
-# Development settings
 [dev]
 port = 8787
 local_protocol = "http"
 
-# Production routes (configure after setting up your domain)
+# Rotas de produção (configurar após setup do domínio)
 # [[routes]]
-# pattern = "api.angocloud.ao/*"
+# pattern = "angocloud.ao/*"
 # zone_name = "angocloud.ao"
 
-# Tail workers for logging (optional)
-# [[tail_consumers]]
-# service = "angocloud-logs"
+# Custom domain
+# [[routes]]
+# pattern = "www.angocloud.ao/*"
+# zone_name = "angocloud.ao"

@@ -1,0 +1,21 @@
+# Variáveis de desenvolvimento para Cloudflare Workers
+# Copie este arquivo para .dev.vars e preencha com suas credenciais
+
+# Conexão PostgreSQL (Neon)
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+
+# Chave secreta JWT
+JWT_SECRET=sua-chave-secreta-aqui-min-32-caracteres
+
+# Telegram Bot Tokens
+TELEGRAM_BOT_1_TOKEN=1234567890:ABCDefghIJKlmnOPQrstUVwxyz
+TELEGRAM_BOT_2_TOKEN=
+TELEGRAM_BOT_3_TOKEN=
+TELEGRAM_BOT_4_TOKEN=
+TELEGRAM_BOT_5_TOKEN=
+
+# ID do Chat do Telegram para armazenamento
+TELEGRAM_STORAGE_CHAT_ID=-1001234567890
+
+# Ambiente
+ENVIRONMENT=development

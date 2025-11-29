@@ -1,17 +1,31 @@
-# Guia de Migração - Render para Cloudflare
+# Guia de Migração - Render/Replit para Cloudflare Workers
 
-Este guia detalha os passos para migrar o AngoCloud do Render para Cloudflare Pages + Workers.
+Este guia detalha os passos para migrar o AngoCloud para Cloudflare Workers com Assets integrados (abordagem 2025).
 
 ## Resumo da Migração
 
-| Componente | Antes (Render) | Depois (Cloudflare) |
-|------------|----------------|---------------------|
-| Frontend | Servido pelo Express | Cloudflare Pages |
+| Componente | Antes (Render/Replit) | Depois (Cloudflare) |
+|------------|----------------------|---------------------|
+| Frontend | Servido pelo Express | Cloudflare Workers (Assets) |
 | Backend | Express.js | Cloudflare Workers + Hono |
+| Deploy | Separado (frontend + backend) | Unificado (único Worker) |
 | Autenticação | Passport.js + Sessões | JWT |
 | Hash de Passwords | bcrypt | PBKDF2 (Web Crypto) |
-| Base de Dados | PostgreSQL (Render) | Neon PostgreSQL |
+| Base de Dados | PostgreSQL | Neon PostgreSQL (serverless) |
 | Armazenamento | Telegram | Telegram (sem alteração) |
+
+## Nova Arquitetura (2025)
+
+A Cloudflare consolidou Pages e Workers num único produto. Agora, um único Worker pode servir:
+- **Static Assets**: Frontend React automaticamente servido
+- **API Routes**: Backend com Hono framework
+
+```
+wrangler.toml
+├── [assets]
+│   └── directory = "../dist/public"  ← Frontend React
+└── main = "worker/index.ts"          ← Backend API
+```
 
 ## Migração de Passwords (Importante!)
 
@@ -23,10 +37,10 @@ O sistema original usa **bcrypt** para hash de passwords. O Cloudflare Workers n
 
 #### Opção 1: Migração Gradual (Recomendado)
 
-1. **Durante o login no sistema antigo (Render)**, adicione lógica para re-hash com PBKDF2:
+1. **Durante o login no sistema antigo**, adicione lógica para re-hash com PBKDF2:
 
 ```typescript
-// No routes.ts do Render, durante o login bem-sucedido:
+// No routes.ts durante o login bem-sucedido:
 if (user.passwordHash.startsWith('$2')) {  // É bcrypt
   const pbkdf2Hash = await hashWithPBKDF2(password);
   await storage.updatePasswordHash(user.id, pbkdf2Hash);
@@ -43,12 +57,6 @@ if (user.passwordHash.startsWith('$2')) {  // É bcrypt
 2. Na próxima tentativa de login, forçar reset de password
 3. Mais simples, mas pode frustrar usuários
 
-#### Opção 3: Servidor Proxy (Mais Complexo)
-
-1. Criar um Worker simples que apenas verifica bcrypt
-2. Chamar esse Worker durante o login para hashes antigos
-3. Migrar hash após verificação bem-sucedida
-
 ### Formato dos Hashes
 
 | Tipo | Formato | Exemplo |
@@ -61,60 +69,58 @@ if (user.passwordHash.startsWith('$2')) {  // É bcrypt
 ### 1. Preparar Base de Dados Neon
 
 ```bash
-# 1. Criar conta em neon.tech
+# 1. Criar conta em neon.tech (gratuito)
 # 2. Criar projeto "angocloud"
 # 3. Copiar connection string
 
-# 4. Exportar dados do Render PostgreSQL
-pg_dump $RENDER_DATABASE_URL > backup.sql
+# 4. Exportar dados da base atual
+pg_dump $DATABASE_URL > backup.sql
 
 # 5. Importar para Neon
 psql $NEON_DATABASE_URL < backup.sql
 ```
 
-### 2. Configurar Cloudflare
+### 2. Instalar Wrangler CLI
+
+```bash
+npm install -g wrangler
+wrangler login
+```
+
+### 3. Configurar Cloudflare
 
 ```bash
 cd cloudflare
 npm install
 
-# Configurar secrets
+# Configurar secrets (valores sensíveis)
 wrangler secret put DATABASE_URL
 wrangler secret put JWT_SECRET
 wrangler secret put TELEGRAM_BOT_1_TOKEN
 wrangler secret put TELEGRAM_STORAGE_CHAT_ID
+```
 
-# Deploy Worker
+### 4. Build e Deploy
+
+```bash
+cd cloudflare
+
+# Build do frontend + deploy do worker (tudo num comando)
 npm run deploy
 ```
 
-### 3. Atualizar Frontend
+Isso irá:
+1. Buildar o frontend React para `dist/public/`
+2. Fazer deploy do Worker com os assets
 
-Modifique o frontend conforme `FRONTEND_CHANGES.md`:
-- Adicionar armazenamento de token JWT
-- Adicionar header Authorization às requisições
+### 5. Configurar Domínio
 
-### 4. Deploy Frontend
+1. Vá ao **Cloudflare Dashboard** → **Workers & Pages**
+2. Selecione o worker `angocloud`
+3. **Settings** → **Triggers** → **Add Custom Domain**
+4. Adicione seu domínio (ex: `angocloud.ao`)
 
-```bash
-# Na pasta raiz
-npm run build
-
-# Deploy para Pages
-cd cloudflare
-npm run deploy:pages
-```
-
-### 5. Configurar DNS
-
-1. Adicione domínio personalizado no Cloudflare Pages
-2. Configure registros DNS:
-   - `angocloud.ao` → Cloudflare Pages
-   - `api.angocloud.ao` → Cloudflare Workers (opcional)
-
-### 6. Migração de Passwords (script)
-
-Execute este script para preparar a migração:
+### 6. Migração de Passwords (script SQL)
 
 ```sql
 -- Adicionar coluna para tracking de migração
@@ -128,34 +134,49 @@ SELECT COUNT(*) FROM users WHERE password_hash LIKE '$2%' AND password_migrated 
 
 Mantenha ambos os sistemas ativos:
 
-1. **Semana 1-2**: Render ativo, Cloudflare em teste
+1. **Semana 1-2**: Sistema antigo ativo, Cloudflare em teste
 2. **Semana 3**: Redirecionar 10% do tráfego para Cloudflare
 3. **Semana 4**: 50% do tráfego
-4. **Semana 5**: 100% do tráfego, desligar Render
+4. **Semana 5**: 100% do tráfego, desligar sistema antigo
+
+## Comandos Úteis
+
+```bash
+# Desenvolvimento local
+npm run dev
+
+# Ver logs em tempo real
+npm run tail
+
+# Deploy de preview (não afeta produção)
+npm run deploy:preview
+
+# Deploy para produção
+npm run deploy
+```
 
 ## Rollback
 
 Se precisar reverter:
 
-1. Altere DNS de volta para Render
+1. Altere DNS de volta para o sistema antigo
 2. Passwords já migrados para PBKDF2 funcionarão em ambos se implementar verificação dual
 
 ## Checklist Final
 
 - [ ] Base de dados Neon configurada
-- [ ] Dados migrados do Render
+- [ ] Dados migrados do sistema antigo
+- [ ] Secrets configurados no Cloudflare
 - [ ] Worker deployado e testado
-- [ ] Frontend deployado no Pages
-- [ ] DNS configurado
+- [ ] Domínio personalizado configurado
 - [ ] SSL funcionando
 - [ ] Telegram bots funcionando
 - [ ] Migração de passwords iniciada
-- [ ] Monitoramento configurado
-- [ ] Render desligado
+- [ ] Sistema antigo desligado
 
 ## Suporte
 
 Em caso de problemas:
 1. Verifique logs: `wrangler tail`
 2. Verifique métricas no Cloudflare Dashboard
-3. Teste endpoints manualmente: `curl https://api.angocloud.ao/api/health`
+3. Teste endpoints: `curl https://seu-dominio/api/health`
