@@ -2317,10 +2317,10 @@ export default function Dashboard() {
                                 
                                 {showFileMenu === file.id && (
                                   <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                    className="absolute top-10 right-0 bg-slate-800 border border-white/20 rounded-lg shadow-xl z-50 w-48 overflow-visible"
+                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                    className="absolute bottom-full right-0 mb-2 bg-slate-800 border border-white/20 rounded-lg shadow-xl z-50 w-48"
                                   >
                                     {viewMode === "trash" ? (
                                       <>
