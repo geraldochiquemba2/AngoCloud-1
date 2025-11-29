@@ -259,11 +259,8 @@ export default function Home() {
             ].map((feature, i) => (
               <motion.div 
                 key={i}
-                initial={{ opacity: 0, y: isMobile ? 0 : 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
                 whileHover={isMobile ? {} : { y: -5 }}
-                transition={{ duration: isMobile ? 0.3 : 0.6, ease: "easeOut", delay: isMobile ? 0 : i * 0.1 }}
-                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 className="backdrop-blur-md bg-white/10 p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-all duration-300 ease-out group"
               >
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6 group-hover:bg-white/30 transition-colors">
@@ -319,13 +316,7 @@ export default function Home() {
 
             <div className="flex flex-wrap justify-center gap-4 md:gap-8">
               {pricingPlans.map((plan, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: isMobile ? 0 : 40 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: isMobile ? 0.3 : 0.6, ease: "easeOut", delay: isMobile ? 0 : i * 0.12 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                >
+                <div key={i}>
                   <ThreeDCard className="w-full md:w-auto" containerClassName="md:!py-0">
                     <ThreeDCardBody className="backdrop-blur-3xl bg-transparent relative group/card hover:shadow-lg hover:shadow-white/10 transition-all duration-500 ease-out w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30">
                     <ThreeDCardItem
@@ -382,7 +373,7 @@ export default function Home() {
                     </ThreeDCardItem>
                   </ThreeDCardBody>
                 </ThreeDCard>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
