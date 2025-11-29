@@ -2,7 +2,7 @@
 
 ## Overview
 
-AngoCloud is a cloud storage platform designed to provide secure and accessible file storage for Angolan users. The application offers tiered storage plans, starting with 15GB of free storage, with paid tiers extending to unlimited enterprise storage. It features a modern interface with file management capabilities, including upload, download, organization, sharing, and trash recovery. The platform prioritizes resilience, client-side encryption, and scalability, supporting multiple deployment environments and robust handling of external dependencies.
+AngoCloud is a cloud storage platform designed to provide secure and accessible file storage for Angolan users. The application offers tiered storage plans, starting with 20GB of free storage, with paid tiers extending to unlimited enterprise storage. It features a modern interface with file management capabilities, including upload, download, organization, sharing, and trash recovery. The platform prioritizes resilience, client-side encryption, and scalability, supporting multiple deployment environments and robust handling of external dependencies.
 
 ## User Preferences
 
@@ -32,13 +32,11 @@ The architecture supports scalability through:
 - **Monitoring System:** Comprehensive monitoring with health checks, metrics tracking, quota management, and alerting.
 - **Fallback Storage Providers:** Interface ready for Cloudflare R2 and Backblaze B2 as backup storage options.
 
-### Beta Phase Limits
+### Storage Limits
 
-The platform is in beta phase with conservative limits to ensure stability:
-- **Free Storage:** 5GB per user (reduced from 20GB during beta)
-- **Max File Size:** 100MB per file
-- **Daily Upload Limit:** 20 uploads/day for free users, 1GB/day
-- **Rate Limiting:** Enforced through monitoring system
+- **Free Storage:** 20GB per user
+- **Max File Size:** 2GB per file (Telegram API limit)
+- **Upload Limit:** Unlimited uploads (limited by storage quota)
 
 ### Monitoring & Alerting
 
@@ -49,10 +47,8 @@ The `server/monitoring.ts` module provides:
 - Admin API endpoints for monitoring dashboard
 - Error rate tracking and trend analysis
 
-### Known Limitations (Beta)
+### Known Limitations
 
-The following limitations are accepted for the MVP/beta phase and planned for future improvement:
-- **In-Memory Quotas:** Daily upload quotas are stored in memory, reset on server restart. For production scale, migrate to Redis or PostgreSQL-backed quotas.
 - **Telegram Dependency:** Primary storage relies on Telegram Bot API. Monitor ToS changes and prepare Cloudflare R2 fallback.
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
 
