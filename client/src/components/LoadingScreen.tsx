@@ -36,7 +36,7 @@ export default function LoadingScreen({ isVisible }: LoadingScreenProps) {
       <div className="relative flex flex-col items-center gap-6">
         <div className="text-center">
           <h1 className={`${isMobile ? 'text-3xl' : 'text-4xl'} font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent`}>
-            AngoCloud
+            OrbitalCloud
           </h1>
           <p className="text-cyan-300/80 text-xs mt-2 font-medium tracking-wider">
             Carregando...

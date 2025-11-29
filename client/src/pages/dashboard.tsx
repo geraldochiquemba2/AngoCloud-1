@@ -1630,7 +1630,7 @@ export default function Dashboard() {
           data-testid="link-home"
         >
           <Cloud className="w-6 h-6 text-white fill-white/20" />
-          <span className="text-white drop-shadow-md">AngoCloud</span>
+          <span className="text-white drop-shadow-md">OrbitalCloud</span>
         </button>
         
         {/* Search Bar */}
@@ -3904,10 +3904,10 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-center md:text-left">
           <div className="flex items-center gap-2 font-display font-bold text-lg text-white">
             <Cloud className="w-5 h-5 text-white" />
-            <span>AngoCloud</span>
+            <span>OrbitalCloud</span>
           </div>
           <div className="text-sm text-white/70 flex items-center gap-2">
-            <span>&copy; 2024 AngoCloud. Feito em Luanda com</span>
+            <span>&copy; 2024 OrbitalCloud. Feito em Luanda com</span>
             <motion.div
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 0.6, repeat: Infinity }}

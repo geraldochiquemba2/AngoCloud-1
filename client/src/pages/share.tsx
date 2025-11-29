@@ -260,7 +260,7 @@ export default function SharePage() {
           data-testid="link-home"
         >
           <Cloud className="w-6 sm:w-8 h-6 sm:h-8 text-white fill-white/20" />
-          <span className="text-white drop-shadow-md">AngoCloud</span>
+          <span className="text-white drop-shadow-md">OrbitalCloud</span>
         </button>
         </nav>
 
@@ -397,7 +397,7 @@ export default function SharePage() {
               </button>
               
               <p className="text-white/40 text-xs mt-6">
-                Partilhado via AngoCloud • {share.downloadCount} downloads
+                Partilhado via OrbitalCloud • {share.downloadCount} downloads
               </p>
             </div>
           ) : null}
@@ -503,7 +503,7 @@ export default function SharePage() {
         {/* Footer */}
         <footer className="py-6 px-6 md:px-12 text-center">
           <p className="text-white/50 text-sm">
-            &copy; 2024 AngoCloud. A nuvem de Angola.
+            &copy; 2024 OrbitalCloud. A nuvem de Angola.
           </p>
         </footer>
       </div>
