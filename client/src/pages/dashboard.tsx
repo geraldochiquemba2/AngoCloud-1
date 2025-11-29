@@ -396,7 +396,12 @@ export default function Dashboard() {
       
       if (response.ok) {
         toast.success("Convite/acesso removido");
+        // Remove from resourceInvitations immediately
         setResourceInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+        // Refetch shared content if viewing shared files to update the shared people list
+        if (viewMode === "shared") {
+          await fetchSharedContent();
+        }
       } else {
         const error = await response.json();
         toast.error(error.message || "Erro ao remover convite");
