@@ -29,6 +29,7 @@ export const PRICING = {
 // Planos disponíveis
 export const PLANS = {
   gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 21474836480, preco: 0 }, // 20GB
+  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 0 }, // 500GB
 } as const;
 
 export const folders = pgTable("folders", {
