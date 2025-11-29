@@ -26,10 +26,9 @@ export const PRICING = {
   pricePerGB: 500, // 500Kz por GB
 } as const;
 
-// Planos disponíveis
+// Modelo simplificado: todos começam com 20GB grátis e pagam por GB extra
 export const PLANS = {
-  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 21474836480, preco: 0 }, // 20GB
-  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 0 }, // 500GB
+  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 21474836480, preco: 0 }, // 20GB base
 } as const;
 
 export const folders = pgTable("folders", {

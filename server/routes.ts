@@ -2077,11 +2077,9 @@ export async function registerRoutes(
     res.json(PLANS);
   });
 
-  // Request plan upgrade with proof of payment
+  // Request extra storage with proof of payment (simplified: 20GB free + 500Kz per GB extra)
   app.post("/api/upgrade-requests", requireAuth, upload.single("proof"), async (req: Request, res: Response) => {
     try {
-      const requestedPlan = req.body.requestedPlan;
-      
       // Parse and validate numeric fields - strictly validate integer strings
       let requestedExtraGB: number | null = null;
       let totalPrice: number | null = null;
@@ -2112,36 +2110,20 @@ export async function registerRoutes(
         totalPrice = parsedPrice;
       }
       
-      if (!requestedPlan) {
-        return res.status(400).json({ message: "Plano não especificado" });
-      }
-      
-      const planConfig = PLANS[requestedPlan as keyof typeof PLANS];
-      if (!planConfig) {
-        return res.status(400).json({ message: "Plano inválido" });
-      }
-      
       const user = await storage.getUser(req.user!.id);
       if (!user) {
         return res.status(404).json({ message: "Utilizador não encontrado" });
       }
       
-      // For extra storage requests, allow same plan
-      const hasExtraGB = requestedExtraGB !== null && requestedExtraGB > 0;
-      if (user.plano === requestedPlan && !hasExtraGB) {
-        return res.status(400).json({ message: "Já possui este plano" });
+      // Validate extra GB request is required
+      if (requestedExtraGB === null || requestedExtraGB <= 0) {
+        return res.status(400).json({ message: "GB extras deve ser maior que 0" });
       }
       
-      // Validate extra GB request
-      if (requestedExtraGB !== null) {
-        if (requestedExtraGB <= 0) {
-          return res.status(400).json({ message: "GB extras deve ser maior que 0" });
-        }
-        // Validate price (500 Kz per GB)
-        const expectedPrice = requestedExtraGB * 500;
-        if (totalPrice !== null && totalPrice !== expectedPrice) {
-          return res.status(400).json({ message: "Preço incorreto para a quantidade de GB solicitada" });
-        }
+      // Validate price (500 Kz per GB)
+      const expectedPrice = requestedExtraGB * 500;
+      if (totalPrice !== null && totalPrice !== expectedPrice) {
+        return res.status(400).json({ message: "Preço incorreto para a quantidade de GB solicitada" });
       }
       
       // Check for existing pending request
@@ -2185,9 +2167,9 @@ export async function registerRoutes(
       const request = await storage.createUpgradeRequest({
         userId: user.id,
         currentPlan: user.plano,
-        requestedPlan,
+        requestedPlan: "gratis",
         requestedExtraGB,
-        totalPrice: totalPrice ?? (requestedExtraGB ? requestedExtraGB * 500 : null),
+        totalPrice: totalPrice ?? requestedExtraGB * 500,
         proofFileName: req.file.originalname,
         proofFileSize: req.file.size,
         proofTelegramFileId,
