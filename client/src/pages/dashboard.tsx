@@ -1277,38 +1277,19 @@ export default function Dashboard() {
       
       const downloadUrl = createDownloadUrl(fileBlob);
       
-      if (isMobile) {
-        const newWindow = window.open(downloadUrl, '_blank');
-        if (!newWindow) {
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = file.nome;
-          link.target = "_blank";
-          link.rel = "noopener noreferrer";
-          link.style.display = "none";
-          document.body.appendChild(link);
-          
-          const clickEvent = new MouseEvent('click', {
-            view: window,
-            bubbles: true,
-            cancelable: true
-          });
-          link.dispatchEvent(clickEvent);
-          
-          setTimeout(() => {
-            document.body.removeChild(link);
-          }, 100);
-        }
-        setTimeout(() => revokeDownloadUrl(downloadUrl), 5000);
-      } else {
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = file.nome;
-        document.body.appendChild(link);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.nome;
+      link.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+      document.body.appendChild(link);
+      
+      requestAnimationFrame(() => {
         link.click();
-        document.body.removeChild(link);
-        setTimeout(() => revokeDownloadUrl(downloadUrl), 1000);
-      }
+        requestAnimationFrame(() => {
+          document.body.removeChild(link);
+          setTimeout(() => revokeDownloadUrl(downloadUrl), 3000);
+        });
+      });
       
       toast.success("Download concluído!");
     } catch (err) {
@@ -3839,16 +3820,29 @@ export default function Dashboard() {
             ) : (
               <>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); downloadFile(selectedFile); }}
-                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    e.preventDefault();
+                    const fileToDownload = selectedFile;
+                    setShowFileMenu(null); 
+                    setSelectedFile(null);
+                    setTimeout(() => downloadFile(fileToDownload), 50);
+                  }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm active:bg-white/20"
                   data-testid={`button-download-${selectedFile.id}`}
                 >
                   <Download className="w-4 h-4 text-white flex-shrink-0" />
                   Download
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); shareFile(selectedFile); }}
-                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    e.preventDefault();
+                    const fileToShare = selectedFile;
+                    setShowFileMenu(null); 
+                    shareFile(fileToShare); 
+                  }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10 active:bg-white/20"
                   data-testid={`button-share-${selectedFile.id}`}
                 >
                   <Share2 className="w-4 h-4 text-white flex-shrink-0" />
@@ -3857,11 +3851,12 @@ export default function Dashboard() {
                 <button
                   onClick={(e) => { 
                     e.stopPropagation(); 
+                    e.preventDefault();
                     setShowFileMenu(null);
                     setNewFileName(selectedFile.nome);
                     setShowRenameModal(true);
                   }}
-                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10 active:bg-white/20"
                   data-testid={`button-rename-${selectedFile.id}`}
                 >
                   <Edit className="w-4 h-4 text-white flex-shrink-0" />
@@ -3870,11 +3865,12 @@ export default function Dashboard() {
                 <button
                   onClick={(e) => { 
                     e.stopPropagation(); 
+                    e.preventDefault();
                     setShowFileMenu(null);
                     fetchAllFolders();
                     setShowMoveModal(true);
                   }}
-                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10 active:bg-white/20"
                   data-testid={`button-move-${selectedFile.id}`}
                 >
                   <Move className="w-4 h-4 text-white flex-shrink-0" />
@@ -3883,10 +3879,11 @@ export default function Dashboard() {
                 <button
                   onClick={(e) => { 
                     e.stopPropagation(); 
+                    e.preventDefault();
                     setShowFileMenu(null);
                     confirmDeleteFile(selectedFile); 
                   }}
-                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10 active:bg-red-500/20"
                   data-testid={`button-delete-${selectedFile.id}`}
                 >
                   <Trash2 className="w-4 h-4 text-white flex-shrink-0" />
