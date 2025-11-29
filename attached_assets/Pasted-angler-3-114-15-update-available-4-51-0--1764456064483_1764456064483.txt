@@ -1,0 +1,98 @@
+angler 3.114.15 (update available 4.51.0)
+---------------------------------------------------------
+
+▲ [WARNING] The version of Wrangler you are using is now out-of-date.
+
+  Please update to the latest version to prevent critical errors.
+  Run `npm install --save-dev wrangler@4` to update to the latest version.
+  After installation, run Wrangler with `npx wrangler`.
+
+
+[custom build] Running: npm run build
+[custom build]
+[custom build] > angocloud-cloudflare@2.0.0 build
+[custom build] > cd .. && npm run build
+[custom build]
+[custom build]
+[custom build]
+[custom build] > rest-express@1.0.0 build
+[custom build] > tsx script/build.ts
+[custom build]
+[custom build]
+[custom build] building client...
+[custom build]
+[custom build] vite v7.1.12 building for production...
+[custom build]
+[custom build] transforming...
+[custom build]
+[custom build] ✓ 2247 modules transformed.
+[custom build]
+[custom build] rendering chunks...
+[custom build]
+[custom build] [meta-images] no Replit deployment domain found, skipping meta tag updates
+[custom build]
+[custom build] computing gzip size...
+[custom build]
+[custom build] ../dist/public/index.html                                                           4.44 kB │ gzip:   1.54 kB
+[custom build]
+[custom build]
+[custom build] (!) Some chunks are larger than 500 kB after minification. Consider:
+[custom build] - Using dynamic import() to code-split the application
+[custom build] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[custom build] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[custom build]
+[custom build] ../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+[custom build] ../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+[custom build] ../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+[custom build] ../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+[custom build] ../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+[custom build] ../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+[custom build] ../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+[custom build] ../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+[custom build] ../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+[custom build] ../dist/public/assets/index-GxDBOtxy.css                                          135.79 kB │ gzip:  20.53 kB
+[custom build] ../dist/public/assets/index-C2Y_CPdM.js                                           684.07 kB │ gzip: 198.22 kB
+[custom build] ✓ built in 9.34s
+[custom build] building server...
+[custom build]
+[custom build]
+[custom build]   dist\index.cjs  1.3mb
+[custom build]
+[custom build]
+[custom build] Done in 354ms
+[custom build]
+🌀 Building list of assets...
+🌀 Starting asset upload...
+🌀 Found 15 new or modified static assets to upload. Proceeding with upload...
++ /favicon.png
++ /assets/minimalist_cloud_storage_icon-LZRPUkIw.png
++ /assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg
++ /assets/about_page_video_first_frame-CrpgHI0Q.png
++ /features-bg.jpg
++ /index.html
++ /assets/index-C2Y_CPdM.js
++ /assets/pricing_video_first_frame-is5UPM7j.png
++ /assets/loading-background-KpomVLYn.jpg
++ /assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4
++ /assets/index-GxDBOtxy.css
++ /assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg
++ /assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg
++ /assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4
++ /pricing-video.mp4
+Uploaded 5 of 15 assets
+Uploaded 10 of 15 assets
+Uploaded 15 of 15 assets
+✨ Success! Uploaded 15 files (109.32 sec)
+
+Total Upload: 873.73 KiB / gzip: 176.93 KiB
+Worker Startup Time: 35 ms
+Your worker has access to the following bindings:
+- Vars:
+  - ENVIRONMENT: "production"
+Uploaded angocloud (134.83 sec)
+▲ [WARNING] You need to register a workers.dev subdomain before publishing to workers.dev
+
+
+? Would you like to register a workers.dev subdomain now? » (Y/n)
+
+
