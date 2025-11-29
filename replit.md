@@ -64,10 +64,48 @@ The platform includes a WebSocket server (`server/websocket.ts`) for real-time u
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
 - **WebSocket in Development:** Real-time WebSocket features are disabled in development mode due to Vite HMR conflicts. Test real-time features in production builds.
 
+## Deployment (Cloudflare Workers)
+
+O AngoCloud está configurado para deploy no **Cloudflare Workers** com a abordagem unificada de 2025 (Assets integrados).
+
+### Estrutura de Deploy
+
+```
+cloudflare/
+├── wrangler.toml          # Configuração do Worker
+├── worker/index.ts        # Entry point (API + Assets)
+├── package.json           # Scripts de build/deploy
+└── README.md              # Guia completo de deploy
+```
+
+### Comandos de Deploy
+
+```bash
+cd cloudflare
+npm install
+npm run deploy       # Build + deploy para Cloudflare
+```
+
+### Secrets Necessários
+
+Configure via `wrangler secret put`:
+- `DATABASE_URL` - Connection string Neon PostgreSQL
+- `JWT_SECRET` - Chave secreta JWT (min. 32 caracteres)
+- `TELEGRAM_BOT_1_TOKEN` - Token do primeiro bot
+- `TELEGRAM_STORAGE_CHAT_ID` - ID do chat de armazenamento
+
+### Vantagens da Cloudflare
+
+- Deploy unificado (frontend + backend)
+- Edge performance global
+- 100.000 requests/dia gratuitos
+- SSL automático
+- Domínio personalizado fácil de configurar
+
 ## External Dependencies
 
 - **Cloud Storage Backend:** Telegram Bot API (requires `TELEGRAM_BOT_X_TOKEN` and `TELEGRAM_CHAT_ID_X` environment variables for multiple bots).
 - **Database Service:** Neon PostgreSQL serverless database (`DATABASE_URL` environment variable).
 - **Payment Integration:** Multicaixa Express (planned for Angolan payment processing).
-- **Deployment Platforms:** Render (current), Cloudflare Pages + Workers (planned for national scalability).
+- **Deployment Platform:** Cloudflare Workers com Assets integrados (configuração em `cloudflare/`).
 - **Development Tools:** Replit-specific plugins, custom Vite plugin for OpenGraph.
