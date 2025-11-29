@@ -3731,6 +3731,7 @@ export default function Dashboard() {
                     try {
                       const formData = new FormData();
                       formData.append("proof", proofFile);
+                      formData.append("requestedPlan", user?.plano || "gratis");
                       formData.append("requestedExtraGB", requestedExtraGB.toString());
                       formData.append("totalPrice", (requestedExtraGB * PRICE_PER_GB).toString());
                       
