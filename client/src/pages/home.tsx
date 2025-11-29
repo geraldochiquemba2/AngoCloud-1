@@ -258,7 +258,7 @@ export default function Home() {
 
               {/* Espaço Extra */}
               <div className="backdrop-blur-xl bg-white/10 p-8 rounded-2xl border-2 border-white/50 hover:border-white/70 transition-all relative">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-4 py-1 rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm text-white border border-white/30 text-xs font-bold px-4 py-1 rounded-full">
                   PAGUE POR GB
                 </div>
                 
