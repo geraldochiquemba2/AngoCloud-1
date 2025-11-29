@@ -1,0 +1,50 @@
+# Cloudflare Worker Configuration for AngoCloud
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "angocloud-api"
+main = "worker/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account and zone configuration (fill these after creating your Cloudflare account)
+# account_id = "your-account-id"
+# zone_id = "your-zone-id"
+
+[vars]
+ENVIRONMENT = "production"
+
+# KV Namespaces for session storage (create these in Cloudflare dashboard)
+# [[kv_namespaces]]
+# binding = "SESSIONS"
+# id = "your-kv-namespace-id"
+
+# D1 Database (optional - if you want to use Cloudflare's SQLite)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "angocloud"
+# database_id = "your-d1-database-id"
+
+# Environment variables (set these in Cloudflare dashboard or use wrangler secret)
+# Required secrets:
+# - DATABASE_URL: Your Neon PostgreSQL connection string
+# - JWT_SECRET: Secret key for JWT tokens
+# - TELEGRAM_BOT_1_TOKEN: First Telegram bot token
+# - TELEGRAM_BOT_2_TOKEN: Second Telegram bot token (optional)
+# - TELEGRAM_STORAGE_CHAT_ID: Telegram chat ID for file storage
+
+[build]
+command = "npm run build:worker"
+
+# Development settings
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Production routes (configure after setting up your domain)
+# [[routes]]
+# pattern = "api.angocloud.ao/*"
+# zone_name = "angocloud.ao"
+
+# Tail workers for logging (optional)
+# [[tail_consumers]]
+# service = "angocloud-logs"

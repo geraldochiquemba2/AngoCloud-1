@@ -1,0 +1,25 @@
+{
+  "name": "angocloud-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build:worker": "esbuild worker/index.ts --bundle --outdir=dist --format=esm --platform=browser",
+    "build:frontend": "cd .. && npm run build",
+    "deploy:pages": "wrangler pages deploy ../dist/public --project-name=angocloud",
+    "deploy:all": "npm run deploy && npm run deploy:pages"
+  },
+  "dependencies": {
+    "hono": "^4.3.0",
+    "@neondatabase/serverless": "^0.9.0",
+    "drizzle-orm": "^0.30.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "wrangler": "^3.57.0",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.4.5"
+  }
+}
