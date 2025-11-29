@@ -960,20 +960,48 @@ export async function registerRoutes(
       
       // If the invitation was already accepted, also update the permission
       if (invitation.status === "accepted" && invitation.inviteeUserId) {
+        console.log(`Updating permission for user ${invitation.inviteeUserId} on ${invitation.resourceType} ${invitation.resourceId} to role ${role}`);
+        
         if (invitation.resourceType === "file") {
           const permission = await storage.getFilePermission(invitation.resourceId, invitation.inviteeUserId);
           if (permission) {
             await storage.updateFilePermissionRole(permission.id, role === "collaborator" ? "editor" : role);
+            console.log(`File permission ${permission.id} updated to ${role}`);
+          } else {
+            console.warn(`No file permission found for file ${invitation.resourceId} and user ${invitation.inviteeUserId}, creating one`);
+            // Create the missing permission
+            await storage.createFilePermission({
+              fileId: invitation.resourceId,
+              userId: invitation.inviteeUserId,
+              role: role === "collaborator" ? "editor" : role,
+              grantedBy: invitation.inviterId,
+              sharedEncryptionKey: invitation.sharedEncryptionKey || undefined,
+            });
+            console.log(`Created new file permission for user ${invitation.inviteeUserId}`);
           }
         } else {
           const permission = await storage.getFolderPermission(invitation.resourceId, invitation.inviteeUserId);
           if (permission) {
             await storage.updateFolderPermissionRole(permission.id, role);
+            console.log(`Folder permission ${permission.id} updated to ${role}`);
+          } else {
+            console.warn(`No folder permission found for folder ${invitation.resourceId} and user ${invitation.inviteeUserId}, creating one`);
+            // Create the missing permission
+            await storage.createFolderPermission({
+              folderId: invitation.resourceId,
+              userId: invitation.inviteeUserId,
+              role: role,
+              grantedBy: invitation.inviterId,
+              sharedEncryptionKey: invitation.sharedEncryptionKey || undefined,
+            });
+            console.log(`Created new folder permission for user ${invitation.inviteeUserId}`);
           }
         }
+      } else if (invitation.status === "accepted" && !invitation.inviteeUserId) {
+        console.warn(`Invitation ${invitation.id} is accepted but has no inviteeUserId`);
       }
       
-      res.json({ message: "Permissão atualizada" });
+      res.json({ message: "Permissão atualizada", role });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Dados inválidos", errors: error.errors });
@@ -1043,7 +1071,13 @@ export async function registerRoutes(
       
       // Check if user has access to this folder
       const hasAccess = await storage.hasFolderAccess(folderId, userId);
+      console.log(`Checking folder access: folderId=${folderId}, userId=${userId}, hasAccess=${hasAccess}`);
+      
       if (!hasAccess) {
+        // Log more details for debugging
+        const folder = await storage.getFolder(folderId);
+        const permission = await storage.getFolderPermission(folderId, userId);
+        console.log(`Access denied details: folder exists=${!!folder}, folder owner=${folder?.userId}, permission exists=${!!permission}`);
         return res.status(403).json({ message: "Acesso negado" });
       }
       
@@ -1052,6 +1086,7 @@ export async function registerRoutes(
         storage.getFoldersInSharedFolder(folderId, userId),
       ]);
       
+      console.log(`Shared folder content: folderId=${folderId}, files=${filesData.length}, subfolders=${foldersData.length}`);
       res.json({ files: filesData, folders: foldersData });
     } catch (error) {
       console.error("Get shared folder content error:", error);

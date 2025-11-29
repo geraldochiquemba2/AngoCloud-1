@@ -610,34 +610,53 @@ export default function Dashboard() {
       : file.tipoMime;
   };
 
+  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
+  const loadingCountRef = useRef(0);
+  const MAX_CONCURRENT_LOADS = 4;
+
+  const processQueue = useCallback(async () => {
+    while (thumbnailQueueRef.current.length > 0 && loadingCountRef.current < MAX_CONCURRENT_LOADS) {
+      const item = thumbnailQueueRef.current.shift();
+      if (!item) break;
+      
+      if (fileThumbnails[item.id]) continue;
+      
+      loadingCountRef.current++;
+      loadThumbnail(item.id, item.mimeType).finally(() => {
+        loadingCountRef.current--;
+        processQueue();
+      });
+    }
+  }, [fileThumbnails, loadThumbnail]);
+
+  const queueThumbnailLoad = useCallback((fileId: string, mimeType: string) => {
+    if (fileThumbnails[fileId]) return;
+    if (thumbnailQueueRef.current.some(item => item.id === fileId)) return;
+    
+    thumbnailQueueRef.current.push({ id: fileId, mimeType });
+    processQueue();
+  }, [fileThumbnails, processQueue]);
+
   useEffect(() => {
     const mediaFiles = files.filter(isMediaFile);
-    mediaFiles.forEach(file => {
-      if (!fileThumbnails[file.id]) {
-        loadThumbnail(file.id, getEffectiveMimeType(file));
-      }
+    mediaFiles.slice(0, 12).forEach(file => {
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
-  }, [files, loadThumbnail]);
+  }, [files, queueThumbnailLoad]);
 
-  // Also load thumbnails for shared files
   useEffect(() => {
     const mediaFiles = sharedFiles.filter(isMediaFile);
-    mediaFiles.forEach(file => {
-      if (!fileThumbnails[file.id]) {
-        loadThumbnail(file.id, getEffectiveMimeType(file));
-      }
+    mediaFiles.slice(0, 12).forEach(file => {
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
-  }, [sharedFiles, loadThumbnail]);
+  }, [sharedFiles, queueThumbnailLoad]);
 
-  // Load thumbnails for shared folder files
   useEffect(() => {
     const mediaFiles = sharedFolderFiles.filter(isMediaFile);
-    mediaFiles.forEach(file => {
-      if (!fileThumbnails[file.id]) {
-        loadThumbnail(file.id, getEffectiveMimeType(file));
-      }
+    mediaFiles.slice(0, 12).forEach(file => {
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
-  }, [sharedFolderFiles, loadThumbnail]);
+  }, [sharedFolderFiles, queueThumbnailLoad]);
 
   // Open file preview
   const openPreview = async (file: FileItem) => {
