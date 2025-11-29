@@ -174,11 +174,15 @@ export default function Dashboard() {
   const proofInputRef = useRef<HTMLInputElement>(null);
   
   // Upgrade requests tracking
-  const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; adminNote?: string; currentPlan: string}>>([]);
+  const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; requestedExtraGB?: number; totalPrice?: number; adminNote?: string; currentPlan: string}>>([]);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
-  const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; plan: string} | null>(null);
+  const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; requestedGB?: number; totalPrice?: number} | null>(null);
   const [showApprovedSection, setShowApprovedSection] = useState(true);
   const [showRejectedSection, setShowRejectedSection] = useState(true);
+  
+  // New pricing model state
+  const [requestedExtraGB, setRequestedExtraGB] = useState<number>(10);
+  const PRICE_PER_GB = 500; // 500 Kz per GB
   const [showLoading, setShowLoading] = useState(true);
   const [isLogoutLoading, setIsLogoutLoading] = useState(false);
 
@@ -3256,8 +3260,8 @@ export default function Dashboard() {
                     <Cloud className="w-5 sm:w-6 h-5 sm:h-6 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">Planos AngoCloud</h2>
-                    <p className="text-white/50 text-xs sm:text-sm truncate">Escolha o plano ideal para as suas necessidades</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-white truncate">Aumentar Armazenamento</h2>
+                    <p className="text-white/50 text-xs sm:text-sm truncate">20GB grátis + 500 Kz por GB extra (para sempre)</p>
                   </div>
                 </div>
                 <button onClick={() => setShowPlansModal(false)} className="text-white/50 hover:text-white flex-shrink-0">
@@ -3275,7 +3279,10 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "pending").map(req => (
                       <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-blue-500/20">
-                        <p className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span> - Aguardando aprovação</p>
+                        <p className="text-white text-xs sm:text-sm">
+                          Solicitação de <span className="font-bold text-blue-400">{req.requestedExtraGB || 0} GB</span> extra 
+                          {req.totalPrice && <span className="text-white/70"> ({req.totalPrice.toLocaleString('pt-AO')} Kz)</span>} - Aguardando aprovação
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -3301,7 +3308,10 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     {upgradeRequests.filter(r => r.status === "approved").map(req => (
                       <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-green-500/20">
-                        <p className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize text-green-400">{req.requestedPlan}</span> - ✓ Aprovado</p>
+                        <p className="text-white text-xs sm:text-sm">
+                          <span className="font-bold text-green-400">+{req.requestedExtraGB || 0} GB</span> 
+                          {req.totalPrice && <span className="text-white/70"> ({req.totalPrice.toLocaleString('pt-AO')} Kz)</span>} - ✓ Aprovado
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -3328,11 +3338,14 @@ export default function Dashboard() {
                     {upgradeRequests.filter(r => r.status === "rejected").map(req => (
                       <div key={req.id} className="p-2 sm:p-3 bg-white/5 rounded-lg border border-red-500/20">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
-                          <span className="text-white text-xs sm:text-sm">Upgrade para <span className="font-bold capitalize">{req.requestedPlan}</span></span>
+                          <span className="text-white text-xs sm:text-sm">
+                            Solicitação de <span className="font-bold">{req.requestedExtraGB || 0} GB</span> extra
+                            {req.totalPrice && <span className="text-white/70"> ({req.totalPrice.toLocaleString('pt-AO')} Kz)</span>}
+                          </span>
                           {req.adminNote && (
                             <button
                               onClick={() => {
-                                setSelectedRejection({id: req.id, message: req.adminNote, plan: req.requestedPlan});
+                                setSelectedRejection({id: req.id, message: req.adminNote, requestedGB: req.requestedExtraGB, totalPrice: req.totalPrice});
                                 setShowRejectionModal(true);
                               }}
                               className="text-blue-400 text-xs hover:text-blue-300 text-left sm:text-right whitespace-nowrap"
@@ -3343,7 +3356,7 @@ export default function Dashboard() {
                         </div>
                         <button
                           onClick={() => {
-                            setSelectedPlanForUpgrade(req.requestedPlan);
+                            if (req.requestedExtraGB) setRequestedExtraGB(req.requestedExtraGB);
                             setShowUpgradeProofModal(true);
                           }}
                           className="text-xs px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white transition-colors w-full sm:w-auto"
@@ -3356,196 +3369,119 @@ export default function Dashboard() {
                 </div>
               )}
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {/* Plano Grátis */}
-                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "gratis" ? "bg-gray-500/20 border-gray-500" : "bg-white/5 border-white/10 hover:border-white/30"}`}>
-                  {user.plano === "gratis" && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-gray-500 rounded-full text-xs font-bold text-white">
-                      Plano Atual
+              {/* Current Storage Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl border border-green-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-green-500/20">
+                      <Check className="w-5 h-5 text-green-400" />
                     </div>
-                  )}
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-bold text-white mb-1">Grátis</h3>
-                    <div className="text-3xl font-bold text-white">Kz 0<span className="text-sm font-normal text-white/50">/trimestre</span></div>
+                    <div>
+                      <h3 className="text-white font-medium">Armazenamento Grátis</h3>
+                      <p className="text-green-400 font-bold text-lg">20 GB</p>
+                    </div>
                   </div>
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>15 GB de armazenamento</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>50 uploads máximos</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Partilha de ficheiros</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Encriptação de ficheiros</span>
-                    </li>
-                  </ul>
-                  {user.plano === "gratis" ? (
-                    <button disabled className="w-full py-2 rounded-lg bg-gray-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
-                      Plano Atual
+                  <p className="text-white/60 text-xs">Incluído para todos os utilizadores, para sempre.</p>
+                </div>
+                
+                <div className="p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-blue-500/20">
+                      <Cloud className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">Seu Limite Atual</h3>
+                      <p className="text-blue-400 font-bold text-lg">{Math.round(user.storageLimit / (1024 * 1024 * 1024))} GB</p>
+                    </div>
+                  </div>
+                  <p className="text-white/60 text-xs">
+                    {user.storageLimit > 21474836480 
+                      ? `+${Math.round((user.storageLimit - 21474836480) / (1024 * 1024 * 1024))} GB extras adicionados`
+                      : 'Sem espaço extra adicionado'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Request Extra GB Form */}
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl border border-primary/20">
+                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+                  <Upload className="w-5 h-5 text-primary" />
+                  Solicitar Espaço Extra
+                </h3>
+                
+                <div className="mb-4">
+                  <label className="text-white/70 text-sm mb-2 block">Quantos GB extras deseja?</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setRequestedExtraGB(Math.max(1, requestedExtraGB - 5))}
+                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                      data-testid="button-decrease-gb"
+                    >
+                      <span className="text-lg font-bold">-5</span>
                     </button>
-                  ) : (
-                    <button disabled className="w-full py-2 rounded-lg bg-white/10 text-white/50 cursor-not-allowed text-sm font-medium">
-                      Plano Básico
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={requestedExtraGB}
+                      onChange={(e) => setRequestedExtraGB(Math.max(1, Math.min(1000, parseInt(e.target.value) || 1)))}
+                      className="flex-1 py-3 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-center text-xl font-bold focus:outline-none focus:border-primary/50"
+                      data-testid="input-extra-gb"
+                    />
+                    <button
+                      onClick={() => setRequestedExtraGB(Math.min(1000, requestedExtraGB + 5))}
+                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                      data-testid="button-increase-gb"
+                    >
+                      <span className="text-lg font-bold">+5</span>
                     </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* Plano Básico */}
-                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "basico" ? "bg-blue-500/20 border-blue-500" : "bg-white/5 border-white/10 hover:border-blue-500/50"}`}>
-                  {user.plano === "basico" && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-blue-500 rounded-full text-xs font-bold text-white">
-                      Plano Atual
-                    </div>
-                  )}
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-bold text-blue-400 mb-1">Básico</h3>
-                    <div className="text-3xl font-bold text-white">Kz 7.500<span className="text-sm font-normal text-white/50">/trimestre</span></div>
+                <div className="p-4 bg-white/5 rounded-lg mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white/70">Preço por GB:</span>
+                    <span className="text-white font-medium">{PRICE_PER_GB.toLocaleString('pt-AO')} Kz</span>
                   </div>
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>50 GB de armazenamento</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>200 uploads máximos</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Tudo do plano Grátis</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Suporte por email</span>
-                    </li>
-                  </ul>
-                  {user.plano === "basico" ? (
-                    <button disabled className="w-full py-2 rounded-lg bg-blue-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
-                      Plano Atual
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        setSelectedPlanForUpgrade("basico");
-                        setShowUpgradeProofModal(true);
-                      }}
-                      disabled={upgradeRequests.some(r => r.status === "pending")}
-                      className="w-full py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-testid="button-request-basico"
-                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
-                    >
-                      Solicitar Upgrade
-                    </button>
-                  )}
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white/70">GB solicitados:</span>
+                    <span className="text-white font-medium">{requestedExtraGB} GB</span>
+                  </div>
+                  <div className="border-t border-white/10 pt-2 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-medium">Total a pagar:</span>
+                      <span className="text-2xl font-bold text-primary">{(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz</span>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Plano Profissional */}
-                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "profissional" ? "bg-purple-500/20 border-purple-500" : "bg-white/5 border-white/10 hover:border-purple-500/50"}`}>
-                  {user.plano === "profissional" && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-purple-500 rounded-full text-xs font-bold text-white">
-                      Plano Atual
-                    </div>
-                  )}
-                  <div className="absolute -top-3 right-3 px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-xs font-bold text-white">
-                    Popular
-                  </div>
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-bold text-purple-400 mb-1">Profissional</h3>
-                    <div className="text-3xl font-bold text-white">Kz 15.000<span className="text-sm font-normal text-white/50">/trimestre</span></div>
-                  </div>
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>100 GB de armazenamento</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>1.000 uploads máximos</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Tudo do plano Básico</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Suporte prioritário</span>
-                    </li>
-                  </ul>
-                  {user.plano === "profissional" ? (
-                    <button disabled className="w-full py-2 rounded-lg bg-purple-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
-                      Plano Atual
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        setSelectedPlanForUpgrade("profissional");
-                        setShowUpgradeProofModal(true);
-                      }}
-                      disabled={upgradeRequests.some(r => r.status === "pending")}
-                      className="w-full py-2 rounded-lg bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-testid="button-request-profissional"
-                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
+                <div className="flex gap-2 flex-wrap mb-4">
+                  {[10, 20, 50, 100].map(gb => (
+                    <button
+                      key={gb}
+                      onClick={() => setRequestedExtraGB(gb)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        requestedExtraGB === gb 
+                          ? 'bg-primary text-white' 
+                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                      }`}
+                      data-testid={`button-preset-${gb}gb`}
                     >
-                      Solicitar Upgrade
+                      {gb} GB
                     </button>
-                  )}
+                  ))}
                 </div>
 
-                {/* Plano Empresarial */}
-                <div className={`relative p-5 rounded-xl border transition-all ${user.plano === "empresarial" ? "bg-amber-500/20 border-amber-500" : "bg-white/5 border-white/10 hover:border-amber-500/50"}`}>
-                  {user.plano === "empresarial" && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-amber-500 rounded-full text-xs font-bold text-white">
-                      Plano Atual
-                    </div>
-                  )}
-                  <div className="text-center mb-4">
-                    <h3 className="text-lg font-bold text-amber-400 mb-1">Empresarial</h3>
-                    <div className="text-3xl font-bold text-white">Kz 45.000<span className="text-sm font-normal text-white/50">/trimestre</span></div>
-                  </div>
-                  <ul className="space-y-2 mb-6 text-sm">
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>500 GB de armazenamento</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Uploads ilimitados</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Tudo do plano Profissional</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-white/70">
-                      <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-                      <span>Suporte dedicado 24/7</span>
-                    </li>
-                  </ul>
-                  {user.plano === "empresarial" ? (
-                    <button disabled className="w-full py-2 rounded-lg bg-amber-500/50 text-white/50 cursor-not-allowed text-sm font-medium">
-                      Plano Atual
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => {
-                        setSelectedPlanForUpgrade("empresarial");
-                        setShowUpgradeProofModal(true);
-                      }}
-                      disabled={upgradeRequests.some(r => r.status === "pending")}
-                      className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                      data-testid="button-request-empresarial"
-                      title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
-                    >
-                      Solicitar Upgrade
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={() => setShowUpgradeProofModal(true)}
+                  disabled={upgradeRequests.some(r => r.status === "pending")}
+                  className="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  data-testid="button-request-upgrade"
+                  title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
+                >
+                  <Upload className="w-4 h-4" />
+                  Solicitar +{requestedExtraGB} GB por {(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz
+                </button>
               </div>
               
               <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-white/5 rounded-lg border border-white/10">
@@ -3554,11 +3490,11 @@ export default function Dashboard() {
                     <Shield className="w-4 h-4 text-blue-400" />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-white font-medium text-xs sm:text-sm mb-1">Como funciona o upgrade?</h4>
+                    <h4 className="text-white font-medium text-xs sm:text-sm mb-1">Como funciona?</h4>
                     <p className="text-white/50 text-xs">
-                      Ao solicitar um upgrade, envie o comprovativo de pagamento (PDF ou imagem). 
-                      Após verificação, o seu plano será activado imediatamente. 
-                      Para pagamento, aceitamos Multicaixa Express e transferência bancária.
+                      1. Escolha quantos GB extras deseja • 2. Envie o comprovativo de pagamento • 
+                      3. Após verificação, o seu espaço será aumentado imediatamente. 
+                      O espaço extra é permanente - pague uma vez, use para sempre!
                     </p>
                   </div>
                 </div>
@@ -3594,7 +3530,8 @@ export default function Dashboard() {
               
               <div className="mb-6">
                 <p className="text-white/70 text-sm mb-4">
-                  Sua solicitação de upgrade para o plano <span className="font-bold capitalize">{selectedRejection.plan}</span> foi rejeitada:
+                  Sua solicitação de <span className="font-bold">{selectedRejection.requestedGB || 0} GB</span> extra
+                  {selectedRejection.totalPrice && <span> ({selectedRejection.totalPrice.toLocaleString('pt-AO')} Kz)</span>} foi rejeitada:
                 </p>
                 <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20">
                   <p className="text-white text-sm">{selectedRejection.message || "Nenhuma mensagem fornecida"}</p>
@@ -3611,7 +3548,7 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setShowRejectionModal(false);
-                    setSelectedPlanForUpgrade(selectedRejection.plan);
+                    if (selectedRejection.requestedGB) setRequestedExtraGB(selectedRejection.requestedGB);
                     setShowUpgradeProofModal(true);
                   }}
                   className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors"
@@ -3626,7 +3563,7 @@ export default function Dashboard() {
 
       {/* Upgrade Proof Upload Modal */}
       <AnimatePresence>
-        {showUpgradeProofModal && selectedPlanForUpgrade && (
+        {showUpgradeProofModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -3635,7 +3572,6 @@ export default function Dashboard() {
             onClick={() => {
               if (!uploadingProof) {
                 setShowUpgradeProofModal(false);
-                setSelectedPlanForUpgrade(null);
                 setProofFile(null);
               }
             }}
@@ -3653,7 +3589,6 @@ export default function Dashboard() {
                   onClick={() => {
                     if (!uploadingProof) {
                       setShowUpgradeProofModal(false);
-                      setSelectedPlanForUpgrade(null);
                       setProofFile(null);
                     }
                   }}
@@ -3665,9 +3600,20 @@ export default function Dashboard() {
               </div>
 
               <div className="mb-6">
+                <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg border border-primary/30 mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-white/70 text-sm">Espaço extra solicitado:</span>
+                    <span className="text-white font-bold">{requestedExtraGB} GB</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white/70 text-sm">Valor a pagar:</span>
+                    <span className="text-primary font-bold text-lg">{(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz</span>
+                  </div>
+                </div>
+
                 <p className="text-white/70 text-sm mb-4">
-                  Para solicitar o upgrade para o plano <span className="font-bold text-white capitalize">{selectedPlanForUpgrade}</span>, 
-                  envie o comprovativo de pagamento (PDF ou imagem).
+                  Envie o comprovativo de pagamento (PDF ou imagem) para adicionar 
+                  <span className="font-bold text-white"> +{requestedExtraGB} GB</span> à sua conta.
                 </p>
 
                 <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 mb-4">
@@ -3732,7 +3678,6 @@ export default function Dashboard() {
                 <button
                   onClick={() => {
                     setShowUpgradeProofModal(false);
-                    setSelectedPlanForUpgrade(null);
                     setProofFile(null);
                   }}
                   disabled={uploadingProof}
@@ -3742,13 +3687,14 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!proofFile || !selectedPlanForUpgrade) return;
+                    if (!proofFile) return;
                     
                     setUploadingProof(true);
                     try {
                       const formData = new FormData();
                       formData.append("proof", proofFile);
-                      formData.append("requestedPlan", selectedPlanForUpgrade);
+                      formData.append("requestedExtraGB", requestedExtraGB.toString());
+                      formData.append("totalPrice", (requestedExtraGB * PRICE_PER_GB).toString());
                       
                       const response = await fetch("/api/upgrade-requests", {
                         method: "POST",
@@ -3760,8 +3706,8 @@ export default function Dashboard() {
                         toast.success("Solicitação enviada com sucesso! Aguarde aprovação.");
                         setShowUpgradeProofModal(false);
                         setShowPlansModal(false);
-                        setSelectedPlanForUpgrade(null);
                         setProofFile(null);
+                        await fetchUpgradeRequests();
                       } else {
                         const data = await response.json();
                         toast.error(data.message || "Erro ao enviar solicitação");
@@ -3773,7 +3719,7 @@ export default function Dashboard() {
                     }
                   }}
                   disabled={!proofFile || uploadingProof}
-                  className="flex-1 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {uploadingProof ? (
                     <>
@@ -3781,7 +3727,7 @@ export default function Dashboard() {
                       Enviando...
                     </>
                   ) : (
-                    "Enviar Solicitação"
+                    `Solicitar +${requestedExtraGB} GB`
                   )}
                 </button>
               </div>

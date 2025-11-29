@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   nome: text("nome").notNull(),
   plano: text("plano").notNull().default("gratis"),
-  storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(16106127360), // 15GB em bytes
+  storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(21474836480), // 20GB em bytes
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),
   uploadsCount: integer("uploads_count").notNull().default(0),
   uploadLimit: integer("upload_limit").notNull().default(-1), // -1 = ilimitado, limite é pelo espaço
@@ -19,12 +19,16 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Planos disponíveis com seus limites (uploads sempre ilimitados, limite é pelo espaço)
+// Novo modelo de preços: 20GB grátis + 500Kz por GB extra
+export const PRICING = {
+  freeStorageGB: 20, // 20GB grátis
+  freeStorageBytes: 21474836480, // 20GB em bytes
+  pricePerGB: 500, // 500Kz por GB
+} as const;
+
+// Planos mantidos para compatibilidade (apenas o grátis é usado)
 export const PLANS = {
-  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 16106127360, preco: 0 }, // 15GB
-  basico: { nome: "Básico", uploadLimit: -1, storageLimit: 53687091200, preco: 2500 }, // 50GB
-  profissional: { nome: "Profissional", uploadLimit: -1, storageLimit: 107374182400, preco: 5000 }, // 100GB
-  empresarial: { nome: "Empresarial", uploadLimit: -1, storageLimit: 536870912000, preco: 15000 }, // 500GB
+  gratis: { nome: "Grátis", uploadLimit: -1, storageLimit: 21474836480, preco: 0 }, // 20GB
 } as const;
 
 export const folders = pgTable("folders", {
@@ -116,6 +120,8 @@ export const upgradeRequests = pgTable("upgrade_requests", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   currentPlan: text("current_plan").notNull(),
   requestedPlan: text("requested_plan").notNull(),
+  requestedExtraGB: integer("requested_extra_gb"), // GB extras solicitados
+  totalPrice: integer("total_price"), // Preço total em Kz (GB * 500)
   status: text("status").notNull().default("pending"), // 'pending', 'approved', 'rejected'
   adminNote: text("admin_note"),
   proofFileName: text("proof_file_name"),

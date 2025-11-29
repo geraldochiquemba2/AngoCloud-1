@@ -37,7 +37,7 @@ export default function About() {
         setStats([
           { number: data.utilizadores.toString(), label: "Utilizadores" },
           { number: "99.9%", label: "Disponibilidade" },
-          { number: "15GB", label: "Grátis" },
+          { number: "20GB", label: "Grátis" },
           { number: data.ficheiros.toString(), label: "Ficheiros Guardados" }
         ]);
       } catch (error) {

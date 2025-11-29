@@ -1,4 +1,3 @@
-import { ThreeDCard, ThreeDCardBody, ThreeDCardItem } from "@/components/ui/3d-card";
 import { Button } from "@/components/ui/button";
 import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -58,38 +57,12 @@ export default function Home() {
       handleNavigateWithLoading("/login");
     }
   };
-  const pricingPlans = [
-    {
-      name: "Grátis",
-      storage: "15 GB",
-      price: "Kz 0",
-      features: ["Armazenamento Básico", "Encriptação Ponta-a-Ponta", "Acesso Web", "Suporte da Comunidade"],
-      highlight: false,
-    },
-    {
-      name: "Plus",
-      storage: "100 GB",
-      price: "Kz 7.500",
-      period: "/trimestre",
-      features: ["Encriptação Ponta-a-Ponta", "Backup Automático", "Suporte Prioritário"],
-      highlight: true,
-    },
-    {
-      name: "Pro",
-      storage: "500 GB",
-      price: "Kz 22.500",
-      period: "/trimestre",
-      features: ["Encriptação Ponta-a-Ponta", "Colaboração em Tempo Real", "API de Acesso"],
-      highlight: false,
-    },
-    {
-      name: "Empresas",
-      storage: "Ilimitado",
-      price: "Kz 75.000",
-      period: "/trimestre",
-      features: ["Encriptação Ponta-a-Ponta", "SLA Garantido", "Suporte Dedicado 24/7"],
-      highlight: false,
-    },
+  const pricingExamples = [
+    { gb: 1, price: 500 },
+    { gb: 5, price: 2500 },
+    { gb: 10, price: 5000 },
+    { gb: 50, price: 25000 },
+    { gb: 100, price: 50000 },
   ];
 
   return (
@@ -171,7 +144,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <Cloud className="w-4 h-4 text-white" />
-                <span>15GB Grátis</span>
+                <span>20GB Grátis</span>
               </div>
             </div>
           </div>
@@ -243,73 +216,91 @@ export default function Home() {
         
         <div className="max-w-7xl mx-auto relative z-10 w-full flex-1 flex items-center">
           <div className="w-full">
-            <div className="text-center mb-16">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Planos Flexíveis</h2>
-              <p className="text-white/80">Escolha o espaço que você precisa.</p>
+            <div className="text-center mb-12">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-4 text-white">Preços Simples</h2>
+              <p className="text-white/80 text-lg">20GB grátis para sempre + pague apenas pelo que precisar</p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-              {pricingPlans.map((plan, i) => (
-                <div key={i}>
-                  <ThreeDCard className="w-full md:w-auto" containerClassName="md:!py-0">
-                    <ThreeDCardBody className="backdrop-blur-3xl bg-transparent relative group/card hover:shadow-lg hover:shadow-white/10 transition-all duration-500 ease-out w-full sm:w-[280px] md:w-[350px] h-auto rounded-xl p-4 md:p-6 border border-white/30">
-                    <ThreeDCardItem
-                      translateZ="50"
-                      className="text-xl font-bold text-white"
-                    >
-                      {plan.name}
-                    </ThreeDCardItem>
-                    
-                    <ThreeDCardItem
-                      as="p"
-                      translateZ="60"
-                      className="text-white/70 text-sm max-w-sm mt-2"
-                    >
-                      Ideal para {plan.name === 'Empresas' ? 'negócios' : 'uso pessoal'}
-                    </ThreeDCardItem>
-
-                    <ThreeDCardItem translateZ="75" className="mt-4 mb-6 inline-block">
-                      <div className="bg-white/10 px-4 py-2 rounded-lg border border-white/30">
-                        <span className="text-3xl font-bold text-white font-display">{plan.storage}</span>
-                        <span className="text-xs text-white/60 ml-1">de armazenamento</span>
-                      </div>
-                    </ThreeDCardItem>
-                    
-                    <ThreeDCardItem translateZ="80" className="mb-8">
-                      <span className="text-4xl font-bold font-display text-white">{plan.price}</span>
-                      {plan.period && <span className="text-white/60 text-sm">{plan.period}</span>}
-                    </ThreeDCardItem>
-                    
-                    <div className="space-y-3 mb-8">
-                      {plan.features.map((feature, idx) => (
-                        <ThreeDCardItem 
-                          key={idx} 
-                          translateZ={40 + (idx * 5)}
-                          className="flex items-center gap-3 text-sm text-white/70"
-                        >
-                          <Check className="w-4 h-4 text-white" />
-                          {feature}
-                        </ThreeDCardItem>
-                      ))}
-                    </div>
-
-                    <ThreeDCardItem
-                      translateZ={50}
-                      as="div"
-                      className="w-full"
-                    >
-                      <Button 
-                        onClick={handleSelectPlan}
-                        className="w-full rounded-lg font-bold bg-white/10 hover:bg-white/20 text-white border border-white/30 hover:border-white/50 backdrop-blur-md transition-all duration-300"
-                      >
-                        Selecionar Plano
-                      </Button>
-                    </ThreeDCardItem>
-                  </ThreeDCardBody>
-                </ThreeDCard>
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              {/* Plano Grátis */}
+              <div className="backdrop-blur-xl bg-white/10 p-8 rounded-2xl border border-white/30 hover:border-white/50 transition-all">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <Cloud className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Grátis</h3>
+                    <p className="text-white/60 text-sm">Para sempre</p>
+                  </div>
                 </div>
-              ))}
+                
+                <div className="mb-6">
+                  <span className="text-5xl font-bold font-display text-white">20GB</span>
+                  <span className="text-white/60 ml-2">incluídos</span>
+                </div>
+                
+                <div className="space-y-3 mb-8">
+                  {["Encriptação Ponta-a-Ponta", "Acesso Web Ilimitado", "Partilha de Ficheiros", "Suporte da Comunidade"].map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-white/80">
+                      <Check className="w-4 h-4 text-green-400" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button 
+                  onClick={handleSelectPlan}
+                  className="w-full rounded-lg font-bold bg-white/10 hover:bg-white/20 text-white border border-white/30 hover:border-white/50 backdrop-blur-md transition-all duration-300 h-12"
+                >
+                  Começar Grátis
+                </Button>
+              </div>
+
+              {/* Espaço Extra */}
+              <div className="backdrop-blur-xl bg-white/10 p-8 rounded-2xl border-2 border-white/50 hover:border-white/70 transition-all relative">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-4 py-1 rounded-full">
+                  PAGUE POR GB
+                </div>
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                    <HardDrive className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">Espaço Extra</h3>
+                    <p className="text-white/60 text-sm">Aprovado pelo admin</p>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <span className="text-5xl font-bold font-display text-white">500 Kz</span>
+                  <span className="text-white/60 ml-2">por GB</span>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-4 mb-6 border border-white/20">
+                  <p className="text-white/70 text-sm mb-3 font-medium">Exemplos:</p>
+                  <div className="space-y-2">
+                    {pricingExamples.slice(0, 4).map((example, idx) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-white/60">+{example.gb} GB</span>
+                        <span className="text-white font-medium">{example.price.toLocaleString()} Kz</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleSelectPlan}
+                  className="w-full rounded-lg font-bold bg-white text-black hover:bg-white/90 transition-all duration-300 h-12"
+                >
+                  Pedir Mais Espaço
+                </Button>
+              </div>
             </div>
+
+            <p className="text-center text-white/50 text-sm mt-8">
+              O pagamento é único e o espaço extra é para sempre. Aprovação pelo administrador em até 24h.
+            </p>
           </div>
         </div>
 
