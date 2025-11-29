@@ -2305,7 +2305,7 @@ export default function Dashboard() {
                                 )}
                               </div>
                               
-                              <div className="absolute top-2 right-2">
+                              <div className="absolute top-2 right-2 z-20">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowFileMenu(showFileMenu === file.id ? null : file.id); setMenuOpenTime(Date.now()); setSelectedFile(file); }}
                                   className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
@@ -2314,93 +2314,6 @@ export default function Dashboard() {
                                 >
                                   <MoreVertical className="w-4 h-4" />
                                 </button>
-                                
-                                {showFileMenu === file.id && (
-                                  <motion.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    className="absolute bottom-full right-0 mb-2 bg-slate-800 border border-white/20 rounded-lg shadow-xl z-50 w-48"
-                                  >
-                                    {viewMode === "trash" ? (
-                                      <>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); restoreFile(file.id); }}
-                                          className="w-full px-4 py-2.5 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
-                                          data-testid={`button-restore-${file.id}`}
-                                        >
-                                          <RefreshCw className="w-4 h-4 text-green-400" />
-                                          Restaurar
-                                        </button>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); permanentlyDeleteFile(file.id); }}
-                                          className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
-                                          data-testid={`button-permanent-delete-${file.id}`}
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                          Eliminar permanentemente
-                                        </button>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); downloadFile(file); }}
-                                          className="w-full px-4 py-2.5 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
-                                          data-testid={`button-download-${file.id}`}
-                                        >
-                                          <Download className="w-4 h-4 text-blue-400" />
-                                          Download
-                                        </button>
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); shareFile(file); }}
-                                          className="w-full px-4 py-2.5 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
-                                          data-testid={`button-share-${file.id}`}
-                                        >
-                                          <Share2 className="w-4 h-4 text-purple-400" />
-                                          Partilhar
-                                        </button>
-                                        <button
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            setShowFileMenu(null);
-                                            setNewFileName(file.nome);
-                                            setShowRenameModal(true);
-                                          }}
-                                          className="w-full px-4 py-2.5 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
-                                          data-testid={`button-rename-${file.id}`}
-                                        >
-                                          <Edit className="w-4 h-4 text-yellow-400" />
-                                          Renomear
-                                        </button>
-                                        <button
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            setShowFileMenu(null);
-                                            fetchAllFolders();
-                                            setShowMoveModal(true);
-                                          }}
-                                          className="w-full px-4 py-2.5 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
-                                          data-testid={`button-move-${file.id}`}
-                                        >
-                                          <Move className="w-4 h-4 text-cyan-400" />
-                                          Mover
-                                        </button>
-                                        <button
-                                          onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            setShowFileMenu(null);
-                                            confirmDeleteFile(file); 
-                                          }}
-                                          className="w-full px-4 py-2.5 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
-                                          data-testid={`button-delete-${file.id}`}
-                                        >
-                                          <Trash2 className="w-4 h-4" />
-                                          Eliminar
-                                        </button>
-                                      </>
-                                    )}
-                                  </motion.div>
-                                )}
                               </div>
                             </div>
                           ))}
@@ -3758,6 +3671,112 @@ export default function Dashboard() {
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      {/* Global File Menu Dropdown */}
+      <AnimatePresence>
+        {showFileMenu && selectedFile && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40"
+            onClick={() => setShowFileMenu(null)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showFileMenu && selectedFile && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed z-50 bg-slate-800 border border-white/20 rounded-lg shadow-2xl w-56 max-h-[400px] overflow-y-auto"
+            style={{
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)"
+            }}
+          >
+            {viewMode === "trash" ? (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); restoreFile(selectedFile.id); }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
+                  data-testid={`button-restore-${selectedFile.id}`}
+                >
+                  <RefreshCw className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  Restaurar
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); permanentlyDeleteFile(selectedFile.id); }}
+                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  data-testid={`button-permanent-delete-${selectedFile.id}`}
+                >
+                  <Trash2 className="w-4 h-4 flex-shrink-0" />
+                  Eliminar permanentemente
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); downloadFile(selectedFile); }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm"
+                  data-testid={`button-download-${selectedFile.id}`}
+                >
+                  <Download className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  Download
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowFileMenu(null); shareFile(selectedFile); }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  data-testid={`button-share-${selectedFile.id}`}
+                >
+                  <Share2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                  Partilhar
+                </button>
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setShowFileMenu(null);
+                    setNewFileName(selectedFile.nome);
+                    setShowRenameModal(true);
+                  }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  data-testid={`button-rename-${selectedFile.id}`}
+                >
+                  <Edit className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+                  Renomear
+                </button>
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setShowFileMenu(null);
+                    fetchAllFolders();
+                    setShowMoveModal(true);
+                  }}
+                  className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  data-testid={`button-move-${selectedFile.id}`}
+                >
+                  <Move className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  Mover
+                </button>
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setShowFileMenu(null);
+                    confirmDeleteFile(selectedFile); 
+                  }}
+                  className="w-full px-4 py-3 text-left text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-3 text-sm border-t border-white/10"
+                  data-testid={`button-delete-${selectedFile.id}`}
+                >
+                  <Trash2 className="w-4 h-4 flex-shrink-0" />
+                  Eliminar
+                </button>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
