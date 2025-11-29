@@ -525,17 +525,36 @@ export default function Dashboard() {
       video.setAttribute("webkit-playsinline", "true");
       
       const timeoutMs = isMobile ? 15000 : 20000;
+      let resolved = false;
+      
       const timeoutId = setTimeout(() => {
-        video.src = "";
-        reject(new Error("Video load timeout"));
+        if (!resolved) {
+          resolved = true;
+          video.src = "";
+          reject(new Error("Video load timeout"));
+        }
       }, timeoutMs);
       
+      const cleanup = () => {
+        clearTimeout(timeoutId);
+        video.src = "";
+      };
+      
       video.onloadedmetadata = () => {
-        video.currentTime = Math.min(0.5, video.duration * 0.05);
+        if (!resolved) {
+          try {
+            video.currentTime = Math.min(0.5, video.duration * 0.05);
+          } catch (err) {
+            console.error("Error seeking video:", err);
+          }
+        }
       };
       
       video.onseeked = () => {
-        clearTimeout(timeoutId);
+        if (resolved) return;
+        resolved = true;
+        cleanup();
+        
         try {
           const canvas = document.createElement("canvas");
           const maxWidth = isMobile ? 200 : 320;
@@ -550,7 +569,6 @@ export default function Dashboard() {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const quality = isMobile ? 0.7 : 0.8;
             const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
-            video.src = "";
             resolve(thumbnailUrl);
           } else {
             reject(new Error("Could not get canvas context"));
@@ -561,8 +579,11 @@ export default function Dashboard() {
       };
       
       video.onerror = (e) => {
-        clearTimeout(timeoutId);
-        reject(new Error("Video load error: " + (e as any)?.message));
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          reject(new Error("Video load error: " + (e as any)?.message));
+        }
       };
       
       video.src = videoUrl;
