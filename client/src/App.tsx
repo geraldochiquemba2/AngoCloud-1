@@ -12,7 +12,7 @@ import Dashboard from "@/pages/dashboard";
 import SharePage from "@/pages/share";
 import AdminPage from "@/pages/admin";
 import ImagePreloader from "@/components/ImagePreloader";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,10 +20,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 function Router() {
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const isFirstRender = useRef(true);
   
   const animationDuration = isMobile ? 0.2 : 0.3;
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [location]);
 
