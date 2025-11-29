@@ -3573,10 +3573,10 @@ export default function Dashboard() {
                 <div className="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30 mb-4">
                   <h4 className="text-blue-400 font-medium text-sm mb-2">Dados para pagamento:</h4>
                   <p className="text-white/70 text-xs mb-1">
-                    <span className="font-medium text-white">Multicaixa Express:</span> 923 456 789
+                    <span className="font-medium text-white">Multicaixa Express:</span> 943412688
                   </p>
                   <p className="text-white/70 text-xs">
-                    <span className="font-medium text-white">IBAN:</span> AO06 0040 0000 1234 5678 9012 3
+                    <span className="font-medium text-white">IBAN:</span> 0055 0000 6320 2244 10102 Geraldo Abreu Leão Chiquemba
                   </p>
                 </div>
 
