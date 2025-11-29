@@ -3205,7 +3205,7 @@ export default function Dashboard() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-800 rounded-2xl p-4 sm:p-6 w-full max-w-7xl border border-white/20 my-4 sm:my-8 max-h-[90vh] overflow-y-auto"
+              className="bg-gradient-to-br from-blue-900/80 via-purple-900/80 to-slate-900/80 rounded-2xl p-3 sm:p-4 md:p-6 w-full max-w-2xl sm:max-w-4xl lg:max-w-7xl border border-blue-500/40 my-4 sm:my-6 md:my-8 max-h-[90vh] overflow-y-auto backdrop-blur-sm"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-start sm:items-center mb-6 gap-4">
@@ -3324,31 +3324,31 @@ export default function Dashboard() {
               )}
               
               {/* Current Storage Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl border border-green-500/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-green-500/20">
-                      <Check className="w-5 h-5 text-green-400" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-xl border border-green-500/20">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg bg-green-500/20 flex-shrink-0">
+                      <Check className="w-4 sm:w-5 h-4 sm:h-5 text-green-400" />
                     </div>
-                    <div>
-                      <h3 className="text-white font-medium">Armazenamento Grátis</h3>
-                      <p className="text-green-400 font-bold text-lg">20 GB</p>
+                    <div className="min-w-0">
+                      <h3 className="text-white font-medium text-xs sm:text-sm">Armazenamento Grátis</h3>
+                      <p className="text-green-400 font-bold text-base sm:text-lg">20 GB</p>
                     </div>
                   </div>
-                  <p className="text-white/60 text-xs">Incluído para todos os utilizadores, para sempre.</p>
+                  <p className="text-white/60 text-xs sm:text-xs">Incluído para todos os utilizadores, para sempre.</p>
                 </div>
                 
-                <div className="p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-blue-500/20">
-                      <Cloud className="w-5 h-5 text-blue-400" />
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
+                      <Cloud className="w-4 sm:w-5 h-4 sm:h-5 text-blue-400" />
                     </div>
-                    <div>
-                      <h3 className="text-white font-medium">Seu Limite Atual</h3>
-                      <p className="text-blue-400 font-bold text-lg">{Math.round(user.storageLimit / (1024 * 1024 * 1024))} GB</p>
+                    <div className="min-w-0">
+                      <h3 className="text-white font-medium text-xs sm:text-sm">Seu Limite Atual</h3>
+                      <p className="text-blue-400 font-bold text-base sm:text-lg">{Math.round(user.storageLimit / (1024 * 1024 * 1024))} GB</p>
                     </div>
                   </div>
-                  <p className="text-white/60 text-xs">
+                  <p className="text-white/60 text-xs sm:text-xs">
                     {user.storageLimit > 21474836480 
                       ? `+${Math.round((user.storageLimit - 21474836480) / (1024 * 1024 * 1024))} GB extras adicionados`
                       : 'Sem espaço extra adicionado'}
@@ -3357,21 +3357,21 @@ export default function Dashboard() {
               </div>
 
               {/* Request Extra GB Form */}
-              <div className="p-4 sm:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl border border-primary/20">
-                <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-primary" />
-                  Solicitar Espaço Extra
+              <div className="p-3 sm:p-4 md:p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl border border-primary/20 mb-4 sm:mb-6">
+                <h3 className="text-white font-bold text-base sm:text-lg mb-3 sm:mb-4 flex items-center gap-2">
+                  <Upload className="w-4 sm:w-5 h-4 sm:h-5 text-primary flex-shrink-0" />
+                  <span className="truncate">Solicitar Espaço Extra</span>
                 </h3>
                 
-                <div className="mb-4">
-                  <label className="text-white/70 text-sm mb-2 block">Quantos GB extras deseja?</label>
-                  <div className="flex items-center gap-3">
+                <div className="mb-3 sm:mb-4">
+                  <label className="text-white/70 text-xs sm:text-sm mb-2 block">Quantos GB extras deseja?</label>
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       onClick={() => setRequestedExtraGB(Math.max(1, requestedExtraGB - 5))}
-                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                      className="p-2 sm:p-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors flex-shrink-0"
                       data-testid="button-decrease-gb"
                     >
-                      <span className="text-lg font-bold">-5</span>
+                      <span className="text-base sm:text-lg font-bold">-5</span>
                     </button>
                     <input
                       type="number"
@@ -3379,42 +3379,42 @@ export default function Dashboard() {
                       max="1000"
                       value={requestedExtraGB}
                       onChange={(e) => setRequestedExtraGB(Math.max(1, Math.min(1000, parseInt(e.target.value) || 1)))}
-                      className="flex-1 py-3 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-center text-xl font-bold focus:outline-none focus:border-primary/50"
+                      className="flex-1 py-2 sm:py-3 px-3 sm:px-4 rounded-lg bg-white/10 border border-white/20 text-white text-center text-lg sm:text-xl font-bold focus:outline-none focus:border-primary/50 text-xs"
                       data-testid="input-extra-gb"
                     />
                     <button
                       onClick={() => setRequestedExtraGB(Math.min(1000, requestedExtraGB + 5))}
-                      className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                      className="p-2 sm:p-2.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors flex-shrink-0"
                       data-testid="button-increase-gb"
                     >
-                      <span className="text-lg font-bold">+5</span>
+                      <span className="text-base sm:text-lg font-bold">+5</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="p-4 bg-white/5 rounded-lg mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white/70">Preço por GB:</span>
-                    <span className="text-white font-medium">{PRICE_PER_GB.toLocaleString('pt-AO')} Kz</span>
+                <div className="p-2.5 sm:p-4 bg-white/5 rounded-lg mb-3 sm:mb-4">
+                  <div className="flex justify-between items-center mb-1.5 sm:mb-2">
+                    <span className="text-white/70 text-xs sm:text-sm">Preço por GB:</span>
+                    <span className="text-white font-medium text-xs sm:text-sm">{PRICE_PER_GB.toLocaleString('pt-AO')} Kz</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-white/70">GB solicitados:</span>
-                    <span className="text-white font-medium">{requestedExtraGB} GB</span>
+                  <div className="flex justify-between items-center mb-2 sm:mb-2">
+                    <span className="text-white/70 text-xs sm:text-sm">GB solicitados:</span>
+                    <span className="text-white font-medium text-xs sm:text-sm">{requestedExtraGB} GB</span>
                   </div>
-                  <div className="border-t border-white/10 pt-2 mt-2">
+                  <div className="border-t border-white/10 pt-1.5 sm:pt-2 mt-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-white font-medium">Total a pagar:</span>
-                      <span className="text-2xl font-bold text-primary">{(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz</span>
+                      <span className="text-white font-medium text-xs sm:text-sm">Total a pagar:</span>
+                      <span className="text-lg sm:text-2xl font-bold text-primary">{(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-2 flex-wrap mb-4">
+                <div className="grid grid-cols-2 sm:flex sm:gap-2 gap-2 flex-wrap mb-3 sm:mb-4">
                   {[10, 20, 50, 100].map(gb => (
                     <button
                       key={gb}
                       onClick={() => setRequestedExtraGB(gb)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex-1 sm:flex-none ${
                         requestedExtraGB === gb 
                           ? 'bg-primary text-white' 
                           : 'bg-white/10 text-white/70 hover:bg-white/20'
@@ -3429,23 +3429,23 @@ export default function Dashboard() {
                 <button
                   onClick={() => setShowUpgradeProofModal(true)}
                   disabled={upgradeRequests.some(r => r.status === "pending")}
-                  className="w-full py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-2 sm:py-3 rounded-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm md:text-base"
                   data-testid="button-request-upgrade"
                   title={upgradeRequests.some(r => r.status === "pending") ? "Aguarde a resposta da solicitação atual" : ""}
                 >
-                  <Upload className="w-4 h-4" />
-                  Solicitar +{requestedExtraGB} GB por {(requestedExtraGB * PRICE_PER_GB).toLocaleString('pt-AO')} Kz
+                  <Upload className="w-3 sm:w-4 h-3 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">Solicitar +{requestedExtraGB} GB</span>
                 </button>
               </div>
               
-              <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-white/5 rounded-lg border border-white/10">
+              <div className="p-2.5 sm:p-4 bg-white/5 rounded-lg border border-white/10">
                 <div className="flex items-start gap-2 sm:gap-3">
                   <div className="p-2 rounded-lg bg-blue-500/20 flex-shrink-0">
-                    <Shield className="w-4 h-4 text-blue-400" />
+                    <Shield className="w-3 sm:w-4 h-3 sm:h-4 text-blue-400" />
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-white font-medium text-xs sm:text-sm mb-1">Como funciona?</h4>
-                    <p className="text-white/50 text-xs">
+                    <p className="text-white/50 text-xs leading-relaxed">
                       1. Escolha quantos GB extras deseja • 2. Envie o comprovativo de pagamento • 
                       3. Após verificação, o seu espaço será aumentado imediatamente. 
                       O espaço extra é permanente - pague uma vez, use para sempre!
