@@ -518,14 +518,15 @@ export default function Dashboard() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = "metadata";
+      video.preload = "auto";
       video.muted = true;
       video.playsInline = true;
       video.crossOrigin = "anonymous";
       video.setAttribute("webkit-playsinline", "true");
       
-      const timeoutMs = isMobile ? 12000 : 15000;
+      const timeoutMs = isMobile ? 15000 : 20000;
       let resolved = false;
+      let hasTriedDraw = false;
       
       const timeoutId = setTimeout(() => {
         if (!resolved) {
@@ -536,44 +537,55 @@ export default function Dashboard() {
       }, timeoutMs);
       
       const drawThumbnail = () => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timeoutId);
+        if (resolved || hasTriedDraw) return;
         
-        try {
-          const canvas = document.createElement("canvas");
-          const maxWidth = isMobile ? 200 : 320;
-          const maxHeight = isMobile ? 300 : 400;
-          const videoWidth = video.videoWidth || 320;
-          const videoHeight = video.videoHeight || 180;
-          const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
-          canvas.width = Math.round(videoWidth * scale);
-          canvas.height = Math.round(videoHeight * scale);
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const quality = isMobile ? 0.7 : 0.8;
-            const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
-            video.src = "";
-            resolve(thumbnailUrl);
-          } else {
-            reject(new Error("Could not get canvas context"));
-          }
-        } catch (err) {
-          reject(err);
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          return;
         }
+        
+        hasTriedDraw = true;
+        
+        setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
+          
+          try {
+            const canvas = document.createElement("canvas");
+            const maxWidth = isMobile ? 200 : 320;
+            const maxHeight = isMobile ? 300 : 400;
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
+            canvas.width = Math.round(videoWidth * scale);
+            canvas.height = Math.round(videoHeight * scale);
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const quality = isMobile ? 0.7 : 0.8;
+              const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
+              video.src = "";
+              resolve(thumbnailUrl);
+            } else {
+              reject(new Error("Could not get canvas context"));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        }, 100);
       };
       
       video.onloadedmetadata = () => {
         try {
-          video.currentTime = Math.min(1, video.duration * 0.1);
+          const seekTime = Math.min(0.5, video.duration * 0.05);
+          video.currentTime = seekTime;
         } catch (err) {
           console.error("Error seeking:", err);
         }
       };
       
       video.onseeked = drawThumbnail;
-      video.oncanplay = drawThumbnail;
+      video.onloadeddata = drawThumbnail;
       
       video.onerror = (e) => {
         if (!resolved) {

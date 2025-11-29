@@ -87,49 +87,81 @@ export default function SharePage() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = "metadata";
+      video.preload = "auto";
       video.muted = true;
       video.playsInline = true;
       video.crossOrigin = "anonymous";
       video.setAttribute("webkit-playsinline", "true");
       
       const timeoutMs = isMobile ? 15000 : 20000;
+      let resolved = false;
+      let hasTriedDraw = false;
+      
       const timeoutId = setTimeout(() => {
-        video.src = "";
-        reject(new Error("Video load timeout"));
+        if (!resolved) {
+          resolved = true;
+          video.src = "";
+          reject(new Error("Video load timeout"));
+        }
       }, timeoutMs);
       
-      video.onloadedmetadata = () => {
-        video.currentTime = Math.min(0.5, video.duration * 0.05);
+      const drawThumbnail = () => {
+        if (resolved || hasTriedDraw) return;
+        
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          return;
+        }
+        
+        hasTriedDraw = true;
+        
+        setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
+          
+          try {
+            const canvas = document.createElement("canvas");
+            const maxWidth = isMobile ? 200 : 320;
+            const maxHeight = isMobile ? 120 : 180;
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
+            canvas.width = Math.round(videoWidth * scale);
+            canvas.height = Math.round(videoHeight * scale);
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const quality = isMobile ? 0.7 : 0.8;
+              const thumbnailDataUrl = canvas.toDataURL("image/jpeg", quality);
+              video.src = "";
+              resolve(thumbnailDataUrl);
+            } else {
+              reject(new Error("Could not get canvas context"));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        }, 100);
       };
       
-      video.onseeked = () => {
-        clearTimeout(timeoutId);
+      video.onloadedmetadata = () => {
         try {
-          const canvas = document.createElement("canvas");
-          const maxWidth = isMobile ? 200 : 320;
-          const maxHeight = isMobile ? 120 : 180;
-          const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
-          canvas.width = Math.round((video.videoWidth || 320) * scale);
-          canvas.height = Math.round((video.videoHeight || 180) * scale);
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const quality = isMobile ? 0.7 : 0.8;
-            const thumbnailDataUrl = canvas.toDataURL("image/jpeg", quality);
-            video.src = "";
-            resolve(thumbnailDataUrl);
-          } else {
-            reject(new Error("Could not get canvas context"));
-          }
+          const seekTime = Math.min(0.5, video.duration * 0.05);
+          video.currentTime = seekTime;
         } catch (err) {
-          reject(err);
+          console.error("Error seeking:", err);
         }
       };
       
+      video.onseeked = drawThumbnail;
+      video.onloadeddata = drawThumbnail;
+      
       video.onerror = () => {
-        clearTimeout(timeoutId);
-        reject(new Error("Video load error"));
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          reject(new Error("Video load error"));
+        }
       };
       
       video.src = videoUrl;
