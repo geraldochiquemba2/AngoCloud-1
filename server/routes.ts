@@ -135,7 +135,7 @@ async function requireAdmin(req: Request, res: Response, next: Function) {
 // Get storage limits by plan
 function getStorageLimitByPlan(plano: string): number {
   const limits: Record<string, number> = {
-    gratis: 15 * 1024 * 1024 * 1024, // 15GB
+    gratis: 20 * 1024 * 1024 * 1024, // 20GB
     plus: 100 * 1024 * 1024 * 1024, // 100GB
     pro: 500 * 1024 * 1024 * 1024, // 500GB
     empresas: Number.MAX_SAFE_INTEGER, // Unlimited
