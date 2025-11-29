@@ -539,10 +539,12 @@ export default function Dashboard() {
         try {
           const canvas = document.createElement("canvas");
           const maxWidth = isMobile ? 200 : 320;
-          const maxHeight = isMobile ? 120 : 180;
-          const scale = Math.min(maxWidth / (video.videoWidth || 320), maxHeight / (video.videoHeight || 180));
-          canvas.width = Math.round((video.videoWidth || 320) * scale);
-          canvas.height = Math.round((video.videoHeight || 180) * scale);
+          const maxHeight = isMobile ? 300 : 400;
+          const videoWidth = video.videoWidth || 320;
+          const videoHeight = video.videoHeight || 180;
+          const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
+          canvas.width = Math.round(videoWidth * scale);
+          canvas.height = Math.round(videoHeight * scale);
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
