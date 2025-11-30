@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { motion, AnimatePresence } from "framer-motion";
 
 import heroImage from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
@@ -18,6 +19,7 @@ export default function Home() {
   const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [videosLoaded, setVideosLoaded] = useState(0);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const totalVideos = 2;
   const isMobile = useIsMobile();
 
@@ -86,7 +88,15 @@ export default function Home() {
             <Phone className="w-3.5 h-3.5" />
             <span>943 412 688</span>
           </a>
-          <span className="text-white/50 hidden md:inline">Suporte Tecnico & Reclamacoes</span>
+          <span className="text-white/50 hidden md:inline">|</span>
+          <button 
+            onClick={() => setShowTermsModal(true)}
+            className="flex items-center gap-1.5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-white/80"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Termos & Política</span>
+            <span className="sm:hidden">Termos</span>
+          </button>
         </div>
       </div>
       
@@ -338,6 +348,152 @@ export default function Home() {
         </footer>
       </section>
       </div>
+
+      {/* Terms and Privacy Policy Modal */}
+      <AnimatePresence>
+        {showTermsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowTermsModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] border border-white/20 flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white">Termos de Uso e Política de Privacidade</h2>
+                <button 
+                  onClick={() => setShowTermsModal(false)} 
+                  className="text-white/50 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-white/80 text-sm leading-relaxed">
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">1. Aceitação dos Termos</h3>
+                  <p>
+                    Ao criar uma conta e utilizar os serviços da OrbitalCloud, você concorda com estes Termos de Uso e 
+                    Política de Privacidade. Se não concordar com algum termo, não deve utilizar a plataforma.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">2. Descrição do Serviço</h3>
+                  <p>
+                    A OrbitalCloud é uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
+                    organizar e partilhar ficheiros de forma segura. Oferecemos 15GB de armazenamento gratuito para 
+                    todos os utilizadores registados, com opção de adquirir espaço adicional.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">3. Conta de Utilizador</h3>
+                  <p className="mb-2">
+                    Para utilizar os nossos serviços, deve criar uma conta fornecendo informações verdadeiras e completas. 
+                    Você é responsável por:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Manter a confidencialidade da sua palavra-passe</li>
+                    <li>Todas as atividades realizadas na sua conta</li>
+                    <li>Notificar-nos imediatamente sobre qualquer uso não autorizado</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">4. Privacidade e Segurança dos Dados</h3>
+                  <p className="mb-2">
+                    Levamos a segurança dos seus dados a sério. Os seus ficheiros são:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Encriptados com tecnologia AES-256-GCM antes de serem armazenados</li>
+                    <li>Protegidos com chaves derivadas da sua palavra-passe</li>
+                    <li>Acessíveis apenas por si ou por quem você autorizar</li>
+                  </ul>
+                  <p className="mt-2">
+                    Não temos acesso ao conteúdo dos seus ficheiros encriptados. A sua privacidade é a nossa prioridade.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">5. Uso Aceitável</h3>
+                  <p className="mb-2">
+                    Ao utilizar a OrbitalCloud, você concorda em não:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Armazenar conteúdo ilegal ou que viole direitos de terceiros</li>
+                    <li>Utilizar o serviço para spam ou atividades maliciosas</li>
+                    <li>Tentar aceder a contas ou dados de outros utilizadores</li>
+                    <li>Sobrecarregar ou interferir com a infraestrutura do serviço</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">6. Armazenamento e Limites</h3>
+                  <p>
+                    Cada conta gratuita inclui 15GB de armazenamento. Espaço adicional pode ser adquirido mediante 
+                    pagamento único. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
+                    12 meses após notificação prévia.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">7. Propriedade Intelectual</h3>
+                  <p>
+                    Você mantém todos os direitos sobre os ficheiros que carrega. Ao utilizar o serviço de partilha, 
+                    garante que tem autorização para partilhar o conteúdo. A OrbitalCloud e suas marcas são propriedade 
+                    exclusiva da empresa.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">8. Suporte e Contacto</h3>
+                  <p className="mb-2">
+                    Para suporte técnico ou reclamações, pode contactar-nos através de:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Email: gerladochiquemba@gmail.com</li>
+                    <li>Telefone: 943 412 688</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">9. Alterações aos Termos</h3>
+                  <p>
+                    Reservamo-nos o direito de modificar estes termos a qualquer momento. Alterações significativas 
+                    serão comunicadas por email ou através da plataforma. O uso continuado após alterações constitui 
+                    aceitação dos novos termos.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">10. Legislação Aplicável</h3>
+                  <p>
+                    Estes termos são regidos pelas leis da República de Angola. Quaisquer disputas serão resolvidas 
+                    nos tribunais competentes de Luanda.
+                  </p>
+                </section>
+              </div>
+
+              <div className="p-6 border-t border-white/10">
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="w-full py-3 rounded-lg bg-primary hover:bg-primary/80 text-white font-semibold transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
