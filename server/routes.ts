@@ -328,6 +328,39 @@ export async function registerRoutes(
     }
   });
 
+  // Change password
+  app.post("/api/auth/change-password", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || typeof currentPassword !== 'string') {
+        return res.status(400).json({ message: "Senha atual é obrigatória" });
+      }
+      
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+        return res.status(400).json({ message: "Nova senha deve ter pelo menos 6 caracteres" });
+      }
+      
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Senha atual incorreta" });
+      }
+      
+      const newHashedPassword = await bcrypt.hash(newPassword, 12);
+      await storage.updateUserPassword(req.user!.id, newHashedPassword);
+      
+      res.json({ message: "Senha alterada com sucesso" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Erro ao alterar senha" });
+    }
+  });
+
   // ========== FILES ROUTES ==========
 
   // Get all files for current user

@@ -42,6 +42,7 @@ export interface IStorage {
   updateUserStorage(userId: string, bytesChange: number): Promise<void>;
   updateUserPlan(userId: string, plano: string, newLimit: number): Promise<void>;
   updateEncryptionSalt(userId: string, encryptionSalt: string): Promise<void>;
+  updateUserPassword(userId: string, passwordHash: string): Promise<void>;
 
   // Files
   getFile(id: string): Promise<File | undefined>;
@@ -171,6 +172,13 @@ export class DatabaseStorage implements IStorage {
     await db
       .update(users)
       .set({ encryptionSalt })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ passwordHash })
       .where(eq(users.id, userId));
   }
 

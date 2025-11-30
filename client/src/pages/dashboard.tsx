@@ -4,7 +4,7 @@ import {
   ArrowLeft, X, Edit, Move, RefreshCw, Link, Copy, Check,
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
-  CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX,
+  CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX, Key,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -147,6 +147,13 @@ export default function Dashboard() {
   const [showEncryptionModal, setShowEncryptionModal] = useState(false);
   const [encryptionPassword, setEncryptionPassword] = useState("");
   const [encryptionLoading, setEncryptionLoading] = useState(false);
+  
+  // Change password
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
   
   // Invitations
   const [pendingInvitations, setPendingInvitations] = useState<InvitationItem[]>([]);
@@ -938,6 +945,58 @@ export default function Dashboard() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      toast.error("Por favor, insira a senha atual");
+      return;
+    }
+    if (!newPassword.trim()) {
+      toast.error("Por favor, insira a nova senha");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    
+    setChangePasswordLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || "Erro ao alterar senha");
+      }
+      
+      toast.success("Senha alterada com sucesso!");
+      setShowChangePasswordModal(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao alterar senha");
+    } finally {
+      setChangePasswordLoading(false);
+    }
+  };
+
   // Upload helpers
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
@@ -1723,6 +1782,14 @@ export default function Dashboard() {
               <span className="hidden sm:inline">Admin</span>
             </button>
           )}
+          <button 
+            onClick={() => setShowChangePasswordModal(true)}
+            className="flex items-center gap-2 text-white rounded-full px-4 py-2 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all text-sm"
+            data-testid="button-change-password"
+          >
+            <Key className="w-4 h-4" />
+            <span className="hidden sm:inline">Senha</span>
+          </button>
           <button 
             onClick={handleLogout}
             className="flex items-center gap-2 text-white rounded-full px-4 py-2 font-bold border border-white/30 bg-white/5 hover:bg-white/15 hover:border-white/50 backdrop-blur-sm transition-all text-sm"
@@ -2630,6 +2697,105 @@ export default function Dashboard() {
                     <>
                       <Shield className="w-4 h-4" />
                       Ativar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {showChangePasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => !changePasswordLoading && setShowChangePasswordModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Alterar Senha</h2>
+                <button 
+                  onClick={() => !changePasswordLoading && setShowChangePasswordModal(false)} 
+                  className="text-white/50 hover:text-white"
+                  disabled={changePasswordLoading}
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <p className="text-white/70 text-sm mb-4">
+                Insira a sua senha atual e a nova senha que deseja usar.
+              </p>
+              
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Senha atual"
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
+                  disabled={changePasswordLoading}
+                  data-testid="input-current-password"
+                />
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Nova senha (mínimo 6 caracteres)"
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
+                  disabled={changePasswordLoading}
+                  data-testid="input-new-password"
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirmar nova senha"
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50"
+                  onKeyDown={(e) => e.key === "Enter" && handleChangePassword()}
+                  disabled={changePasswordLoading}
+                  data-testid="input-confirm-password"
+                />
+              </div>
+              
+              <div className="flex gap-3 mt-4">
+                <button
+                  onClick={() => {
+                    setShowChangePasswordModal(false);
+                    setCurrentPassword("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+                  disabled={changePasswordLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/80 transition-colors flex items-center justify-center gap-2"
+                  disabled={changePasswordLoading}
+                  data-testid="button-confirm-change-password"
+                >
+                  {changePasswordLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      A alterar...
+                    </>
+                  ) : (
+                    <>
+                      <Key className="w-4 h-4" />
+                      Alterar
                     </>
                   )}
                 </button>

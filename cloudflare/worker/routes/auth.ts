@@ -295,3 +295,43 @@ authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
     return c.json({ message: 'Erro ao ativar encriptação' }, 500);
   }
 });
+
+authRoutes.post('/change-password', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    
+    const schema = z.object({
+      currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+      newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+    });
+
+    const body = await c.req.json();
+    const { currentPassword, newPassword } = schema.parse(body);
+
+    const db = createDb(c.env.DATABASE_URL);
+    const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+
+    if (!fullUser) {
+      return c.json({ message: 'Utilizador não encontrado' }, 404);
+    }
+
+    const isCurrentPasswordValid = await verifyPassword(currentPassword, fullUser.passwordHash);
+    if (!isCurrentPasswordValid) {
+      return c.json({ message: 'Senha atual incorreta' }, 401);
+    }
+
+    const newHashedPassword = await hashPassword(newPassword);
+
+    await db.update(users)
+      .set({ passwordHash: newHashedPassword })
+      .where(eq(users.id, user.id));
+
+    return c.json({ message: 'Senha alterada com sucesso' });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ message: 'Dados inválidos', errors: error.errors }, 400);
+    }
+    console.error('Change password error:', error);
+    return c.json({ message: 'Erro ao alterar senha' }, 500);
+  }
+});
