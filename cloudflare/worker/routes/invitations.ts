@@ -177,6 +177,122 @@ invitationRoutes.get('/sent', async (c) => {
   }
 });
 
+invitationRoutes.get('/resource/:type/:id', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const resourceType = c.req.param('type');
+    const resourceId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    if (resourceType === 'file') {
+      const [file] = await db.select().from(files).where(eq(files.id, resourceId));
+      if (!file || file.userId !== user.id) {
+        return c.json({ message: 'Ficheiro não encontrado' }, 404);
+      }
+    } else if (resourceType === 'folder') {
+      const [folder] = await db.select().from(folders).where(eq(folders.id, resourceId));
+      if (!folder || folder.userId !== user.id) {
+        return c.json({ message: 'Pasta não encontrada' }, 404);
+      }
+    } else {
+      return c.json({ message: 'Tipo de recurso inválido' }, 400);
+    }
+    
+    const resourceInvitations = await db.select().from(invitations)
+      .where(and(
+        eq(invitations.resourceType, resourceType),
+        eq(invitations.resourceId, resourceId)
+      ))
+      .orderBy(desc(invitations.createdAt));
+    
+    return c.json(resourceInvitations);
+  } catch (error) {
+    console.error('Get resource invitations error:', error);
+    return c.json({ message: 'Erro ao buscar convites do recurso' }, 500);
+  }
+});
+
+invitationRoutes.patch('/:id/role', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const invitationId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [invitation] = await db.select().from(invitations).where(eq(invitations.id, invitationId));
+    
+    if (!invitation) {
+      return c.json({ message: 'Convite não encontrado' }, 404);
+    }
+    
+    if (invitation.inviterId !== user.id) {
+      return c.json({ message: 'Você não pode alterar este convite' }, 403);
+    }
+    
+    const schema = z.object({
+      role: z.enum(['viewer', 'collaborator', 'editor']),
+    });
+    
+    const body = await c.req.json();
+    const { role } = schema.parse(body);
+    
+    await db.update(invitations)
+      .set({ role })
+      .where(eq(invitations.id, invitationId));
+    
+    if (invitation.status === 'accepted' && invitation.inviteeUserId) {
+      if (invitation.resourceType === 'file') {
+        const [permission] = await db.select().from(filePermissions)
+          .where(and(
+            eq(filePermissions.fileId, invitation.resourceId),
+            eq(filePermissions.userId, invitation.inviteeUserId)
+          ));
+        if (permission) {
+          await db.update(filePermissions)
+            .set({ role: role === 'collaborator' ? 'editor' : role })
+            .where(eq(filePermissions.id, permission.id));
+        } else {
+          await db.insert(filePermissions).values({
+            fileId: invitation.resourceId,
+            userId: invitation.inviteeUserId,
+            role: role === 'collaborator' ? 'editor' : role,
+            grantedBy: invitation.inviterId,
+            sharedEncryptionKey: invitation.sharedEncryptionKey,
+          });
+        }
+      } else {
+        const [permission] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, invitation.resourceId),
+            eq(folderPermissions.userId, invitation.inviteeUserId)
+          ));
+        if (permission) {
+          await db.update(folderPermissions)
+            .set({ role })
+            .where(eq(folderPermissions.id, permission.id));
+        } else {
+          await db.insert(folderPermissions).values({
+            folderId: invitation.resourceId,
+            userId: invitation.inviteeUserId,
+            role,
+            grantedBy: invitation.inviterId,
+            sharedEncryptionKey: invitation.sharedEncryptionKey,
+          });
+        }
+      }
+    }
+    
+    return c.json({ message: 'Permissão atualizada', role });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ message: 'Dados inválidos', errors: error.errors }, 400);
+    }
+    console.error('Update invitation role error:', error);
+    return c.json({ message: 'Erro ao atualizar permissão' }, 500);
+  }
+});
+
 invitationRoutes.post('/:id/accept', async (c) => {
   try {
     const user = c.get('user') as JWTPayload;
