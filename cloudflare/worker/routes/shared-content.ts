@@ -282,6 +282,74 @@ sharedContentRoutes.get('/folders/:id/content', async (c) => {
   }
 });
 
+sharedContentRoutes.post('/files/:fileId/clone', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('fileId');
+    
+    const db = createDb(c.env.DATABASE_URL);
+
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+
+    const [permission] = await db.select().from(filePermissions)
+      .where(and(
+        eq(filePermissions.fileId, fileId),
+        eq(filePermissions.userId, user.id)
+      ));
+    
+    if (!permission && file.userId !== user.id) {
+      return c.json({ message: 'Você não tem acesso a este ficheiro' }, 403);
+    }
+
+    const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
+    if (!currentUser) {
+      return c.json({ message: 'Utilizador não encontrado' }, 404);
+    }
+
+    if (currentUser.storageUsed + file.tamanho > currentUser.storageLimit) {
+      return c.json({ message: 'Sem espaço suficiente para clonar este ficheiro' }, 400);
+    }
+
+    let clonedName: string;
+    if (file.nome.includes("(Cópia)")) {
+      clonedName = file.nome;
+    } else {
+      const lastDotIndex = file.nome.lastIndexOf(".");
+      if (lastDotIndex > 0) {
+        clonedName = `${file.nome.substring(0, lastDotIndex)} (Cópia)${file.nome.substring(lastDotIndex)}`;
+      } else {
+        clonedName = `${file.nome} (Cópia)`;
+      }
+    }
+
+    const [clonedFile] = await db.insert(files).values({
+      userId: user.id,
+      nome: clonedName,
+      tamanho: file.tamanho,
+      tipoMime: file.tipoMime,
+      telegramFileId: file.telegramFileId,
+      telegramBotId: file.telegramBotId,
+      isEncrypted: file.isEncrypted,
+      originalMimeType: file.originalMimeType,
+      originalSize: file.originalSize,
+      isChunked: file.isChunked,
+      totalChunks: file.totalChunks,
+    }).returning();
+
+    await db.update(users)
+      .set({ storageUsed: currentUser.storageUsed + file.tamanho })
+      .where(eq(users.id, user.id));
+
+    return c.json({ success: true, message: 'Ficheiro clonado com sucesso', file: clonedFile });
+  } catch (error) {
+    console.error('Clone shared file error:', error);
+    return c.json({ message: 'Erro ao clonar ficheiro' }, 500);
+  }
+});
+
 sharedContentRoutes.delete('/files/:fileId', async (c) => {
   try {
     const user = c.get('user') as JWTPayload;

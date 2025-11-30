@@ -22,6 +22,7 @@ import { sharedContentRoutes } from './routes/shared-content';
 import { adminRoutes } from './routes/admin';
 import { upgradeRoutes, userUpgradeRequestsRoutes, myUpgradeRequestsRoutes } from './routes/upgrades';
 import { publicFolderRoutes } from './routes/public-folders';
+import { plansRoutes, userQuotaRoutes, systemRoutes, statsRoutes } from './routes/system';
 
 export interface Env {
   DATABASE_URL: string;
@@ -99,6 +100,10 @@ api.get('/info', (c) => {
       shared: '/api/shared',
       admin: '/api/admin',
       upgrades: '/api/upgrades',
+      plans: '/api/plans',
+      quota: '/api/user/quota',
+      system: '/api/system',
+      stats: '/api/stats',
     },
   });
 });
@@ -115,6 +120,11 @@ api.route('/public', publicFolderRoutes);
 
 api.route('/upgrade-requests', userUpgradeRequestsRoutes);
 api.route('/my-upgrade-requests', myUpgradeRequestsRoutes);
+
+api.route('/plans', plansRoutes);
+api.route('/user/quota', userQuotaRoutes);
+api.route('/system', systemRoutes);
+api.route('/stats', statsRoutes);
 
 api.notFound((c) => {
   return c.json({ 
