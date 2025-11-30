@@ -52,46 +52,18 @@ export default function PublicFolderPage() {
   // Load thumbnails for media files
   useEffect(() => {
     if (files.length > 0) {
-      const mediaFiles = files.filter(f => 
-        f.tipoMime.startsWith("image/") || f.tipoMime.startsWith("video/")
-      );
-      thumbnailQueueRef.current = mediaFiles;
+      const imageFiles = files.filter(f => f.tipoMime.startsWith("image/"));
+      thumbnailQueueRef.current = imageFiles;
       processNextThumbnail();
+      
+      // Mark videos as "loaded" with a placeholder
+      files.forEach(f => {
+        if (f.tipoMime.startsWith("video/")) {
+          setThumbnails(prev => ({ ...prev, [f.id]: "video" }));
+        }
+      });
     }
   }, [files]);
-
-  // Extract first frame from video
-  const extractVideoFrame = useCallback((videoUrl: string, fileId: string) => {
-    const video = document.createElement('video');
-    video.src = videoUrl;
-    video.crossOrigin = 'anonymous';
-    video.preload = 'metadata';
-    
-    const handleLoadedMetadata = () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(video, 0, 0);
-          const frameUrl = canvas.toDataURL('image/jpeg', 0.8);
-          setThumbnails(prev => ({ ...prev, [fileId]: frameUrl }));
-        }
-      } catch (err) {
-        console.error("Error extracting video frame:", err);
-      } finally {
-        video.pause();
-      }
-    };
-    
-    video.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
-    video.addEventListener('error', () => {
-      console.debug("Video load error for frame extraction");
-      video.pause();
-    }, { once: true });
-  }, []);
 
   const processNextThumbnail = useCallback(async () => {
     if (isProcessingRef.current || thumbnailQueueRef.current.length === 0) return;
@@ -104,12 +76,7 @@ export default function PublicFolderPage() {
         const res = await fetch(`/api/public/file/${file.id}/preview`);
         if (res.ok) {
           const data = await res.json();
-          // For videos, extract the first frame
-          if (file.tipoMime.startsWith("video/")) {
-            extractVideoFrame(data.url, file.id);
-          } else {
-            setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
-          }
+          setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
         }
       } catch (err) {
         console.error("Error loading thumbnail:", err);
@@ -122,7 +89,7 @@ export default function PublicFolderPage() {
     if (thumbnailQueueRef.current.length > 0) {
       setTimeout(processNextThumbnail, 100);
     }
-  }, [thumbnails, extractVideoFrame]);
+  }, [thumbnails]);
 
   const fetchFolderData = async () => {
     setLoading(true);
@@ -364,43 +331,15 @@ export default function PublicFolderPage() {
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                        ) : isVideo && thumbnail ? (
-                          <>
-                            <video 
-                              key={`video-${file.id}`}
-                              src={thumbnail}
-                              muted
-                              playsInline
-                              preload="auto"
-                              crossOrigin="anonymous"
-                              className="w-full h-full object-cover bg-slate-900"
-                              style={{
-                                pointerEvents: 'none',
-                              }}
-                              onLoadedMetadata={(e) => {
-                                const video = e.currentTarget;
-                                // Coloca na primeira frame
-                                video.currentTime = 0;
-                                video.pause();
-                              }}
-                              onSeeked={(e) => {
-                                const video = e.currentTarget;
-                                video.pause();
-                              }}
-                            />
+                        ) : isVideo && thumbnail === "video" ? (
+                          // Video placeholder - solid color with gradient
+                          <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
                             {/* Play icon overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                            <div className="flex items-center justify-center">
                               <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/20">
                                 <Play className="w-8 h-8 text-white fill-white ml-1" />
                               </div>
                             </div>
-                          </>
-                        ) : isVideo && !thumbnail ? (
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="p-3 rounded-lg bg-purple-500/20">
-                              <Video className="w-8 h-8 text-purple-400" />
-                            </div>
-                            <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
                           </div>
                         ) : isImage && !thumbnail ? (
                           <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
