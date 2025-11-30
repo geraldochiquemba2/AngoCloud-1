@@ -1,0 +1,132 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+Latest build failed
+ Back to builds
+Build details
+Repository
+
+geraldochiquemba2/OrbitalCloud
+Status
+
+a few seconds ago
+Branch
+main
+788ecb4
+Duration
+1m 4s
+Build settings
+Build log
+Initializing build environment
+4s
+Cloning git repository
+3s
+Installing tools and dependencies
+14s
+Building application
+8s
+Deploying to Cloudflare's global network
+35s
+
+Download log
+
+Copy log
+01:59:02.401	[custom build] building server...
+01:59:02.401	[custom build] 
+01:59:02.671	[custom build] 
+01:59:02.671	[custom build]   dist/index.cjs  1.3mb ⚠️
+01:59:02.671	[custom build] 
+01:59:02.671	[custom build] ⚡ Done in 274ms
+01:59:02.672	[custom build] 
+01:59:02.808	
+01:59:02.877	✘ [ERROR] The directory specified by the "assets.directory" field in your configuration file does not exist:
+01:59:02.879	
+01:59:02.879	  /opt/buildhome/repo/cloudflare/dist/public
+01:59:02.879	
+01:59:02.879	
+01:59:02.895	
+01:59:02.895	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+01:59:02.919	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2025-11-30_00-58-54_591.log"
+01:59:03.042	Failed: error occurred while running deploy command
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+2025-11-29T00:30:00.000Z
