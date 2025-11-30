@@ -21,14 +21,52 @@ const upload = multer({
 // Bcrypt config
 const SALT_ROUNDS = 12;
 
-// Hash password with bcrypt
+// PBKDF2 config (must match Cloudflare Worker settings)
+const PBKDF2_ITERATIONS = 100000;
+const PBKDF2_KEY_LENGTH = 32;
+
+// Hash password with bcrypt (for new users created in Express)
 async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, SALT_ROUNDS);
 }
 
-// Verify password with bcrypt
+// Verify PBKDF2 hash (for users created in Cloudflare Worker)
+async function verifyPasswordPBKDF2(password: string, storedHash: string): Promise<boolean> {
+  try {
+    const [prefix, salt, hash] = storedHash.split(':');
+    if (prefix !== 'pbkdf2' || !salt || !hash) {
+      return false;
+    }
+    
+    const derivedKey = crypto.pbkdf2Sync(
+      password,
+      salt,
+      PBKDF2_ITERATIONS,
+      PBKDF2_KEY_LENGTH,
+      'sha256'
+    );
+    
+    const computedHash = derivedKey.toString('hex');
+    return computedHash === hash;
+  } catch (error) {
+    console.error('PBKDF2 verification error:', error);
+    return false;
+  }
+}
+
+// Verify password - supports both bcrypt and PBKDF2
 async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+  // Check if it's a PBKDF2 hash (from Cloudflare Worker)
+  if (hash.startsWith('pbkdf2:')) {
+    return verifyPasswordPBKDF2(password, hash);
+  }
+  
+  // Check if it's a bcrypt hash
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+    return bcrypt.compare(password, hash);
+  }
+  
+  return false;
 }
 
 // Extend Express Request to include user and file
@@ -311,7 +349,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Encriptação já está ativa para esta conta" });
       }
       
-      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      const isPasswordValid = await verifyPassword(password, user.passwordHash);
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Password incorreta" });
       }
@@ -346,12 +384,12 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Utilizador não encontrado" });
       }
       
-      const isPasswordValid = await bcrypt.compare(currentPassword, user.passwordHash);
+      const isPasswordValid = await verifyPassword(currentPassword, user.passwordHash);
       if (!isPasswordValid) {
         return res.status(401).json({ message: "Senha atual incorreta" });
       }
       
-      const newHashedPassword = await bcrypt.hash(newPassword, 12);
+      const newHashedPassword = await hashPassword(newPassword);
       await storage.updateUserPassword(req.user!.id, newHashedPassword);
       
       res.json({ message: "Senha alterada com sucesso" });
