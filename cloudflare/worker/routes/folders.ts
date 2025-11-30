@@ -122,3 +122,132 @@ folderRoutes.patch('/:id/rename', async (c) => {
     return c.json({ message: 'Erro ao renomear pasta' }, 500);
   }
 });
+
+function generateSlug(length: number = 12): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+folderRoutes.get('/public', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const result = await db.select().from(folders)
+      .where(and(
+        eq(folders.userId, user.id),
+        eq(folders.isPublic, true)
+      ))
+      .orderBy(desc(folders.publishedAt));
+    
+    return c.json(result);
+  } catch (error) {
+    console.error('Get public folders error:', error);
+    return c.json({ message: 'Erro ao buscar pastas públicas' }, 500);
+  }
+});
+
+folderRoutes.post('/:id/make-public', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const folderId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+    if (!folder || folder.userId !== user.id) {
+      return c.json({ message: 'Pasta não encontrada' }, 404);
+    }
+    
+    if (folder.isPublic && folder.publicSlug) {
+      return c.json({ 
+        message: 'Pasta já é pública',
+        slug: folder.publicSlug,
+        publicUrl: `/p/${folder.publicSlug}`
+      });
+    }
+    
+    const slug = generateSlug();
+    
+    await db.update(folders)
+      .set({ 
+        isPublic: true, 
+        publicSlug: slug,
+        publishedAt: new Date()
+      })
+      .where(eq(folders.id, folderId));
+    
+    return c.json({ 
+      message: 'Pasta tornada pública com sucesso',
+      slug,
+      publicUrl: `/p/${slug}`
+    });
+  } catch (error) {
+    console.error('Make folder public error:', error);
+    return c.json({ message: 'Erro ao tornar pasta pública' }, 500);
+  }
+});
+
+folderRoutes.post('/:id/make-private', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const folderId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+    if (!folder || folder.userId !== user.id) {
+      return c.json({ message: 'Pasta não encontrada' }, 404);
+    }
+    
+    await db.update(folders)
+      .set({ 
+        isPublic: false, 
+        publicSlug: null,
+        publishedAt: null
+      })
+      .where(eq(folders.id, folderId));
+    
+    return c.json({ message: 'Pasta tornada privada com sucesso' });
+  } catch (error) {
+    console.error('Make folder private error:', error);
+    return c.json({ message: 'Erro ao tornar pasta privada' }, 500);
+  }
+});
+
+folderRoutes.post('/:id/regenerate-slug', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const folderId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [folder] = await db.select().from(folders).where(eq(folders.id, folderId));
+    if (!folder || folder.userId !== user.id) {
+      return c.json({ message: 'Pasta não encontrada' }, 404);
+    }
+    
+    if (!folder.isPublic) {
+      return c.json({ message: 'Pasta não é pública' }, 400);
+    }
+    
+    const newSlug = generateSlug();
+    
+    await db.update(folders)
+      .set({ publicSlug: newSlug })
+      .where(eq(folders.id, folderId));
+    
+    return c.json({ 
+      message: 'Link regenerado com sucesso',
+      slug: newSlug,
+      publicUrl: `/p/${newSlug}`
+    });
+  } catch (error) {
+    console.error('Regenerate slug error:', error);
+    return c.json({ message: 'Erro ao regenerar link' }, 500);
+  }
+});
