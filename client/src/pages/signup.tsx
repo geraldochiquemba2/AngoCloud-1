@@ -1,6 +1,6 @@
-import { Cloud, Heart } from "lucide-react";
+import { Cloud, Heart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import bgImage from "@assets/pexels-shkrabaanthony-5475778_1764258312022.jpg";
@@ -15,6 +15,8 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const { signup } = useAuth();
 
   useEffect(() => {
@@ -38,6 +40,11 @@ export default function Signup() {
     
     if (password.length < 6) {
       setError("A palavra-passe deve ter pelo menos 6 caracteres");
+      return;
+    }
+    
+    if (!acceptedTerms) {
+      setError("Deve aceitar os Termos de Uso e Politica de Privacidade");
       return;
     }
     
@@ -169,7 +176,7 @@ export default function Signup() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
-              className="mb-2"
+              className="mb-4"
             >
               <label className="block text-sm font-medium text-white mb-2">Confirmar Palavra-passe</label>
               <input
@@ -181,6 +188,44 @@ export default function Signup() {
                 className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-white/50 transition-colors"
                 data-testid="input-confirm-password"
               />
+            </motion.div>
+
+            {/* Terms and Conditions Checkbox */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.38 }}
+              className="mb-2"
+            >
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="peer sr-only"
+                    data-testid="checkbox-terms"
+                  />
+                  <div className="w-5 h-5 rounded border-2 border-white/30 bg-white/10 peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center group-hover:border-white/50">
+                    {acceptedTerms && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm text-white/80 leading-tight">
+                  Li e aceito os{" "}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); setShowTermsModal(true); }}
+                    className="text-primary hover:text-primary/80 underline font-medium bg-transparent border-none cursor-pointer"
+                    data-testid="link-terms"
+                  >
+                    Termos de Uso e Politica de Privacidade
+                  </button>
+                </span>
+              </label>
             </motion.div>
 
             {/* Error Message */}
@@ -254,6 +299,154 @@ export default function Signup() {
         </div>
       </motion.footer>
       </div>
+
+      {/* Terms and Privacy Policy Modal */}
+      <AnimatePresence>
+        {showTermsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+            onClick={() => setShowTermsModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl w-full max-w-2xl max-h-[85vh] border border-white/20 flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white">Termos de Uso e Politica de Privacidade</h2>
+                <button 
+                  onClick={() => setShowTermsModal(false)} 
+                  className="text-white/50 hover:text-white transition-colors"
+                  data-testid="button-close-terms"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 text-white/80 text-sm leading-relaxed">
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">1. Aceitacao dos Termos</h3>
+                  <p>
+                    Ao criar uma conta e utilizar os servicos da OrbitalCloud, voce concorda com estes Termos de Uso e 
+                    Politica de Privacidade. Se nao concordar com algum termo, nao deve utilizar a plataforma.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">2. Descricao do Servico</h3>
+                  <p>
+                    A OrbitalCloud e uma plataforma de armazenamento em nuvem que permite aos utilizadores guardar, 
+                    organizar e partilhar ficheiros de forma segura. Oferecemos 15GB de armazenamento gratuito para 
+                    todos os utilizadores registados, com opcao de adquirir espaco adicional.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">3. Conta de Utilizador</h3>
+                  <p className="mb-2">
+                    Para utilizar os nossos servicos, deve criar uma conta fornecendo informacoes verdadeiras e completas. 
+                    Voce e responsavel por:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Manter a confidencialidade da sua palavra-passe</li>
+                    <li>Todas as atividades realizadas na sua conta</li>
+                    <li>Notificar-nos imediatamente sobre qualquer uso nao autorizado</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">4. Privacidade e Seguranca dos Dados</h3>
+                  <p className="mb-2">
+                    Levamos a seguranca dos seus dados a serio. Os seus ficheiros sao:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Encriptados com tecnologia AES-256-GCM antes de serem armazenados</li>
+                    <li>Protegidos com chaves derivadas da sua palavra-passe</li>
+                    <li>Acessiveis apenas por si ou por quem voce autorizar</li>
+                  </ul>
+                  <p className="mt-2">
+                    Nao temos acesso ao conteudo dos seus ficheiros encriptados. A sua privacidade e a nossa prioridade.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">5. Uso Aceitavel</h3>
+                  <p className="mb-2">
+                    Ao utilizar a OrbitalCloud, voce concorda em nao:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Armazenar conteudo ilegal ou que viole direitos de terceiros</li>
+                    <li>Utilizar o servico para spam ou atividades maliciosas</li>
+                    <li>Tentar aceder a contas ou dados de outros utilizadores</li>
+                    <li>Sobrecarregar ou interferir com a infraestrutura do servico</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">6. Armazenamento e Limites</h3>
+                  <p>
+                    Cada conta gratuita inclui 15GB de armazenamento. Espaco adicional pode ser adquirido mediante 
+                    pagamento unico. Reservamo-nos o direito de remover ficheiros de contas inativas por mais de 
+                    12 meses apos notificacao previa.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">7. Propriedade Intelectual</h3>
+                  <p>
+                    Voce mantem todos os direitos sobre os ficheiros que carrega. Ao utilizar o servico de partilha, 
+                    garante que tem autorizacao para partilhar o conteudo. A OrbitalCloud e suas marcas sao propriedade 
+                    exclusiva da empresa.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">8. Suporte e Contacto</h3>
+                  <p className="mb-2">
+                    Para suporte tecnico ou reclamacoes, pode contactar-nos atraves de:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Email: gerladochiquemba@gmail.com</li>
+                    <li>Telefone: 943 412 688</li>
+                  </ul>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">9. Alteracoes aos Termos</h3>
+                  <p>
+                    Reservamo-nos o direito de modificar estes termos a qualquer momento. Alteracoes significativas 
+                    serao comunicadas por email ou atraves da plataforma. O uso continuado apos alteracoes constitui 
+                    aceitacao dos novos termos.
+                  </p>
+                </section>
+
+                <section>
+                  <h3 className="text-lg font-semibold text-white mb-3">10. Legislacao Aplicavel</h3>
+                  <p>
+                    Estes termos sao regidos pelas leis da Republica de Angola. Quaisquer disputas serao resolvidas 
+                    nos tribunais competentes de Luanda.
+                  </p>
+                </section>
+              </div>
+
+              <div className="p-6 border-t border-white/10">
+                <button
+                  onClick={() => { setAcceptedTerms(true); setShowTermsModal(false); }}
+                  className="w-full py-3 rounded-lg bg-primary hover:bg-primary/80 text-white font-semibold transition-colors"
+                  data-testid="button-accept-terms"
+                >
+                  Li e Aceito os Termos
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

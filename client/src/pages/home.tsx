@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, Cloud, Server, Lock, HardDrive, Heart } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
@@ -74,8 +74,24 @@ export default function Home() {
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-accent/3 blur-[120px]" />
       </div>
+      {/* Support Bar */}
+      <div className="w-full py-2 px-4 md:px-12 bg-black/40 backdrop-blur-sm border-b border-white/10 z-50 fixed top-0 left-0">
+        <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-end items-center gap-4 text-xs text-white/80">
+          <a href="mailto:gerladochiquemba@gmail.com" className="flex items-center gap-1.5 hover:text-white transition-colors">
+            <Mail className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">gerladochiquemba@gmail.com</span>
+            <span className="sm:hidden">Email</span>
+          </a>
+          <a href="tel:+244943412688" className="flex items-center gap-1.5 hover:text-white transition-colors">
+            <Phone className="w-3.5 h-3.5" />
+            <span>943 412 688</span>
+          </a>
+          <span className="text-white/50 hidden md:inline">Suporte Tecnico & Reclamacoes</span>
+        </div>
+      </div>
+      
       {/* Navigation */}
-      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 absolute top-0 left-0">
+      <nav className="w-full py-6 px-6 md:px-12 flex justify-between items-center z-50 fixed top-[32px] left-0">
         <button 
           onClick={() => window.location.href = "/"}
           className="flex items-center gap-2 font-display font-bold text-xl sm:text-2xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
@@ -85,7 +101,7 @@ export default function Home() {
         </button>
         <div className="hidden md:flex gap-8 items-center font-medium text-sm text-white/80">
           <a href="#features" className="hover:text-white transition-colors cursor-pointer">Funcionalidades</a>
-          <a href="#pricing" className="hover:text-white transition-colors cursor-pointer">Preços</a>
+          <a href="#pricing" className="hover:text-white transition-colors cursor-pointer">Precos</a>
           <button onClick={() => handleNavigateWithLoading("/about")} className="hover:text-white transition-colors cursor-pointer bg-transparent border-none text-inherit">Sobre</button>
         </div>
         <div className="flex gap-2 md:gap-4">
@@ -96,7 +112,7 @@ export default function Home() {
         </div>
       </nav>
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-20 px-6 md:px-12 overflow-hidden">
+      <section className="relative min-h-screen flex items-center pt-28 px-6 md:px-12 overflow-hidden">
         {/* Video Background */}
         <div className="absolute inset-0 z-0">
           <VideoBackground videoSrc={heroVideo} posterSrc={heroImage} onLoad={handleVideoLoaded} />

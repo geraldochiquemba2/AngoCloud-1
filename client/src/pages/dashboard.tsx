@@ -5,6 +5,7 @@ import {
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
   CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX, Key,
+  Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -1881,9 +1882,25 @@ export default function Dashboard() {
       {/* Loading Screen - Always rendered first to cover everything */}
       <LoadingScreen isVisible={showLoading || isLogoutLoading} />
       
-      <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10 pt-8">
-        {/* Navigation */}
-        <nav className="w-full py-4 px-4 md:px-8 flex justify-between items-center z-50 fixed top-0 left-0 backdrop-blur-md bg-black/20 border-b border-white/10">
+      <div className="min-h-screen w-screen max-w-full overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-foreground selection:bg-primary/10">
+        {/* Support Bar - height ~28px */}
+        <div className="w-full py-1.5 px-4 md:px-8 bg-black/40 backdrop-blur-sm border-b border-white/10 z-50 fixed top-0 left-0">
+          <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-end items-center gap-3 md:gap-4 text-xs text-white/70">
+            <a href="mailto:gerladochiquemba@gmail.com" className="flex items-center gap-1.5 hover:text-white transition-colors">
+              <Mail className="w-3 h-3" />
+              <span className="hidden sm:inline">gerladochiquemba@gmail.com</span>
+              <span className="sm:hidden">Email</span>
+            </a>
+            <a href="tel:+244943412688" className="flex items-center gap-1.5 hover:text-white transition-colors">
+              <Phone className="w-3 h-3" />
+              <span>943 412 688</span>
+            </a>
+            <span className="text-white/40 hidden lg:inline">| Suporte & Reclamacoes</span>
+          </div>
+        </div>
+        
+        {/* Navigation - positioned below support bar (~28px), height ~56px */}
+        <nav className="w-full py-3 px-4 md:px-8 flex justify-between items-center z-50 fixed top-[28px] left-0 backdrop-blur-md bg-black/30 border-b border-white/10">
         <button 
           onClick={() => navigate("/")}
           className="flex items-center gap-2 font-display font-bold text-lg sm:text-xl tracking-tighter cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none"
@@ -1950,7 +1967,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed top-16 left-0 right-0 z-40 bg-amber-500/90 backdrop-blur-sm border-b border-amber-600"
+          className="fixed top-[80px] left-0 right-0 z-40 bg-amber-500/90 backdrop-blur-sm border-b border-amber-600"
         >
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -1972,7 +1989,7 @@ export default function Dashboard() {
       )}
       {/* Main Content */}
       <div 
-        className={`${needsEncryptionSetup ? 'pt-32' : 'pt-20'} px-4 md:px-8 pb-8`}
+        className={`${needsEncryptionSetup ? 'pt-36' : 'pt-24'} px-4 md:px-8 pb-8`}
         style={{
           backgroundImage: `url(${dashboardBgImage})`,
           backgroundSize: 'cover',
