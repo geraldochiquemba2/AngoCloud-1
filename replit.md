@@ -123,17 +123,29 @@ Configure via `wrangler secret put`:
 
 ## Recent Changes
 
+### November 30, 2025 - System Routes and API Parity
+
+Added comprehensive system routes to the Cloudflare Worker for complete API parity:
+
+1. **GET /api/plans** - Returns available storage plans (public)
+2. **GET /api/user/quota** - Returns user storage quota and limits (authenticated)
+3. **GET /api/system/limits** - Returns system limits (file size, storage) (public)
+4. **GET /api/system/telegram-status** - Returns Telegram bots status (authenticated)
+5. **GET /api/stats** - Returns system statistics (user/file counts) (public)
+6. **POST /api/shared/files/:fileId/clone** - Clone a shared file to user's own storage (authenticated)
+
 ### November 30, 2025 - Invitation Routes Sync
 
-Fixed missing routes in Cloudflare Worker for invitation management. The following routes were added to ensure feature parity between Express server (Replit) and Cloudflare Worker (production):
+Fixed missing routes in Cloudflare Worker for invitation management:
 
 1. **GET /api/invitations/resource/:type/:id** - Lists invitations for a specific folder or file
-   - Validates resource ownership before returning invitations
-   - Orders results by creation date (newest first)
-
 2. **PATCH /api/invitations/:id/role** - Updates invitation role/permission
-   - Only the inviter can update the role
-   - Syncs folder/file permissions when invitation is already accepted
-   - Handles the collaborator→editor role mapping for files
 
-**Note:** LSP errors in `cloudflare/worker/routes/invitations.ts` are due to drizzle-orm version differences between packages. These are type-checking warnings only and don't affect runtime functionality.
+**Note on Cloudflare Workers Statelessness:** 
+Daily quota tracking and real-time bot health metrics are simplified in the Worker environment compared to Express, as Workers are stateless. The Worker provides:
+- Static system limits (matching Express LIMITS config)
+- Bot availability status (based on configured tokens)
+- Storage quotas from database (lifetime counts, not daily)
+
+**Note on LSP Errors:**
+LSP errors in `cloudflare/worker/routes/*.ts` are due to drizzle-orm version differences between the main project and Cloudflare package. These are type-checking warnings only and don't affect runtime functionality.
