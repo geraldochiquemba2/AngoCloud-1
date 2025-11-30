@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { files, users, folders, fileChunks, filePermissions, folderPermissions } from '../../../shared/schema';
+import { files, users, folders, fileChunks, filePermissions, folderPermissions, uploadSessions, uploadChunks } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 interface Env {
@@ -667,5 +667,256 @@ fileRoutes.get('/:id/stream', async (c) => {
   } catch (error) {
     console.error('Stream error:', error);
     return c.json({ message: 'Erro ao fazer stream' }, 500);
+  }
+});
+
+const CHUNK_SIZE = 10 * 1024 * 1024;
+
+fileRoutes.post('/init-upload', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const body = await c.req.json();
+    
+    const { fileName, fileSize, mimeType, folderId, isEncrypted, originalMimeType, originalSize } = body;
+    
+    if (!fileName || !fileSize || !mimeType) {
+      return c.json({ message: 'fileName, fileSize e mimeType são obrigatórios' }, 400);
+    }
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
+    if (!currentUser) {
+      return c.json({ message: 'Utilizador não encontrado' }, 404);
+    }
+    
+    const actualSize = originalSize || fileSize;
+    if (Number(currentUser.storageUsed) + actualSize > Number(currentUser.storageLimit)) {
+      return c.json({ 
+        message: 'Quota de armazenamento excedida',
+        storageUsed: Number(currentUser.storageUsed),
+        storageLimit: Number(currentUser.storageLimit),
+      }, 400);
+    }
+    
+    const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    const [session] = await db.insert(uploadSessions).values({
+      userId: user.id,
+      fileName,
+      fileSize,
+      mimeType,
+      totalChunks,
+      folderId: folderId || null,
+      isEncrypted: isEncrypted || false,
+      originalMimeType: originalMimeType || mimeType,
+      originalSize: originalSize || fileSize,
+      expiresAt,
+    }).returning();
+    
+    return c.json({
+      sessionId: session.id,
+      totalChunks,
+      chunkSize: CHUNK_SIZE,
+      expiresAt: session.expiresAt,
+    });
+  } catch (error) {
+    console.error('Init upload error:', error);
+    return c.json({ message: 'Erro ao iniciar upload' }, 500);
+  }
+});
+
+fileRoutes.post('/upload-chunk', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const formData = await c.req.formData();
+    
+    const sessionId = formData.get('sessionId') as string;
+    const chunkIndex = parseInt(formData.get('chunkIndex') as string, 10);
+    const chunk = formData.get('chunk') as File;
+    
+    if (!sessionId || isNaN(chunkIndex) || !chunk) {
+      return c.json({ message: 'sessionId, chunkIndex e chunk são obrigatórios' }, 400);
+    }
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, sessionId));
+    if (!session) {
+      return c.json({ message: 'Sessão de upload não encontrada' }, 404);
+    }
+    
+    if (session.userId !== user.id) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    if (session.status !== 'pending') {
+      return c.json({ message: 'Sessão de upload já foi concluída ou cancelada' }, 400);
+    }
+    
+    if (new Date() > new Date(session.expiresAt)) {
+      await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
+      await db.delete(uploadSessions).where(eq(uploadSessions.id, sessionId));
+      return c.json({ message: 'Sessão de upload expirou' }, 400);
+    }
+    
+    if (chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+      return c.json({ message: `Índice de chunk inválido. Esperado: 0-${session.totalChunks - 1}` }, 400);
+    }
+    
+    const existingChunk = await db.select().from(uploadChunks)
+      .where(and(
+        eq(uploadChunks.sessionId, sessionId),
+        eq(uploadChunks.chunkIndex, chunkIndex)
+      ));
+    
+    if (existingChunk.length > 0) {
+      const currentChunks = await db.select().from(uploadChunks)
+        .where(eq(uploadChunks.sessionId, sessionId));
+      return c.json({
+        success: true,
+        chunkIndex,
+        uploadedChunks: currentChunks.length,
+        totalChunks: session.totalChunks,
+        message: 'Chunk já foi enviado anteriormente'
+      });
+    }
+    
+    const telegram = new TelegramService(c.env);
+    if (!telegram.isAvailable()) {
+      return c.json({ message: 'Serviço de armazenamento temporariamente indisponível' }, 503);
+    }
+    
+    const chunkBuffer = await chunk.arrayBuffer();
+    const uploadResult = await telegram.uploadFile(chunkBuffer, `${session.fileName}.chunk${chunkIndex}`);
+    
+    await db.insert(uploadChunks).values({
+      sessionId,
+      chunkIndex,
+      telegramFileId: uploadResult.fileId,
+      telegramBotId: uploadResult.botId,
+      chunkSize: chunk.size,
+    });
+    
+    const allChunks = await db.select().from(uploadChunks)
+      .where(eq(uploadChunks.sessionId, sessionId));
+    
+    await db.update(uploadSessions)
+      .set({ uploadedChunks: allChunks.length })
+      .where(eq(uploadSessions.id, sessionId));
+    
+    return c.json({
+      success: true,
+      chunkIndex,
+      uploadedChunks: allChunks.length,
+      totalChunks: session.totalChunks,
+    });
+  } catch (error) {
+    console.error('Upload chunk error:', error);
+    return c.json({ message: 'Erro ao enviar chunk' }, 500);
+  }
+});
+
+fileRoutes.post('/complete-upload', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const body = await c.req.json();
+    const { sessionId } = body;
+    
+    if (!sessionId) {
+      return c.json({ message: 'sessionId é obrigatório' }, 400);
+    }
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, sessionId));
+    if (!session) {
+      return c.json({ message: 'Sessão de upload não encontrada' }, 404);
+    }
+    
+    if (session.userId !== user.id) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    const chunks = await db.select().from(uploadChunks)
+      .where(eq(uploadChunks.sessionId, sessionId))
+      .orderBy(uploadChunks.chunkIndex);
+    
+    if (chunks.length !== session.totalChunks) {
+      return c.json({ 
+        message: `Faltam chunks. Enviados: ${chunks.length}, Esperados: ${session.totalChunks}` 
+      }, 400);
+    }
+    
+    const mainChunk = chunks[0];
+    const [newFile] = await db.insert(files).values({
+      userId: user.id,
+      uploadedByUserId: user.id,
+      folderId: session.folderId,
+      nome: session.fileName,
+      tamanho: session.fileSize,
+      tipoMime: session.mimeType,
+      telegramFileId: mainChunk.telegramFileId,
+      telegramBotId: mainChunk.telegramBotId,
+      isEncrypted: session.isEncrypted,
+      originalMimeType: session.originalMimeType,
+      originalSize: session.originalSize,
+      isChunked: chunks.length > 1,
+      totalChunks: chunks.length,
+    }).returning();
+    
+    if (chunks.length > 1) {
+      const fileChunksData = chunks.map(chunk => ({
+        fileId: newFile.id,
+        chunkIndex: chunk.chunkIndex,
+        telegramFileId: chunk.telegramFileId,
+        telegramBotId: chunk.telegramBotId,
+        chunkSize: chunk.chunkSize,
+      }));
+      await db.insert(fileChunks).values(fileChunksData);
+    }
+    
+    const actualSize = session.originalSize || session.fileSize;
+    await db.update(users)
+      .set({ 
+        storageUsed: sql`${users.storageUsed} + ${actualSize}`,
+        uploadsCount: sql`${users.uploadsCount} + 1`
+      })
+      .where(eq(users.id, user.id));
+    
+    await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
+    await db.delete(uploadSessions).where(eq(uploadSessions.id, sessionId));
+    
+    return c.json(newFile);
+  } catch (error) {
+    console.error('Complete upload error:', error);
+    return c.json({ message: 'Erro ao completar upload' }, 500);
+  }
+});
+
+fileRoutes.delete('/upload-session/:sessionId', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const sessionId = c.req.param('sessionId');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, sessionId));
+    if (!session) {
+      return c.json({ message: 'Sessão não encontrada' }, 404);
+    }
+    
+    if (session.userId !== user.id) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
+    await db.delete(uploadSessions).where(eq(uploadSessions.id, sessionId));
+    
+    return c.json({ success: true, message: 'Sessão de upload cancelada' });
+  } catch (error) {
+    console.error('Cancel upload error:', error);
+    return c.json({ message: 'Erro ao cancelar upload' }, 500);
   }
 });
