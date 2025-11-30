@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
   Folder, FileText, Download, File, Image, Video, Music, 
-  FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye
+  FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye, Play
 } from "lucide-react";
 
 interface PublicFile {
@@ -39,12 +39,52 @@ export default function PublicFolderPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const thumbnailQueueRef = useRef<PublicFile[]>([]);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     if (slug) {
       fetchFolderData();
     }
   }, [slug]);
+
+  // Load thumbnails for media files
+  useEffect(() => {
+    if (files.length > 0) {
+      const mediaFiles = files.filter(f => 
+        f.tipoMime.startsWith("image/") || f.tipoMime.startsWith("video/")
+      );
+      thumbnailQueueRef.current = mediaFiles;
+      processNextThumbnail();
+    }
+  }, [files]);
+
+  const processNextThumbnail = useCallback(async () => {
+    if (isProcessingRef.current || thumbnailQueueRef.current.length === 0) return;
+    
+    isProcessingRef.current = true;
+    const file = thumbnailQueueRef.current.shift();
+    
+    if (file && !thumbnails[file.id]) {
+      try {
+        const res = await fetch(`/api/public/file/${file.id}/preview`);
+        if (res.ok) {
+          const data = await res.json();
+          setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+        }
+      } catch (err) {
+        console.error("Error loading thumbnail:", err);
+      }
+    }
+    
+    isProcessingRef.current = false;
+    
+    // Process next thumbnail with a small delay
+    if (thumbnailQueueRef.current.length > 0) {
+      setTimeout(processNextThumbnail, 100);
+    }
+  }, [thumbnails]);
 
   const fetchFolderData = async () => {
     setLoading(true);
@@ -78,15 +118,18 @@ export default function PublicFolderPage() {
     }
   };
 
-  const getFileIcon = (tipoMime: string) => {
-    if (tipoMime.startsWith("image/")) return <Image className="w-6 h-6 text-green-400" />;
-    if (tipoMime.startsWith("video/")) return <Video className="w-6 h-6 text-purple-400" />;
-    if (tipoMime.startsWith("audio/")) return <Music className="w-6 h-6 text-pink-400" />;
-    if (tipoMime.includes("zip") || tipoMime.includes("rar") || tipoMime.includes("tar")) 
-      return <FileArchive className="w-6 h-6 text-amber-400" />;
-    if (tipoMime.includes("javascript") || tipoMime.includes("json") || tipoMime.includes("html") || tipoMime.includes("css"))
-      return <FileCode className="w-6 h-6 text-blue-400" />;
-    return <FileText className="w-6 h-6 text-gray-400" />;
+  const getFileIcon = (tipoMime: string, large = false) => {
+    const size = large ? "w-12 h-12" : "w-6 h-6";
+    if (tipoMime.startsWith("image/")) return <Image className={`${size} text-green-400`} />;
+    if (tipoMime.startsWith("video/")) return <Video className={`${size} text-purple-400`} />;
+    if (tipoMime.startsWith("audio/")) return <Music className={`${size} text-pink-400`} />;
+    if (tipoMime.includes("zip") || tipoMime.includes("rar") || tipoMime.includes("tar") || tipoMime.includes("7z")) 
+      return <FileArchive className={`${size} text-amber-400`} />;
+    if (tipoMime.includes("javascript") || tipoMime.includes("json") || tipoMime.includes("html") || tipoMime.includes("css") || tipoMime.includes("xml"))
+      return <FileCode className={`${size} text-blue-400`} />;
+    if (tipoMime.includes("pdf"))
+      return <FileText className={`${size} text-red-400`} />;
+    return <FileText className={`${size} text-gray-400`} />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -253,49 +296,102 @@ export default function PublicFolderPage() {
           {files.length > 0 ? (
             <div>
               <h2 className="text-lg font-semibold text-white mb-4">Ficheiros</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {files.map((file) => (
-                  <motion.div
-                    key={file.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="flex-shrink-0 p-2 rounded-lg bg-white/5">
-                      {getFileIcon(file.tipoMime)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium truncate">{file.nome}</p>
-                      <p className="text-white/50 text-sm">
-                        {formatFileSize(file.tamanho)} · {formatDate(file.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {(file.tipoMime.startsWith("image/") || file.tipoMime.startsWith("video/") || file.tipoMime.startsWith("audio/")) && (
-                        <button
-                          onClick={() => openPreview(file)}
-                          className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/40 transition-colors"
-                          title="Visualizar"
-                          data-testid={`button-preview-${file.id}`}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => downloadFile(file)}
-                        disabled={downloadingId === file.id}
-                        className="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/40 transition-colors disabled:opacity-50"
-                        title="Descarregar"
-                        data-testid={`button-download-${file.id}`}
-                      >
-                        {downloadingId === file.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {files.map((file) => {
+                  const isImage = file.tipoMime.startsWith("image/");
+                  const isVideo = file.tipoMime.startsWith("video/");
+                  const isAudio = file.tipoMime.startsWith("audio/");
+                  const isMedia = isImage || isVideo || isAudio;
+                  const thumbnail = thumbnails[file.id];
+                  
+                  return (
+                    <motion.div
+                      key={file.id}
+                      whileHover={{ scale: 1.03 }}
+                      onClick={() => isMedia ? openPreview(file) : downloadFile(file)}
+                      className="flex flex-col rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all cursor-pointer overflow-hidden group"
+                    >
+                      {/* Thumbnail area */}
+                      <div className="relative w-full aspect-square bg-slate-800/50 flex items-center justify-center overflow-hidden">
+                        {isImage && thumbnail ? (
+                          <img 
+                            src={thumbnail} 
+                            alt={file.nome}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : isVideo && thumbnail ? (
+                          <>
+                            <video 
+                              src={thumbnail}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-cover"
+                              onLoadedData={(e) => {
+                                // Pause at first frame for thumbnail effect
+                                const video = e.currentTarget;
+                                video.pause();
+                                video.currentTime = 0;
+                              }}
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <Play className="w-6 h-6 text-white fill-white" />
+                              </div>
+                            </div>
+                          </>
+                        ) : isVideo && !thumbnail ? (
+                          <div className="flex flex-col items-center justify-center">
+                            <Video className="w-12 h-12 text-purple-400" />
+                            <Loader2 className="w-4 h-4 text-white/40 animate-spin mt-2" />
+                          </div>
+                        ) : isImage && !thumbnail ? (
+                          <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
                         ) : (
-                          <Download className="w-4 h-4" />
+                          <div className="p-4">
+                            {getFileIcon(file.tipoMime, true)}
+                          </div>
                         )}
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
+                        
+                        {/* Hover overlay with actions */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          {isMedia && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openPreview(file); }}
+                              className="p-3 rounded-full bg-blue-500/80 text-white hover:bg-blue-500 transition-colors"
+                              title="Visualizar"
+                              data-testid={`button-preview-${file.id}`}
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); downloadFile(file); }}
+                            disabled={downloadingId === file.id}
+                            className="p-3 rounded-full bg-primary/80 text-white hover:bg-primary transition-colors disabled:opacity-50"
+                            title="Descarregar"
+                            data-testid={`button-download-${file.id}`}
+                          >
+                            {downloadingId === file.id ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <Download className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* File info */}
+                      <div className="p-3">
+                        <p className="text-white text-sm font-medium truncate" title={file.nome}>{file.nome}</p>
+                        <p className="text-white/50 text-xs">
+                          {formatFileSize(file.tamanho)}
+                        </p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           ) : (
