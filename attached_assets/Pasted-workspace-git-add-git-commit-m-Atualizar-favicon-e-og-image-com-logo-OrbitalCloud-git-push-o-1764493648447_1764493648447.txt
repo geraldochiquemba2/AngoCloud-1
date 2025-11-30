@@ -1,0 +1,79 @@
+workspace$ git add .
+git commit -m "Atualizar favicon e og-image com logo OrbitalCloud"
+git push origin main
+On branch main
+Your branch is ahead of 'origin/main' by 5 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 42, done.
+Counting objects: 100% (42/42), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (35/35), done.
+Writing objects: 100% (35/35), 3.98 MiB | 5.87 MiB/s, done.
+Total 35 (delta 16), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (16/16), completed with 5 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   8c6d917..1bf2f5c  main -> main
+~/workspace$ # 1. Build do projeto
+npm run build
+
+# 2. Adicionar todas as mudanças
+git add .
+
+# 3. Fazer commit com mensagem descritiva
+git commit -m "Atualizar favicon, og-image e corrigir 15GB para 20GB"
+
+# 4. Enviar para o repositório remoto
+git push origin main
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.1.12 building for production...
+✓ 2248 modules transformed.
+rendering chunks (1)...[meta-images] using dev domain: https://54b48548-4081-42b8-b7de-8d70579781a9-00-150x2lyugz5ne.kirk.replit.dev
+[meta-images] OpenGraph image not found, skipping meta tag updates
+../dist/public/index.html                                                           4.56 kB │ gzip:   1.55 kB
+../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+../dist/public/assets/index-DfG_ObSj.css                                          137.91 kB │ gzip:  20.76 kB
+../dist/public/assets/index-DDu4wkZ7.js                                           708.43 kB │ gzip: 201.46 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.76s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 169ms
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 13, done.
+Counting objects: 100% (13/13), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (7/7), 898 bytes | 898.00 KiB/s, done.
+Total 7 (delta 5), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (5/5), completed with 5 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   1bf2f5c..c740c58  main -> main
+~/workspace$ 
