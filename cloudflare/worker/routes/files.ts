@@ -709,7 +709,10 @@ fileRoutes.post('/init-upload', async (c) => {
     
     const { fileName, fileSize, mimeType, folderId, isEncrypted, originalMimeType, originalSize } = body;
     
+    console.log(`📂 Init upload: fileName=${fileName}, fileSize=${fileSize}, mimeType=${mimeType}`);
+    
     if (!fileName || !fileSize || !mimeType) {
+      console.error('❌ Init upload: parâmetros obrigatórios faltando');
       return c.json({ message: 'fileName, fileSize e mimeType são obrigatórios' }, 400);
     }
     
@@ -717,11 +720,13 @@ fileRoutes.post('/init-upload', async (c) => {
     
     const [currentUser] = await db.select().from(users).where(eq(users.id, user.id));
     if (!currentUser) {
+      console.error(`❌ Init upload: usuário não encontrado (${user.id})`);
       return c.json({ message: 'Utilizador não encontrado' }, 404);
     }
     
     const actualSize = originalSize || fileSize;
     if (Number(currentUser.storageUsed) + actualSize > Number(currentUser.storageLimit)) {
+      console.error(`❌ Init upload: quota excedida (used=${currentUser.storageUsed}, limit=${currentUser.storageLimit})`);
       return c.json({ 
         message: 'Quota de armazenamento excedida',
         storageUsed: Number(currentUser.storageUsed),
@@ -731,6 +736,8 @@ fileRoutes.post('/init-upload', async (c) => {
     
     const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    console.log(`📂 Init upload: criando sessão com ${totalChunks} chunks...`);
     
     const [session] = await db.insert(uploadSessions).values({
       userId: user.id,
@@ -745,15 +752,21 @@ fileRoutes.post('/init-upload', async (c) => {
       expiresAt,
     }).returning();
     
+    console.log(`✅ Init upload: sessão criada com id=${session.id}, totalChunks=${totalChunks}`);
+    
     return c.json({
       sessionId: session.id,
       totalChunks,
       chunkSize: CHUNK_SIZE,
       expiresAt: session.expiresAt,
     });
-  } catch (error) {
-    console.error('Init upload error:', error);
-    return c.json({ message: 'Erro ao iniciar upload' }, 500);
+  } catch (error: any) {
+    console.error('❌ Init upload error:', error);
+    console.error('❌ Init upload stack:', error.stack);
+    return c.json({ 
+      message: 'Erro ao iniciar upload',
+      error: error.message 
+    }, 500);
   }
 });
 
@@ -766,7 +779,10 @@ fileRoutes.post('/upload-chunk', async (c) => {
     const chunkIndex = parseInt(formData.get('chunkIndex') as string, 10);
     const chunk = formData.get('chunk') as File;
     
+    console.log(`📦 Upload chunk: sessionId=${sessionId}, chunkIndex=${chunkIndex}, size=${chunk?.size || 0}`);
+    
     if (!sessionId || isNaN(chunkIndex) || !chunk) {
+      console.error('❌ Upload chunk: parâmetros inválidos');
       return c.json({ message: 'sessionId, chunkIndex e chunk são obrigatórios' }, 400);
     }
     
@@ -774,24 +790,29 @@ fileRoutes.post('/upload-chunk', async (c) => {
     
     const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, sessionId));
     if (!session) {
+      console.error(`❌ Upload chunk: sessão não encontrada (${sessionId})`);
       return c.json({ message: 'Sessão de upload não encontrada' }, 404);
     }
     
     if (session.userId !== user.id) {
+      console.error(`❌ Upload chunk: acesso negado`);
       return c.json({ message: 'Acesso negado' }, 403);
     }
     
     if (session.status !== 'pending') {
+      console.error(`❌ Upload chunk: sessão não está pendente (status=${session.status})`);
       return c.json({ message: 'Sessão de upload já foi concluída ou cancelada' }, 400);
     }
     
     if (new Date() > new Date(session.expiresAt)) {
+      console.error(`❌ Upload chunk: sessão expirou`);
       await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
       await db.delete(uploadSessions).where(eq(uploadSessions.id, sessionId));
       return c.json({ message: 'Sessão de upload expirou' }, 400);
     }
     
     if (chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+      console.error(`❌ Upload chunk: índice inválido (${chunkIndex}, esperado: 0-${session.totalChunks - 1})`);
       return c.json({ message: `Índice de chunk inválido. Esperado: 0-${session.totalChunks - 1}` }, 400);
     }
     
@@ -802,6 +823,7 @@ fileRoutes.post('/upload-chunk', async (c) => {
       ));
     
     if (existingChunk.length > 0) {
+      console.log(`📦 Upload chunk: chunk ${chunkIndex} já existe, retornando sucesso`);
       const currentChunks = await db.select().from(uploadChunks)
         .where(eq(uploadChunks.sessionId, sessionId));
       return c.json({
@@ -815,11 +837,14 @@ fileRoutes.post('/upload-chunk', async (c) => {
     
     const telegram = new TelegramService(c.env);
     if (!telegram.isAvailable()) {
+      console.error(`❌ Upload chunk: Telegram não disponível`);
       return c.json({ message: 'Serviço de armazenamento temporariamente indisponível' }, 503);
     }
     
+    console.log(`📦 Upload chunk: enviando chunk ${chunkIndex + 1}/${session.totalChunks} para Telegram...`);
     const chunkBuffer = await chunk.arrayBuffer();
     const uploadResult = await telegram.uploadFile(chunkBuffer, `${session.fileName}.chunk${chunkIndex}`);
+    console.log(`📦 Upload chunk: chunk ${chunkIndex + 1} enviado com sucesso, fileId=${uploadResult.fileId}`);
     
     await db.insert(uploadChunks).values({
       sessionId,
@@ -836,25 +861,45 @@ fileRoutes.post('/upload-chunk', async (c) => {
       .set({ uploadedChunks: allChunks.length })
       .where(eq(uploadSessions.id, sessionId));
     
+    console.log(`✅ Upload chunk: chunk ${chunkIndex + 1}/${session.totalChunks} salvo (total: ${allChunks.length})`);
+    
     return c.json({
       success: true,
       chunkIndex,
       uploadedChunks: allChunks.length,
       totalChunks: session.totalChunks,
     });
-  } catch (error) {
-    console.error('Upload chunk error:', error);
-    return c.json({ message: 'Erro ao enviar chunk' }, 500);
+  } catch (error: any) {
+    console.error('❌ Upload chunk error:', error);
+    console.error('❌ Upload chunk stack:', error.stack);
+    
+    const errorMessage = error.message || 'Erro ao enviar chunk';
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+      return c.json({ 
+        message: 'Chunk demorou demais para enviar. Tente novamente.',
+        error: 'timeout'
+      }, 408);
+    }
+    
+    return c.json({ 
+      message: errorMessage,
+      error: 'chunk_upload_failed'
+    }, 500);
   }
 });
 
 fileRoutes.post('/complete-upload', async (c) => {
   try {
+    console.log('📋 Complete upload: iniciando...');
     const user = c.get('user') as JWTPayload;
     const body = await c.req.json();
     const { sessionId } = body;
     
+    console.log(`📋 Complete upload: sessionId=${sessionId}, userId=${user.id}`);
+    
     if (!sessionId) {
+      console.error('❌ Complete upload: sessionId não fornecido');
       return c.json({ message: 'sessionId é obrigatório' }, 400);
     }
     
@@ -862,10 +907,14 @@ fileRoutes.post('/complete-upload', async (c) => {
     
     const [session] = await db.select().from(uploadSessions).where(eq(uploadSessions.id, sessionId));
     if (!session) {
+      console.error(`❌ Complete upload: sessão não encontrada (${sessionId})`);
       return c.json({ message: 'Sessão de upload não encontrada' }, 404);
     }
     
+    console.log(`📋 Complete upload: sessão encontrada, totalChunks=${session.totalChunks}`);
+    
     if (session.userId !== user.id) {
+      console.error(`❌ Complete upload: acesso negado (session.userId=${session.userId}, user.id=${user.id})`);
       return c.json({ message: 'Acesso negado' }, 403);
     }
     
@@ -873,13 +922,18 @@ fileRoutes.post('/complete-upload', async (c) => {
       .where(eq(uploadChunks.sessionId, sessionId))
       .orderBy(uploadChunks.chunkIndex);
     
+    console.log(`📋 Complete upload: chunks encontrados=${chunks.length}, esperados=${session.totalChunks}`);
+    
     if (chunks.length !== session.totalChunks) {
+      console.error(`❌ Complete upload: chunks incompletos (${chunks.length}/${session.totalChunks})`);
       return c.json({ 
         message: `Faltam chunks. Enviados: ${chunks.length}, Esperados: ${session.totalChunks}` 
       }, 400);
     }
     
     const mainChunk = chunks[0];
+    console.log(`📋 Complete upload: criando registro do ficheiro...`);
+    
     const [newFile] = await db.insert(files).values({
       userId: user.id,
       uploadedByUserId: user.id,
@@ -896,7 +950,10 @@ fileRoutes.post('/complete-upload', async (c) => {
       totalChunks: chunks.length,
     }).returning();
     
+    console.log(`📋 Complete upload: ficheiro criado com id=${newFile.id}`);
+    
     if (chunks.length > 1) {
+      console.log(`📋 Complete upload: salvando ${chunks.length} chunks no banco...`);
       const fileChunksData = chunks.map(chunk => ({
         fileId: newFile.id,
         chunkIndex: chunk.chunkIndex,
@@ -908,6 +965,8 @@ fileRoutes.post('/complete-upload', async (c) => {
     }
     
     const actualSize = session.originalSize || session.fileSize;
+    console.log(`📋 Complete upload: atualizando storage do usuário (+${actualSize} bytes)`);
+    
     await db.update(users)
       .set({ 
         storageUsed: sql`${users.storageUsed} + ${actualSize}`,
@@ -915,13 +974,19 @@ fileRoutes.post('/complete-upload', async (c) => {
       })
       .where(eq(users.id, user.id));
     
+    console.log(`📋 Complete upload: limpando sessão de upload...`);
     await db.delete(uploadChunks).where(eq(uploadChunks.sessionId, sessionId));
     await db.delete(uploadSessions).where(eq(uploadSessions.id, sessionId));
     
+    console.log(`✅ Complete upload: sucesso! ficheiro=${session.fileName}`);
     return c.json(newFile);
-  } catch (error) {
-    console.error('Complete upload error:', error);
-    return c.json({ message: 'Erro ao completar upload' }, 500);
+  } catch (error: any) {
+    console.error('❌ Complete upload error:', error);
+    console.error('❌ Complete upload stack:', error.stack);
+    return c.json({ 
+      message: 'Erro ao completar upload',
+      error: error.message 
+    }, 500);
   }
 });
 
