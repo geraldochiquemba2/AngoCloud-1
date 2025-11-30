@@ -138,13 +138,15 @@ fileRoutes.post('/upload', async (c) => {
       }, 503);
     }
     
-    // Limit file size to 50MB for Cloudflare Workers (30s timeout)
-    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    if (originalSize > MAX_FILE_SIZE) {
+    // Limite reduzido para 20MB para uploads únicos no Cloudflare Workers
+    // Para ficheiros maiores, usar o sistema de upload chunked via /init-upload
+    const MAX_SINGLE_UPLOAD_SIZE = 20 * 1024 * 1024; // 20MB
+    if (originalSize > MAX_SINGLE_UPLOAD_SIZE) {
       return c.json({ 
-        message: `Ficheiro muito grande. Máximo: 50MB. Seu ficheiro: ${(originalSize / 1024 / 1024).toFixed(1)}MB`,
-        maxSize: MAX_FILE_SIZE,
+        message: `Ficheiro muito grande para upload direto. Máximo: 20MB. Seu ficheiro: ${(originalSize / 1024 / 1024).toFixed(1)}MB. Use o sistema de upload chunked para ficheiros maiores.`,
+        maxSize: MAX_SINGLE_UPLOAD_SIZE,
         fileSize: originalSize,
+        useChunkedUpload: true,
       }, 400);
     }
     
@@ -189,9 +191,37 @@ fileRoutes.post('/upload', async (c) => {
       .where(eq(users.id, user.id));
     
     return c.json(newFile);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Upload error:', error);
-    return c.json({ message: 'Erro ao fazer upload' }, 500);
+    
+    const errorMessage = error.message || 'Erro ao fazer upload';
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+      return c.json({ 
+        message: 'Upload demorou demais. Tente um ficheiro menor (máximo recomendado: 15MB) ou verifique sua conexão.',
+        error: 'timeout',
+        suggestion: 'Para ficheiros grandes, use uma conexão mais rápida ou divida o ficheiro.'
+      }, 408);
+    }
+    
+    if (errorMessage.includes('Rate limit')) {
+      return c.json({ 
+        message: 'Servidor ocupado. Aguarde alguns segundos e tente novamente.',
+        error: 'rate_limit'
+      }, 429);
+    }
+    
+    if (errorMessage.includes('Nenhum bot')) {
+      return c.json({ 
+        message: 'Serviço de armazenamento temporariamente indisponível. Tente novamente em alguns minutos.',
+        error: 'no_bots_available'
+      }, 503);
+    }
+    
+    return c.json({ 
+      message: errorMessage,
+      error: 'upload_failed'
+    }, 500);
   }
 });
 

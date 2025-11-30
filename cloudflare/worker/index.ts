@@ -43,8 +43,6 @@ export interface Env {
   };
 }
 
-export type { Env };
-
 const api = new Hono<{ Bindings: Env }>();
 
 api.use('*', logger());

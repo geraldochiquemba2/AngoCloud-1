@@ -31,7 +31,7 @@ interface ChunkUploadResult {
 }
 
 const CHUNK_SIZE = 19 * 1024 * 1024; // 19MB per chunk
-const MAX_SINGLE_FILE_SIZE = 48 * 1024 * 1024; // 48MB
+const MAX_SINGLE_FILE_SIZE = 20 * 1024 * 1024; // 20MB - reduzido para funcionar bem no Cloudflare
 
 interface RetryConfig {
   maxRetries: number;
@@ -44,9 +44,9 @@ export class TelegramService {
   private bots: TelegramBot[] = [];
   private currentBotIndex: number = 0;
   private retryConfig: RetryConfig = {
-    maxRetries: 5,
-    initialDelayMs: 1000,
-    maxDelayMs: 10000,
+    maxRetries: 2, // Reduzido para caber no limite de 30s do Cloudflare Workers
+    initialDelayMs: 500,
+    maxDelayMs: 3000,
     backoffMultiplier: 2,
   };
   private storageChatId: string = '';
@@ -246,6 +246,9 @@ export class TelegramService {
   private async uploadFileToBot(bot: TelegramBot, fileBuffer: ArrayBuffer, fileName: string): Promise<UploadResult> {
     const chatId = this.storageChatId || bot.id;
     const obfuscatedFileName = this.generateObfuscatedFileName(fileName);
+    const fileSizeMB = (fileBuffer.byteLength / 1024 / 1024).toFixed(2);
+
+    console.log(`📤 Iniciando upload: ${fileSizeMB}MB via bot ${bot.id}`);
 
     const formData = new FormData();
     const blob = new Blob([fileBuffer], { type: 'application/octet-stream' });
@@ -253,9 +256,13 @@ export class TelegramService {
     formData.append('chat_id', chatId);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout para Cloudflare (máx 30s)
+    const timeoutId = setTimeout(() => {
+      console.error(`⏱️ Timeout: upload de ${fileSizeMB}MB excedeu 25s`);
+      controller.abort();
+    }, 25000);
 
     try {
+      const startTime = Date.now();
       const response = await fetch(
         `https://api.telegram.org/bot${bot.token}/sendDocument`,
         {
@@ -264,18 +271,29 @@ export class TelegramService {
           signal: controller.signal,
         }
       );
+      const uploadTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
       const data: any = await response.json();
 
       if (!data.ok) {
         const errorCode = data.error_code;
+        console.error(`❌ Erro Telegram: ${data.description || errorCode} (bot: ${bot.id})`);
         if (errorCode === 429) {
           throw new Error(`Rate limit do Telegram (retry-after: ${data.parameters?.retry_after || '?'}s)`);
+        }
+        if (errorCode === 413) {
+          throw new Error(`Ficheiro muito grande para o Telegram (máx 50MB)`);
         }
         throw new Error(`Telegram API error: ${data.description || `Code ${errorCode}`}`);
       }
 
+      console.log(`✅ Upload concluído: ${fileSizeMB}MB em ${uploadTime}s (bot: ${bot.id})`);
       return { fileId: data.result.document.file_id, botId: bot.id };
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Upload timeout: ficheiro de ${fileSizeMB}MB demorou mais de 25 segundos. Tente um ficheiro menor.`);
+      }
+      throw error;
     } finally {
       clearTimeout(timeoutId);
     }
