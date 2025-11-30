@@ -610,6 +610,356 @@ export async function registerRoutes(
     }
   });
 
+  // ========== CHUNKED UPLOAD ROUTES ==========
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk from client
+  const SESSION_EXPIRY_HOURS = 24; // Sessions expire after 24 hours
+
+  // Initialize chunked upload session
+  app.post("/api/files/init-upload", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      
+      const schema = z.object({
+        fileName: z.string().min(1),
+        fileSize: z.number().positive().max(2 * 1024 * 1024 * 1024), // Max 2GB
+        mimeType: z.string(),
+        folderId: z.string().nullable().optional(),
+        isEncrypted: z.boolean().optional(),
+        originalMimeType: z.string().optional(),
+        originalSize: z.number().optional(),
+      });
+
+      const data = schema.parse(req.body);
+      const user = req.user!;
+      const totalChunks = Math.ceil(data.fileSize / CHUNK_SIZE);
+
+      // Check if uploading to a public folder
+      let isFolderPublic = false;
+      if (data.folderId) {
+        isFolderPublic = await storage.isFolderOrAncestorPublic(data.folderId);
+      }
+
+      // If client wants encryption but folder is public, reject
+      if (isFolderPublic && data.isEncrypted) {
+        return res.status(400).json({ 
+          message: "Ficheiros em pastas públicas não podem ser encriptados.",
+          isPublicFolder: true,
+          requiresPlainUpload: true
+        });
+      }
+
+      // Get full user data for plan info
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser) {
+        return res.status(500).json({ message: "Erro ao verificar utilizador" });
+      }
+
+      // Check daily limits
+      const originalSize = data.originalSize || data.fileSize;
+      const canUploadCheck = monitoringService.canUpload(user.id, originalSize, fullUser.plano);
+      if (!canUploadCheck.allowed) {
+        return res.status(400).json({ message: canUploadCheck.reason });
+      }
+
+      // Check storage quota
+      let storageOwnerId = user.id;
+      if (data.folderId) {
+        const folder = await storage.getFolder(data.folderId);
+        if (!folder) {
+          return res.status(404).json({ message: "Pasta não encontrada" });
+        }
+        
+        if (folder.userId !== user.id) {
+          const canUpload = await storage.canUploadToFolder(data.folderId, user.id);
+          if (!canUpload) {
+            return res.status(403).json({ message: "Sem permissão para enviar ficheiros para esta pasta" });
+          }
+          storageOwnerId = folder.userId;
+        }
+      }
+
+      const storageOwner = await storage.getUser(storageOwnerId);
+      if (!storageOwner) {
+        return res.status(500).json({ message: "Erro ao verificar quota de armazenamento" });
+      }
+
+      // Check upload limit
+      if (storageOwnerId === user.id && storageOwner.uploadLimit !== -1) {
+        if (storageOwner.uploadsCount >= storageOwner.uploadLimit) {
+          return res.status(400).json({ 
+            message: "Limite de uploads atingido. Faça upgrade do seu plano para continuar.",
+          });
+        }
+      }
+
+      if (storageOwner.storageUsed + originalSize > storageOwner.storageLimit) {
+        return res.status(400).json({ 
+          message: "Quota de armazenamento excedida",
+        });
+      }
+
+      if (!telegramService.isAvailable()) {
+        return res.status(503).json({ 
+          message: "Serviço de armazenamento temporariamente indisponível."
+        });
+      }
+
+      // Create upload session
+      const expiresAt = new Date(Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000);
+      const session = await storage.createUploadSession({
+        userId: user.id,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
+        mimeType: data.mimeType,
+        totalChunks,
+        folderId: data.folderId || null,
+        isEncrypted: isFolderPublic ? false : (data.isEncrypted || false),
+        originalMimeType: data.originalMimeType,
+        originalSize: data.originalSize,
+        expiresAt,
+      });
+
+      console.log(`📦 Upload session criada: ${session.id} (${totalChunks} chunks, ${(data.fileSize / 1024 / 1024).toFixed(2)}MB)`);
+
+      res.json({
+        sessionId: session.id,
+        totalChunks,
+        chunkSize: CHUNK_SIZE,
+        expiresAt: expiresAt.toISOString(),
+      });
+    } catch (error) {
+      console.error("Init upload error:", error);
+      res.status(500).json({ message: "Erro ao iniciar upload" });
+    }
+  });
+
+  // Upload a single chunk
+  app.post("/api/files/upload-chunk", requireAuth, upload.single("chunk"), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Nenhum chunk enviado" });
+      }
+
+      const sessionId = req.body.sessionId as string;
+      const chunkIndex = parseInt(req.body.chunkIndex, 10);
+
+      if (!sessionId || isNaN(chunkIndex)) {
+        return res.status(400).json({ message: "sessionId e chunkIndex são obrigatórios" });
+      }
+
+      const session = await storage.getUploadSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Sessão de upload não encontrada ou expirada" });
+      }
+
+      if (session.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (session.status !== "pending") {
+        return res.status(400).json({ message: "Sessão de upload já foi concluída ou cancelada" });
+      }
+
+      if (chunkIndex < 0 || chunkIndex >= session.totalChunks) {
+        return res.status(400).json({ message: "Índice de chunk inválido" });
+      }
+
+      // Check if chunk already exists
+      const existingChunks = await storage.getUploadChunks(sessionId);
+      const chunkExists = existingChunks.some(c => c.chunkIndex === chunkIndex);
+      if (chunkExists) {
+        return res.json({ 
+          message: "Chunk já existe",
+          chunkIndex,
+          uploadedChunks: session.uploadedChunks,
+          totalChunks: session.totalChunks,
+        });
+      }
+
+      // Upload chunk to Telegram
+      const chunkFileName = `${session.fileName}.chunk${chunkIndex.toString().padStart(4, '0')}`;
+      const uploadResult = await telegramService.uploadFile(req.file.buffer, chunkFileName);
+
+      // Save chunk info
+      await storage.createUploadChunk({
+        sessionId,
+        chunkIndex,
+        telegramFileId: uploadResult.fileId,
+        telegramBotId: uploadResult.botId,
+        chunkSize: req.file.size,
+      });
+
+      // Update session chunk count
+      await storage.updateUploadSessionChunkCount(sessionId);
+
+      const updatedSession = await storage.getUploadSession(sessionId);
+      const uploadedChunks = updatedSession?.uploadedChunks || session.uploadedChunks + 1;
+
+      console.log(`📤 Chunk ${chunkIndex + 1}/${session.totalChunks} uploaded for session ${sessionId}`);
+
+      res.json({
+        message: "Chunk enviado com sucesso",
+        chunkIndex,
+        uploadedChunks,
+        totalChunks: session.totalChunks,
+        isComplete: uploadedChunks === session.totalChunks,
+      });
+    } catch (error) {
+      console.error("Chunk upload error:", error);
+      res.status(500).json({ message: "Erro ao enviar chunk" });
+    }
+  });
+
+  // Complete the upload and create file record
+  app.post("/api/files/complete-upload", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { monitoringService } = await import("./monitoring");
+      
+      const { sessionId } = z.object({ sessionId: z.string() }).parse(req.body);
+      const user = req.user!;
+
+      const session = await storage.getUploadSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ message: "Sessão de upload não encontrada" });
+      }
+
+      if (session.userId !== user.id) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      if (session.status !== "pending") {
+        return res.status(400).json({ message: "Sessão já foi processada" });
+      }
+
+      // Verify all chunks are uploaded
+      const chunks = await storage.getUploadChunks(sessionId);
+      if (chunks.length !== session.totalChunks) {
+        return res.status(400).json({ 
+          message: `Upload incompleto: ${chunks.length}/${session.totalChunks} chunks enviados`,
+          uploadedChunks: chunks.length,
+          totalChunks: session.totalChunks,
+        });
+      }
+
+      // Verify chunk indices are sequential
+      const sortedChunks = [...chunks].sort((a, b) => a.chunkIndex - b.chunkIndex);
+      for (let i = 0; i < sortedChunks.length; i++) {
+        if (sortedChunks[i].chunkIndex !== i) {
+          return res.status(400).json({ 
+            message: `Chunk ${i} está em falta`,
+          });
+        }
+      }
+
+      // Determine file and storage owners
+      let storageOwnerId = user.id;
+      let fileOwnerId = user.id;
+      
+      if (session.folderId) {
+        const folder = await storage.getFolder(session.folderId);
+        if (folder && folder.userId !== user.id) {
+          storageOwnerId = folder.userId;
+          fileOwnerId = folder.userId;
+        }
+      }
+
+      // Create file record
+      const isChunked = session.totalChunks > 1;
+      const file = await storage.createFile({
+        userId: fileOwnerId,
+        uploadedByUserId: user.id,
+        folderId: session.folderId,
+        nome: session.fileName,
+        tamanho: session.fileSize,
+        tipoMime: session.isEncrypted ? 'application/octet-stream' : session.mimeType,
+        telegramFileId: sortedChunks[0].telegramFileId,
+        telegramBotId: sortedChunks[0].telegramBotId,
+        isEncrypted: session.isEncrypted,
+        originalMimeType: session.originalMimeType,
+        originalSize: session.originalSize,
+        isChunked,
+        totalChunks: session.totalChunks,
+      });
+
+      // If file is chunked, save chunk information to permanent table
+      if (isChunked) {
+        const fileChunksData = sortedChunks.map(chunk => ({
+          fileId: file.id,
+          chunkIndex: chunk.chunkIndex,
+          telegramFileId: chunk.telegramFileId,
+          telegramBotId: chunk.telegramBotId,
+          chunkSize: chunk.chunkSize,
+        }));
+        await storage.createFileChunks(fileChunksData);
+      }
+
+      // Update storage
+      const originalSize = session.originalSize || session.fileSize;
+      await storage.updateUserStorage(storageOwnerId, originalSize);
+      await storage.incrementUserUploadCount(user.id);
+      
+      // Record upload in monitoring
+      monitoringService.recordUpload(user.id, originalSize);
+
+      // Clean up session and temporary chunks
+      await storage.updateUploadSessionStatus(sessionId, "completed");
+      await storage.deleteUploadChunks(sessionId);
+      await storage.deleteUploadSession(sessionId);
+
+      // Notify via WebSocket
+      wsManager.notifyFileUploaded(fileOwnerId, file);
+      
+      const updatedUser = await storage.getUser(storageOwnerId);
+      if (updatedUser) {
+        wsManager.notifyStorageUpdated(storageOwnerId, {
+          used: updatedUser.storageUsed,
+          limit: updatedUser.storageLimit
+        });
+      }
+
+      console.log(`✅ Upload completo: ${file.nome} (${session.totalChunks} chunks, ${(session.fileSize / 1024 / 1024).toFixed(2)}MB)`);
+
+      res.json(file);
+    } catch (error) {
+      console.error("Complete upload error:", error);
+      res.status(500).json({ message: "Erro ao concluir upload" });
+    }
+  });
+
+  // Cancel an upload session
+  app.delete("/api/files/upload-session/:sessionId", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const session = await storage.getUploadSession(sessionId);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Sessão não encontrada" });
+      }
+
+      if (session.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Não autorizado" });
+      }
+
+      // Delete uploaded chunks from Telegram (best effort)
+      const chunks = await storage.getUploadChunks(sessionId);
+      for (const chunk of chunks) {
+        try {
+          await telegramService.deleteFile(chunk.telegramFileId, chunk.telegramBotId);
+        } catch (e) {
+          // Ignore errors when deleting from Telegram
+        }
+      }
+
+      await storage.deleteUploadChunks(sessionId);
+      await storage.deleteUploadSession(sessionId);
+
+      res.json({ message: "Sessão de upload cancelada" });
+    } catch (error) {
+      console.error("Cancel upload error:", error);
+      res.status(500).json({ message: "Erro ao cancelar upload" });
+    }
+  });
+
   // Delete file (move to trash)
   app.delete("/api/files/:id", requireAuth, async (req: Request, res: Response) => {
     try {
