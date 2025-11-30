@@ -781,7 +781,7 @@ export default function Dashboard() {
     });
   }, [isMobile]);
 
-  const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
+  const loadThumbnail = useCallback(async (fileId: string, mimeType: string, isInPublicFolder: boolean = false) => {
     if (fileThumbnails[fileId]) return;
     
     setLoadingThumbnails(prev => new Set(prev).add(fileId));
@@ -829,9 +829,14 @@ export default function Dashboard() {
       } else if (meta.isEncrypted && !encryptionKey) {
         setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
       } else {
+        // Use public endpoint for files in public folders, otherwise use authenticated endpoint
+        const streamEndpoint = isInPublicFolder 
+          ? `/api/public/file/${fileId}/stream` 
+          : `/api/files/${fileId}/stream`;
+        
         if (mimeType.startsWith("video/") || meta.originalMimeType?.startsWith("video/")) {
           try {
-            const thumbnailDataUrl = await generateVideoThumbnail(`/api/files/${fileId}/stream`);
+            const thumbnailDataUrl = await generateVideoThumbnail(streamEndpoint);
             setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
           } catch (err) {
             console.error("Error generating video thumbnail:", err);
@@ -839,7 +844,7 @@ export default function Dashboard() {
           }
         } else {
           // Use internal stream endpoint instead of direct Telegram URL to avoid CORS issues with Cloudflare
-          setFileThumbnails(prev => ({ ...prev, [fileId]: `/api/files/${fileId}/stream` }));
+          setFileThumbnails(prev => ({ ...prev, [fileId]: streamEndpoint }));
         }
       }
     } catch (err) {
@@ -862,7 +867,7 @@ export default function Dashboard() {
       : file.tipoMime;
   };
 
-  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
+  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string, isInPublicFolder: boolean}>>([]);
   const loadingCountRef = useRef(0);
   const MAX_CONCURRENT_LOADS = isMobile ? 2 : 4;
 
@@ -874,39 +879,40 @@ export default function Dashboard() {
       if (fileThumbnails[item.id]) continue;
       
       loadingCountRef.current++;
-      loadThumbnail(item.id, item.mimeType).finally(() => {
+      loadThumbnail(item.id, item.mimeType, item.isInPublicFolder).finally(() => {
         loadingCountRef.current--;
         processQueue();
       });
     }
   }, [fileThumbnails, loadThumbnail]);
 
-  const queueThumbnailLoad = useCallback((fileId: string, mimeType: string) => {
+  const queueThumbnailLoad = useCallback((fileId: string, mimeType: string, isInPublicFolder: boolean = false) => {
     if (fileThumbnails[fileId]) return;
     if (thumbnailQueueRef.current.some(item => item.id === fileId)) return;
     
-    thumbnailQueueRef.current.push({ id: fileId, mimeType });
+    thumbnailQueueRef.current.push({ id: fileId, mimeType, isInPublicFolder });
     processQueue();
   }, [fileThumbnails, processQueue]);
 
   useEffect(() => {
+    const isInPublicFolder = folderPath.some(f => f.isPublic);
     const mediaFiles = files.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file), isInPublicFolder);
     });
-  }, [files, queueThumbnailLoad]);
+  }, [files, queueThumbnailLoad, folderPath]);
 
   useEffect(() => {
     const mediaFiles = sharedFiles.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file), false);
     });
   }, [sharedFiles, queueThumbnailLoad]);
 
   useEffect(() => {
     const mediaFiles = sharedFolderFiles.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file), false);
     });
   }, [sharedFolderFiles, queueThumbnailLoad]);
 
@@ -955,7 +961,13 @@ export default function Dashboard() {
         toast.error("Faça logout e login novamente para desencriptar os ficheiros");
         throw new Error("No encryption key available");
       } else {
-        setPreviewUrl(meta.previewUrl || meta.contentUrl);
+        // Use public endpoint for files in public folders
+        const isInPublicFolder = folderPath.some(f => f.isPublic);
+        if (isInPublicFolder) {
+          setPreviewUrl(`/api/public/file/${file.id}/stream`);
+        } else {
+          setPreviewUrl(meta.previewUrl || meta.contentUrl);
+        }
       }
     } catch (err) {
       console.error("Error loading preview:", err);
