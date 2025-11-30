@@ -1260,10 +1260,18 @@ export default function Dashboard() {
       let originalSize = file.size;
       let wasEncrypted = false;
       
-      if (!skipEncryption && (!encryptionKey || !isEncryptionSupported())) {
+      // Check if current folder or any ancestor is public - skip encryption for public folders
+      const isInPublicFolder = folderPath.some(f => f.isPublic);
+      const shouldSkipEncryption = skipEncryption || isInPublicFolder;
+      
+      if (isInPublicFolder && encryptionKey) {
+        console.log(`[Upload] Skipping encryption for ${file.name} - in public folder`);
+      }
+      
+      if (!shouldSkipEncryption && (!encryptionKey || !isEncryptionSupported())) {
         console.warn("Encryption key not available - file will be uploaded without encryption");
         toast.warning(`${file.name} será enviado SEM encriptação. Faça logout e login novamente para ativar a encriptação.`);
-      } else if (!skipEncryption && encryptionKey) {
+      } else if (!shouldSkipEncryption && encryptionKey) {
         setCurrentUploadFile(`A encriptar ${file.name}...`);
         
         if (uploadCancelledRef.current) {

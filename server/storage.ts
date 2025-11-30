@@ -144,6 +144,7 @@ export interface IStorage {
   getPublicFolderSubfolders(folderId: string): Promise<Folder[]>;
   getUserPublicFolders(userId: string): Promise<Folder[]>;
   regeneratePublicSlug(folderId: string, userId: string): Promise<{ slug: string }>;
+  isFolderOrAncestorPublic(folderId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -883,6 +884,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(folders.id, folderId));
 
     return { slug: newSlug };
+  }
+
+  async isFolderOrAncestorPublic(folderId: string): Promise<boolean> {
+    let currentFolderId: string | null = folderId;
+    const visited = new Set<string>();
+    
+    while (currentFolderId) {
+      if (visited.has(currentFolderId)) {
+        break;
+      }
+      visited.add(currentFolderId);
+      
+      const [folder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+      
+      if (!folder) {
+        break;
+      }
+      
+      if (folder.isPublic) {
+        return true;
+      }
+      
+      currentFolderId = folder.parentId;
+    }
+    
+    return false;
   }
 
   // Migration: Update legacy users from 15GB to 20GB storage limit

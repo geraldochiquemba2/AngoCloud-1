@@ -446,10 +446,28 @@ export async function registerRoutes(
       const user = req.user!;
       const fileSize = req.file.size;
       
-      const isEncrypted = req.body.isEncrypted === "true";
+      const clientSentEncrypted = req.body.isEncrypted === "true";
       const originalMimeType = req.body.originalMimeType || req.file.mimetype;
       const originalSize = req.body.originalSize ? parseInt(req.body.originalSize, 10) : fileSize;
       const folderId = req.body.folderId || null;
+      
+      // Check if uploading to a public folder - encryption is not allowed
+      let isFolderPublic = false;
+      if (folderId) {
+        isFolderPublic = await storage.isFolderOrAncestorPublic(folderId);
+      }
+      
+      // If client sent encrypted file to public folder, reject it with clear message
+      if (isFolderPublic && clientSentEncrypted) {
+        return res.status(400).json({ 
+          message: "Ficheiros em pastas públicas não podem ser encriptados. O ficheiro será enviado sem encriptação.",
+          isPublicFolder: true,
+          requiresPlainUpload: true
+        });
+      }
+      
+      // For public folders, always store without encryption
+      const isEncrypted = isFolderPublic ? false : clientSentEncrypted;
       
       // Get full user data for plan info
       const fullUser = await storage.getUser(user.id);
