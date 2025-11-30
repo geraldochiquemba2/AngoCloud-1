@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "dev:remote": "wrangler dev --remote",
-    "build": "cd .. && npm run build",
+    "build": "cd .. && npm run build && mkdir -p cloudflare/dist && cp -r dist/public cloudflare/dist/public",
     "build:worker": "esbuild worker/index.ts --bundle --outdir=dist --format=esm --platform=browser --external:@cloudflare/workers-types",
     "deploy": "npm run build && wrangler deploy",
     "deploy:preview": "npm run build && wrangler versions upload",
