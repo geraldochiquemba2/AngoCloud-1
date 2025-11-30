@@ -409,7 +409,7 @@ class TelegramService {
     formData.append("chat_id", chatId);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 600000); // 10 minutes timeout for large files
+    const timeout = setTimeout(() => controller.abort(), 1800000); // 30 minutes timeout for large files
 
     try {
       const response = await fetch(
@@ -586,7 +586,7 @@ class TelegramService {
    */
   private async fetchFileBuffer(url: string): Promise<Buffer> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 600000); // 10 minutes timeout for large files
+    const timeout = setTimeout(() => controller.abort(), 1800000); // 30 minutes timeout for large files
 
     try {
       const response = await fetch(url, { signal: controller.signal });

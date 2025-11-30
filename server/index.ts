@@ -87,12 +87,12 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
   
-  // Configure HTTP server timeouts for large file uploads (15 minutes)
+  // Configure HTTP server timeouts for large file uploads (30 minutes)
   // Only in production - dev mode uses defaults to avoid Vite HMR conflicts
   if (process.env.NODE_ENV === "production") {
-    httpServer.timeout = 900000; // 15 minutes
-    httpServer.keepAliveTimeout = 900000;
-    httpServer.headersTimeout = 910000; // Slightly higher than keepAliveTimeout
+    httpServer.timeout = 1800000; // 30 minutes
+    httpServer.keepAliveTimeout = 1800000;
+    httpServer.headersTimeout = 1810000; // Slightly higher than keepAliveTimeout
   }
 
   // importantly only setup vite in development and after
@@ -162,7 +162,7 @@ app.use((req, res, next) => {
     () => {
       log(`serving on port ${port}`);
       log(`🚀 Sistema com retry/fallback e cache ativo`);
-      log(`⏱️ Timeout do servidor: 15 minutos para uploads grandes`);
+      log(`⏱️ Timeout do servidor: 30 minutos para uploads grandes`);
       if (process.env.NODE_ENV === "production") {
         log(`🔌 WebSocket server ativo em /ws`);
       }

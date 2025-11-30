@@ -1121,13 +1121,13 @@ export default function Dashboard() {
         
         xhr.ontimeout = () => {
           console.error(`XHR timeout uploading ${file.name} (file size: ${fileToUpload.size} bytes)`);
-          toast.error(`Timeout ao enviar ${file.name}. O ficheiro é muito grande ou a conexão é lenta.`);
+          toast.error(`Timeout ao enviar ${file.name} (30 min). O ficheiro é muito grande ou a conexão é muito lenta.`);
           resolve(false);
         };
         
         xhr.open("POST", "/api/files/upload");
         xhr.withCredentials = true;
-        xhr.timeout = 600000; // 10 minutes timeout for large files
+        xhr.timeout = 1800000; // 30 minutes timeout for large files
         xhr.send(formData);
       });
     } catch (err) {

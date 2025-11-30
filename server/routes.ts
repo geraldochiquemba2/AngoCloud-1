@@ -431,9 +431,9 @@ export async function registerRoutes(
 
   // Upload file
   app.post("/api/files/upload", requireAuth, upload.single("file"), async (req: Request, res: Response) => {
-    // Extend timeout for large file uploads (15 minutes)
-    req.setTimeout(900000);
-    res.setTimeout(900000);
+    // Extend timeout for large file uploads (30 minutes)
+    req.setTimeout(1800000);
+    res.setTimeout(1800000);
     
     try {
       // Import monitoring service for limits and tracking
