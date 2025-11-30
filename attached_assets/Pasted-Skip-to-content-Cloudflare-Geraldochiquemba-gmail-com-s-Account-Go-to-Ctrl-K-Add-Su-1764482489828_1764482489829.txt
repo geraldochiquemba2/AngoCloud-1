@@ -1,0 +1,212 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+orbitalcloud.orbt.workers.dev
+Increase file upload and server response timeouts to 30 minutes Extend client and server-side timeouts for file uploads and HTTP requests from 10-15 minutes to 30 minutes to accommodate large files and slow connections. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 0d308130-35cd-4cb9-8536-e2f63ae433e1 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id:
+geraldochiquemba2/OrbitalCloud
+by dfgfgfggdgfdgfd
+2 hours ago
+Metrics
+Last 24 hours
+
+Requests
+2k
+183000.00%
+
+Errors
+0
+
+CPU Time
+1.68
+ms
+167.50%
+Bindings
+orbitalcloud
+
+Assets
+
+ASSETS
+
+
+Binding
+
+Add binding
+
+Versions
+82a677f0
+
+
+Increase file upload and server response timeouts to 30 minutes Extend client and server-side timeouts for file uploads and HTTP requests from 10-15 minutes to 30 minutes to accommodate large files and slow connections. Replit-Commit-Author: Agent Replit-Commit-Session-Id: 0d308130-35cd-4cb9-8536-e2f63ae433e1 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id:
+main
+by dfgfgfggdgfdgfd
+2h ago
+95831e12
+
+
+Update file metadata to include content and preview URLs Modify server routes to provide `previewUrl` and `contentUrl` in file metadata responses, ensuring correct preview generation. Replit-Commit-Author: Agent Replit-Commit-Session-Id: da77fe27-bb12-43da-95b8-0b9cbfab5b32 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 2b7c34b9-70a5-4344-a421-e075723aeab1
+main
+by dcfggfbfbfgb
+2h ago
+473cad4c
+
+
+Update authentication to consistently use JWT tokens for API requests Refactors authentication logic to use a centralized `apiFetch` utility that automatically includes JWT tokens in request headers, ensuring secure API interactions across the application. Replit-Commit-Author: Agent Replit-Commit-Session-Id: da77fe27-bb12-43da-95b8-0b9cbfab5b32 Replit-Commit-Checkpoint-Type: ful
+main
+by dcfggfbfbfgb
+3h ago
+ef782d0f
+
+
+Saved progress at the end of the loop Replit-Commit-Author: Agent Replit-Commit-Session-Id: da77fe27-bb12-43da-95b8-0b9cbfab5b32 Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 48c0e8bd-3a62-4d21-8b79-e04cbc321d2c Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/1270f9de-7425-4818-89c6-40f07da2e44a/da77fe27-bb12-
+main
+by dcfggfbfbfgb
+3h ago
+2b887449
+
+
+Saved progress at the end of the loop Replit-Commit-Author: Agent Replit-Commit-Session-Id: d8e68b13-49f5-4de8-a554-e2d168da542b Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 2a49fd62-01af-4f18-9cad-62dcf471de12 Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/c67bf06c-2068-494b-9f8f-357bcc11c0a7/d8e68b13-49f5-
+main
+by ghjghjghjghjgh2
+4h ago
+71acce66
+
+Add variable: DATABASE_URL
+Dashboard
+
+by geraldochiquemba
+4h ago
+7b4cfb6e
+
+Manually deployed
+main
+by geraldochiquemba
+4h ago
+3a4ae418
+
+Add variable: JWT_SECRET TELEGRAM_STORAGE_CHAT_...
+Dashboard
+
+by geraldochiquemba
+4h ago
+0c674bcc
+
+
+Fix configuration for serving website files Update wrangler.toml to correctly configure static asset serving by setting the asset directory binding and handling. Replit-Commit-Author: Agent Replit-Commit-Session-Id: d8e68b13-49f5-4de8-a554-e2d168da542b Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 7f564fcd-0ff9-4bea-86fd-e3904deedd6c Replit-Commit-Screens
+main
+by ghjghjghjghjgh2
+4h ago
+76614436
+
+
+Fix configuration for serving website files Update wrangler.toml to correctly configure static asset serving by setting the asset directory binding and handling. Replit-Commit-Author: Agent Replit-Commit-Session-Id: d8e68b13-49f5-4de8-a554-e2d168da542b Replit-Commit-Checkpoint-Type: full_checkpoint Replit-Commit-Event-Id: 7f564fcd-0ff9-4bea-86fd-e3904deedd6c Replit-Commit-Screens
+main
+by ghjghjghjghjgh2
+4h ago
+Domains & Routes
+workers.dev
+orbitalcloud.orbt.workers.dev
+
+Preview URLs
+*-orbitalcloud.orbt.workers.dev
+
+Custom domains
+—
+
+Routes
+—
+
+Next steps
+Connect a custom domain
+
+Use your own domain to serve your worker for a professional appearance.
+
+Enable observability
+
+Monitor your worker's performance with logs and tracing.
+
+Store your data
+
+Connect KV, D1, or R2 storage to persist data across requests.
+
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+2025-11-29T20:00:00.000Z
