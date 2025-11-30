@@ -411,8 +411,7 @@ export default function Signup() {
                     Para suporte técnico ou reclamações, pode contactar-nos através de:
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Email: gerladochiquemba@gmail.com</li>
-                    <li>Telefone: 943 412 688</li>
+                    <li>Email: OrbitalCloud@outlook.com.br</li>
                   </ul>
                 </section>
 
