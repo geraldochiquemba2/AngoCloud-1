@@ -7,29 +7,88 @@ import { eq, and, desc } from 'drizzle-orm';
 
 export const publicFolderRoutes = new Hono<{ Bindings: Env }>();
 
-// Get public folder by slug
+type Database = ReturnType<typeof createDb>;
+
+async function isFolderOrAncestorPublic(db: Database, folderId: string): Promise<boolean> {
+  let currentFolderId: string | null = folderId;
+  const visited = new Set<string>();
+  
+  while (currentFolderId) {
+    if (visited.has(currentFolderId)) {
+      break;
+    }
+    visited.add(currentFolderId);
+    
+    const result = await db.select({
+      id: folders.id,
+      isPublic: folders.isPublic,
+      parentId: folders.parentId,
+    }).from(folders).where(eq(folders.id, currentFolderId)).limit(1);
+    
+    if (result.length === 0) {
+      break;
+    }
+    
+    const folder = result[0];
+    if (folder.isPublic) {
+      return true;
+    }
+    
+    currentFolderId = folder.parentId;
+  }
+  
+  return false;
+}
+
+async function getFolderBySlugOrId(db: Database, slugOrId: string) {
+  let result = await db.select({
+    id: folders.id,
+    nome: folders.nome,
+    publishedAt: folders.publishedAt,
+    userId: folders.userId,
+    isPublic: folders.isPublic,
+    parentId: folders.parentId,
+  }).from(folders)
+    .where(and(
+      eq(folders.publicSlug, slugOrId),
+      eq(folders.isPublic, true)
+    ))
+    .limit(1);
+
+  if (result.length === 0) {
+    result = await db.select({
+      id: folders.id,
+      nome: folders.nome,
+      publishedAt: folders.publishedAt,
+      userId: folders.userId,
+      isPublic: folders.isPublic,
+      parentId: folders.parentId,
+    }).from(folders)
+      .where(eq(folders.id, slugOrId))
+      .limit(1);
+    
+    if (result.length > 0) {
+      const isPublic = await isFolderOrAncestorPublic(db, result[0].id);
+      if (!isPublic) {
+        return null;
+      }
+    }
+  }
+
+  return result.length > 0 ? result[0] : null;
+}
+
+// Get public folder by slug or id
 publicFolderRoutes.get('/folder/:slug', async (c) => {
   try {
     const slug = c.req.param('slug');
     const db = createDb(c.env.DATABASE_URL);
 
-    const result = await db.select({
-      id: folders.id,
-      nome: folders.nome,
-      publishedAt: folders.publishedAt,
-      userId: folders.userId,
-    }).from(folders)
-      .where(and(
-        eq(folders.publicSlug, slug),
-        eq(folders.isPublic, true)
-      ))
-      .limit(1);
+    const folder = await getFolderBySlugOrId(db, slug);
 
-    if (result.length === 0) {
+    if (!folder) {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
-
-    const folder = result[0];
     
     const ownerResult = await db.select({ nome: users.nome })
       .from(users)
@@ -54,19 +113,13 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
     const slug = c.req.param('slug');
     const db = createDb(c.env.DATABASE_URL);
 
-    const folderResult = await db.select({ id: folders.id })
-      .from(folders)
-      .where(and(
-        eq(folders.publicSlug, slug),
-        eq(folders.isPublic, true)
-      ))
-      .limit(1);
+    const folder = await getFolderBySlugOrId(db, slug);
 
-    if (folderResult.length === 0) {
+    if (!folder) {
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
 
-    const folderId = folderResult[0].id;
+    const folderId = folder.id;
 
     const [filesResult, foldersResult] = await Promise.all([
       db.select({
@@ -133,15 +186,8 @@ publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
 
-    const folderResult = await db.select({ id: folders.id })
-      .from(folders)
-      .where(and(
-        eq(folders.id, file.folderId),
-        eq(folders.isPublic, true)
-      ))
-      .limit(1);
-
-    if (folderResult.length === 0) {
+    const isPublic = await isFolderOrAncestorPublic(db, file.folderId);
+    if (!isPublic) {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
     
@@ -195,15 +241,8 @@ publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
 
-    const folderResult = await db.select({ id: folders.id })
-      .from(folders)
-      .where(and(
-        eq(folders.id, file.folderId),
-        eq(folders.isPublic, true)
-      ))
-      .limit(1);
-
-    if (folderResult.length === 0) {
+    const isPublic = await isFolderOrAncestorPublic(db, file.folderId);
+    if (!isPublic) {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
     
@@ -262,15 +301,8 @@ publicFolderRoutes.get('/file/:fileId/download', async (c) => {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
 
-    const folderResult = await db.select({ id: folders.id })
-      .from(folders)
-      .where(and(
-        eq(folders.id, file.folderId),
-        eq(folders.isPublic, true)
-      ))
-      .limit(1);
-
-    if (folderResult.length === 0) {
+    const isPublic = await isFolderOrAncestorPublic(db, file.folderId);
+    if (!isPublic) {
       return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
     }
     
