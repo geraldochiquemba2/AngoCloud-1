@@ -832,7 +832,7 @@ export default function Dashboard() {
         toast.error("Faça logout e login novamente para desencriptar os ficheiros");
         throw new Error("No encryption key available");
       } else {
-        setPreviewUrl(meta.downloadUrl);
+        setPreviewUrl(meta.previewUrl || meta.contentUrl);
       }
     } catch (err) {
       console.error("Error loading preview:", err);
