@@ -5,6 +5,7 @@ import {
   Folder, FileText, Download, File, Image, Video, Music, 
   FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye, Play
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PublicFile {
   id: string;
@@ -30,6 +31,7 @@ interface FolderInfo {
 export default function PublicFolderPage() {
   const { slug } = useParams<{ slug: string }>();
   const [, navigate] = useLocation();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [folderInfo, setFolderInfo] = useState<FolderInfo | null>(null);
@@ -40,8 +42,11 @@ export default function PublicFolderPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
+  const [loadingThumbnails, setLoadingThumbnails] = useState<Set<string>>(new Set());
   const thumbnailQueueRef = useRef<PublicFile[]>([]);
   const isProcessingRef = useRef(false);
+  const videoThumbnailQueueRef = useRef<PublicFile[]>([]);
+  const isProcessingVideoRef = useRef(false);
 
   useEffect(() => {
     if (slug) {
@@ -49,21 +54,140 @@ export default function PublicFolderPage() {
     }
   }, [slug]);
 
+  const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video");
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      video.crossOrigin = "anonymous";
+      video.setAttribute("webkit-playsinline", "true");
+      
+      const timeoutMs = isMobile ? 15000 : 20000;
+      let resolved = false;
+      let hasTriedDraw = false;
+      
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          video.src = "";
+          reject(new Error("Video load timeout"));
+        }
+      }, timeoutMs);
+      
+      const drawThumbnail = () => {
+        if (resolved || hasTriedDraw) return;
+        
+        if (video.videoWidth === 0 || video.videoHeight === 0) {
+          return;
+        }
+        
+        hasTriedDraw = true;
+        
+        setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          clearTimeout(timeoutId);
+          
+          try {
+            const canvas = document.createElement("canvas");
+            const maxWidth = isMobile ? 200 : 320;
+            const maxHeight = isMobile ? 300 : 400;
+            const videoWidth = video.videoWidth;
+            const videoHeight = video.videoHeight;
+            const scale = Math.min(maxWidth / videoWidth, maxHeight / videoHeight);
+            canvas.width = Math.round(videoWidth * scale);
+            canvas.height = Math.round(videoHeight * scale);
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const quality = isMobile ? 0.7 : 0.8;
+              const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
+              video.src = "";
+              resolve(thumbnailUrl);
+            } else {
+              reject(new Error("Could not get canvas context"));
+            }
+          } catch (err) {
+            reject(err);
+          }
+        }, 100);
+      };
+      
+      video.onloadedmetadata = () => {
+        try {
+          const seekTime = Math.min(0.5, video.duration * 0.05);
+          video.currentTime = seekTime;
+        } catch (err) {
+          console.error("Error seeking:", err);
+        }
+      };
+      
+      video.onseeked = drawThumbnail;
+      video.onloadeddata = drawThumbnail;
+      
+      video.onerror = (e) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          reject(new Error("Video load error"));
+        }
+      };
+      
+      video.src = videoUrl;
+      video.load();
+    });
+  }, [isMobile]);
+
   // Load thumbnails for media files
   useEffect(() => {
     if (files.length > 0) {
       const imageFiles = files.filter(f => f.tipoMime.startsWith("image/"));
-      thumbnailQueueRef.current = imageFiles;
-      processNextThumbnail();
+      const videoFiles = files.filter(f => f.tipoMime.startsWith("video/"));
       
-      // Mark videos as "loaded" with a placeholder
-      files.forEach(f => {
-        if (f.tipoMime.startsWith("video/")) {
-          setThumbnails(prev => ({ ...prev, [f.id]: "video" }));
-        }
-      });
+      thumbnailQueueRef.current = imageFiles;
+      videoThumbnailQueueRef.current = videoFiles;
+      
+      processNextThumbnail();
+      processNextVideoThumbnail();
     }
   }, [files]);
+
+  const processNextVideoThumbnail = useCallback(async () => {
+    if (isProcessingVideoRef.current || videoThumbnailQueueRef.current.length === 0) return;
+    
+    isProcessingVideoRef.current = true;
+    const file = videoThumbnailQueueRef.current.shift();
+    
+    if (file && !thumbnails[file.id]) {
+      setLoadingThumbnails(prev => new Set(prev).add(file.id));
+      try {
+        const previewRes = await fetch(`/api/public/file/${file.id}/preview`);
+        if (previewRes.ok) {
+          const previewData = await previewRes.json();
+          const streamUrl = previewData.url;
+          
+          const thumbnailDataUrl = await generateVideoThumbnail(streamUrl);
+          setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+        }
+      } catch (err) {
+        console.error("Error generating video thumbnail:", err);
+        setThumbnails(prev => ({ ...prev, [file.id]: "video_error" }));
+      } finally {
+        setLoadingThumbnails(prev => {
+          const next = new Set(prev);
+          next.delete(file.id);
+          return next;
+        });
+      }
+    }
+    
+    isProcessingVideoRef.current = false;
+    
+    if (videoThumbnailQueueRef.current.length > 0) {
+      setTimeout(processNextVideoThumbnail, 200);
+    }
+  }, [thumbnails, generateVideoThumbnail]);
 
   const processNextThumbnail = useCallback(async () => {
     if (isProcessingRef.current || thumbnailQueueRef.current.length === 0) return;
@@ -331,10 +455,26 @@ export default function PublicFolderPage() {
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                        ) : isVideo && thumbnail === "video" ? (
-                          // Video placeholder - solid color with gradient
+                        ) : isVideo && thumbnail && thumbnail !== "video_error" ? (
+                          <div className="relative w-full h-full">
+                            <img 
+                              src={thumbnail} 
+                              alt={file.nome}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg border border-white/20">
+                                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                              </div>
+                            </div>
+                          </div>
+                        ) : isVideo && loadingThumbnails.has(file.id) ? (
                           <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                            {/* Play icon overlay */}
+                            <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
+                          </div>
+                        ) : isVideo ? (
+                          <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
                             <div className="flex items-center justify-center">
                               <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/20">
                                 <Play className="w-8 h-8 text-white fill-white ml-1" />
