@@ -120,7 +120,7 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: `
-            SELECT id, nome, tamanho, "tipoMime", created_at as "createdAt"
+            SELECT id, nome, tamanho, tipo_mime as "tipoMime", created_at as "createdAt"
             FROM files
             WHERE folder_id = $1 AND is_deleted = false AND is_encrypted = false
             ORDER BY created_at DESC
