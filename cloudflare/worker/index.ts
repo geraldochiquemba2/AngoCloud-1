@@ -21,6 +21,7 @@ import { invitationRoutes } from './routes/invitations';
 import { sharedContentRoutes } from './routes/shared-content';
 import { adminRoutes } from './routes/admin';
 import { upgradeRoutes } from './routes/upgrades';
+import { publicFolderRoutes } from './routes/public-folders';
 
 export interface Env {
   DATABASE_URL: string;
@@ -36,6 +37,8 @@ export interface Env {
     fetch: (request: Request) => Promise<Response>;
   };
 }
+
+export type { Env };
 
 const api = new Hono<{ Bindings: Env }>();
 
@@ -105,6 +108,7 @@ api.route('/invitations', invitationRoutes);
 api.route('/shared', sharedContentRoutes);
 api.route('/admin', adminRoutes);
 api.route('/upgrades', upgradeRoutes);
+api.route('/public', publicFolderRoutes);
 
 api.notFound((c) => {
   return c.json({ 

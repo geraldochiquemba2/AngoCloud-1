@@ -20,7 +20,18 @@ The backend is an Express.js application running on Node.js, using session-based
 
 ### Data Storage
 
-PostgreSQL, provided by Neon serverless database, is used for data storage. Drizzle ORM facilitates type-safe queries and migrations. The schema includes `users` (with storage quotas), `files` (with metadata and Telegram references, supporting soft delete), `folders`, `shares`, and `payments`. Data relationships enforce referential integrity with cascade deletion and soft delete for trash functionality.
+PostgreSQL, provided by Neon serverless database, is used for data storage. Drizzle ORM facilitates type-safe queries and migrations. The schema includes `users` (with storage quotas), `files` (with metadata and Telegram references, supporting soft delete), `folders` (with public sharing support via `isPublic`, `publicSlug`, `publishedAt`), `shares`, and `payments`. Data relationships enforce referential integrity with cascade deletion and soft delete for trash functionality.
+
+### Public Folders Feature
+
+Users can share folders publicly with customized links (`/p/{slug}`). Public folders display file listings and allow guests to preview media and download files without login. Features:
+- Generate unique public links for any folder
+- Regenerate links anytime
+- View public folder metadata (owner, publish date)
+- Browse files and subfolders
+- Preview images, videos, and audio
+- Download files without authentication
+- Encrypted files are excluded from public folders for security
 
 ### System Design Choices
 
