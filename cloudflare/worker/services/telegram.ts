@@ -253,7 +253,7 @@ export class TelegramService {
     formData.append('chat_id', chatId);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 600000);
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout para Cloudflare (máx 30s)
 
     try {
       const response = await fetch(

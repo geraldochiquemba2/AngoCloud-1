@@ -138,6 +138,16 @@ fileRoutes.post('/upload', async (c) => {
       }, 503);
     }
     
+    // Limit file size to 50MB for Cloudflare Workers (30s timeout)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    if (originalSize > MAX_FILE_SIZE) {
+      return c.json({ 
+        message: `Ficheiro muito grande. Máximo: 50MB. Seu ficheiro: ${(originalSize / 1024 / 1024).toFixed(1)}MB`,
+        maxSize: MAX_FILE_SIZE,
+        fileSize: originalSize,
+      }, 400);
+    }
+    
     const fileBuffer = await file.arrayBuffer();
     const uploadResult = await telegram.uploadLargeFile(fileBuffer, file.name);
     
