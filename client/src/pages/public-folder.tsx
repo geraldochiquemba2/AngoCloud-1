@@ -279,15 +279,21 @@ export default function PublicFolderPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Pastas</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {subfolders.map((folder) => (
-                  <div
+                  <motion.button
                     key={folder.id}
-                    className="flex flex-col items-center p-4 rounded-xl bg-white/5 border border-white/10"
+                    whileHover={{ scale: 1.03 }}
+                    onClick={() => navigate(`/p/${folder.id}`)}
+                    className="flex flex-col items-center justify-center p-6 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-yellow-400/30 transition-all cursor-pointer group text-left"
+                    data-testid={`button-folder-${folder.id}`}
                   >
-                    <Folder className="w-10 h-10 text-yellow-400 mb-2" />
+                    <div className="p-3 rounded-lg bg-yellow-500/20 group-hover:bg-yellow-500/30 transition-colors mb-3">
+                      <Folder className="w-8 h-8 text-yellow-400" />
+                    </div>
                     <span className="text-white text-sm font-medium text-center truncate w-full">
                       {folder.nome}
                     </span>
-                  </div>
+                    <span className="text-white/40 text-xs mt-1">Pasta</span>
+                  </motion.button>
                 ))}
               </div>
             </div>
