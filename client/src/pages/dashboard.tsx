@@ -1248,6 +1248,102 @@ export default function Dashboard() {
     return '📎';
   };
 
+  const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB per chunk
+
+  const uploadChunk = (
+    chunk: Blob, 
+    sessionId: string, 
+    chunkIndex: number, 
+    totalChunks: number,
+    fileName: string
+  ): Promise<{ success: boolean; uploadedChunks: number }> => {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      setCurrentXhr(xhr);
+      
+      const formData = new FormData();
+      formData.append("chunk", chunk);
+      formData.append("sessionId", sessionId);
+      formData.append("chunkIndex", chunkIndex.toString());
+      
+      xhr.upload.onprogress = (event) => {
+        if (uploadCancelledRef.current) {
+          xhr.abort();
+          return;
+        }
+        
+        if (event.lengthComputable) {
+          const now = Date.now();
+          const chunkProgress = (event.loaded / event.total);
+          const overallProgress = ((chunkIndex + chunkProgress) / totalChunks) * 100;
+          setUploadProgress(overallProgress);
+          
+          const timeDiff = (now - lastProgressRef.current.time) / 1000;
+          if (timeDiff >= 0.5) {
+            const bytesDiff = event.loaded - lastProgressRef.current.loaded;
+            const speedBps = bytesDiff / timeDiff;
+            
+            if (speedBps > 0) {
+              setUploadSpeed(formatBytes(speedBps) + '/s');
+              
+              const chunksRemaining = totalChunks - chunkIndex - chunkProgress;
+              const bytesPerChunk = chunk.size;
+              const bytesRemaining = chunksRemaining * bytesPerChunk;
+              const secondsRemaining = bytesRemaining / speedBps;
+              if (secondsRemaining > 0 && secondsRemaining < 86400) {
+                setUploadTimeRemaining(formatTime(secondsRemaining));
+              }
+            }
+            
+            lastProgressRef.current = { time: now, loaded: event.loaded };
+          }
+        }
+      };
+      
+      xhr.onload = () => {
+        setCurrentXhr(null);
+        if (uploadCancelledRef.current) {
+          resolve({ success: false, uploadedChunks: chunkIndex });
+          return;
+        }
+        
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve({ success: true, uploadedChunks: response.uploadedChunks });
+          } catch {
+            resolve({ success: true, uploadedChunks: chunkIndex + 1 });
+          }
+        } else {
+          console.error(`Chunk ${chunkIndex + 1}/${totalChunks} failed for ${fileName}`);
+          resolve({ success: false, uploadedChunks: chunkIndex });
+        }
+      };
+      
+      xhr.onabort = () => {
+        setCurrentXhr(null);
+        resolve({ success: false, uploadedChunks: chunkIndex });
+      };
+      
+      xhr.onerror = () => {
+        setCurrentXhr(null);
+        console.error(`XHR error uploading chunk ${chunkIndex + 1}/${totalChunks}`);
+        resolve({ success: false, uploadedChunks: chunkIndex });
+      };
+      
+      xhr.ontimeout = () => {
+        setCurrentXhr(null);
+        console.error(`XHR timeout uploading chunk ${chunkIndex + 1}/${totalChunks}`);
+        resolve({ success: false, uploadedChunks: chunkIndex });
+      };
+      
+      xhr.open("POST", "/api/files/upload-chunk");
+      xhr.withCredentials = true;
+      xhr.timeout = 25000; // 25 second timeout per chunk (under Cloudflare's 30s limit)
+      xhr.send(formData);
+    });
+  };
+
   const uploadSingleFile = async (file: globalThis.File, folderId: string | null): Promise<"success" | "failed" | "cancelled"> => {
     if (uploadCancelledRef.current) {
       return "cancelled";
@@ -1295,103 +1391,130 @@ export default function Dashboard() {
       setCurrentFileSize(fileToUpload.size);
       setUploadSpeed("");
       setUploadTimeRemaining("");
+
+      // Use chunked upload for all files (ensures each request is under 30s timeout)
+      setCurrentUploadFile(`A preparar upload de ${file.name}...`);
       
-      return new Promise((resolve) => {
-        const xhr = new XMLHttpRequest();
-        setCurrentXhr(xhr);
-        
-        const formData = new FormData();
-        formData.append("file", fileToUpload, file.name);
-        formData.append("originalSize", originalSize.toString());
-        formData.append("originalMimeType", file.type);
-        formData.append("isEncrypted", wasEncrypted ? "true" : "false");
-        if (folderId) {
-          formData.append("folderId", folderId);
+      // Initialize upload session
+      const initResponse = await apiFetch("/api/files/init-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: fileToUpload.size,
+          mimeType: wasEncrypted ? 'application/octet-stream' : file.type,
+          folderId,
+          isEncrypted: wasEncrypted,
+          originalMimeType: file.type,
+          originalSize,
+        }),
+      });
+      
+      if (!initResponse.ok) {
+        const error = await initResponse.json();
+        toast.error(error.message || `Erro ao iniciar upload de ${file.name}`);
+        return "failed";
+      }
+      
+      const { sessionId, totalChunks, chunkSize } = await initResponse.json();
+      console.log(`[Chunked Upload] Session ${sessionId}: ${totalChunks} chunks of ${chunkSize} bytes`);
+      
+      if (uploadCancelledRef.current) {
+        // Cancel the session
+        await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
+        return "cancelled";
+      }
+      
+      // Upload chunks sequentially
+      setCurrentUploadFile(`A enviar ${file.name}...`);
+      let allChunksUploaded = true;
+      
+      for (let i = 0; i < totalChunks; i++) {
+        if (uploadCancelledRef.current) {
+          // Cancel the session
+          await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
+          return "cancelled";
         }
         
-        xhr.upload.onprogress = (event) => {
-          if (uploadCancelledRef.current) {
-            xhr.abort();
-            return;
-          }
-          
-          if (event.lengthComputable) {
-            const now = Date.now();
-            const percentComplete = (event.loaded / event.total) * 100;
-            setUploadProgress(percentComplete);
-            
-            const timeDiff = (now - lastProgressRef.current.time) / 1000;
-            if (timeDiff >= 0.5) {
-              const bytesDiff = event.loaded - lastProgressRef.current.loaded;
-              const speedBps = bytesDiff / timeDiff;
-              
-              if (speedBps > 0) {
-                setUploadSpeed(formatBytes(speedBps) + '/s');
-                
-                const bytesRemaining = event.total - event.loaded;
-                const secondsRemaining = bytesRemaining / speedBps;
-                if (secondsRemaining > 0 && secondsRemaining < 86400) {
-                  setUploadTimeRemaining(formatTime(secondsRemaining));
-                }
-              }
-              
-              lastProgressRef.current = { time: now, loaded: event.loaded };
-            }
-          }
-        };
+        const start = i * chunkSize;
+        const end = Math.min(start + chunkSize, fileToUpload.size);
+        const chunk = fileToUpload.slice(start, end);
         
-        xhr.onload = () => {
-          setCurrentXhr(null);
+        // Reset progress tracking for each chunk
+        lastProgressRef.current = { time: Date.now(), loaded: 0 };
+        
+        // Retry logic for each chunk
+        let chunkSuccess = false;
+        let retries = 0;
+        const maxRetries = 3;
+        
+        while (!chunkSuccess && retries < maxRetries) {
           if (uploadCancelledRef.current) {
-            resolve("cancelled");
-            return;
+            await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
+            return "cancelled";
           }
           
-          if (xhr.status >= 200 && xhr.status < 300) {
-            if (wasEncrypted) {
-              toast.success(`${file.name} enviado com sucesso (encriptado)`);
-            } else {
-              toast.success(`${file.name} enviado com sucesso`);
-            }
-            resolve("success");
+          // Reset progress ref on retry as well
+          if (retries > 0) {
+            lastProgressRef.current = { time: Date.now(), loaded: 0 };
+          }
+          
+          const result = await uploadChunk(chunk, sessionId, i, totalChunks, file.name);
+          
+          if (result.success) {
+            chunkSuccess = true;
           } else {
-            try {
-              const error = JSON.parse(xhr.responseText);
-              toast.error(error.message || `Erro ao enviar ${file.name}`);
-            } catch {
-              toast.error(`Erro ao enviar ${file.name}`);
+            retries++;
+            if (retries < maxRetries) {
+              console.log(`[Chunked Upload] Retry ${retries}/${maxRetries} for chunk ${i + 1}/${totalChunks}`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * retries)); // Exponential backoff
             }
-            resolve("failed");
           }
-        };
+        }
         
-        xhr.onabort = () => {
-          setCurrentXhr(null);
-          resolve("cancelled");
-        };
-        
-        xhr.onerror = () => {
-          setCurrentXhr(null);
-          console.error(`XHR error uploading ${file.name}`);
-          toast.error(`Erro de rede ao enviar ${file.name}. Verifique a sua conexão.`);
-          resolve("failed");
-        };
-        
-        xhr.ontimeout = () => {
-          setCurrentXhr(null);
-          console.error(`XHR timeout uploading ${file.name} (file size: ${fileToUpload.size} bytes)`);
-          toast.error(`Timeout ao enviar ${file.name} (30 min). O ficheiro é muito grande ou a conexão é muito lenta.`);
-          resolve("failed");
-        };
-        
-        xhr.open("POST", "/api/files/upload");
-        xhr.withCredentials = true;
-        xhr.timeout = 1800000;
-        xhr.send(formData);
+        if (!chunkSuccess) {
+          allChunksUploaded = false;
+          console.error(`[Chunked Upload] Failed to upload chunk ${i + 1}/${totalChunks} after ${maxRetries} retries`);
+          toast.error(`Erro ao enviar parte ${i + 1} de ${file.name}. Verifique a sua conexão.`);
+          // Cancel the session
+          await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
+          break;
+        }
+      }
+      
+      if (!allChunksUploaded) {
+        return "failed";
+      }
+      
+      if (uploadCancelledRef.current) {
+        await apiFetch(`/api/files/upload-session/${sessionId}`, { method: "DELETE" });
+        return "cancelled";
+      }
+      
+      // Complete the upload
+      setCurrentUploadFile(`A finalizar ${file.name}...`);
+      const completeResponse = await apiFetch("/api/files/complete-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
       });
+      
+      if (!completeResponse.ok) {
+        const error = await completeResponse.json();
+        toast.error(error.message || `Erro ao finalizar upload de ${file.name}`);
+        return "failed";
+      }
+      
+      if (wasEncrypted) {
+        toast.success(`${file.name} enviado com sucesso (encriptado)`);
+      } else {
+        toast.success(`${file.name} enviado com sucesso`);
+      }
+      
+      return "success";
     } catch (err) {
-      console.error("Error encrypting/uploading file:", err);
-      toast.error(`Erro ao encriptar ${file.name}`);
+      console.error("Error uploading file:", err);
+      toast.error(`Erro ao enviar ${file.name}`);
       return "failed";
     }
   };

@@ -875,8 +875,8 @@ export async function registerRoutes(
         telegramFileId: sortedChunks[0].telegramFileId,
         telegramBotId: sortedChunks[0].telegramBotId,
         isEncrypted: session.isEncrypted,
-        originalMimeType: session.originalMimeType,
-        originalSize: session.originalSize,
+        originalMimeType: session.originalMimeType ?? undefined,
+        originalSize: session.originalSize ?? undefined,
         isChunked,
         totalChunks: session.totalChunks,
       });
