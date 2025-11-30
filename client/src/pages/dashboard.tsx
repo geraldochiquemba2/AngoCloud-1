@@ -107,6 +107,7 @@ export default function Dashboard() {
   const [uploadTimeRemaining, setUploadTimeRemaining] = useState<string>("");
   const [currentFileSize, setCurrentFileSize] = useState<number>(0);
   const [pendingUploadFiles, setPendingUploadFiles] = useState<globalThis.File[]>([]);
+  const [pendingFilePreviews, setPendingFilePreviews] = useState<Record<string, string>>({});
   const uploadStartTimeRef = useRef<number>(0);
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1012,11 +1013,51 @@ export default function Dashboard() {
     return `${hours}h ${mins}m`;
   };
 
+  // Generate preview for image/video files
+  const generateFilePreview = async (file: globalThis.File, fileKey: string) => {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setPendingFilePreviews(prev => ({ ...prev, [fileKey]: e.target!.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    } else if (isVideo) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadeddata = () => {
+        video.currentTime = 1;
+      };
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 80;
+        canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.7);
+          setPendingFilePreviews(prev => ({ ...prev, [fileKey]: thumbnail }));
+        }
+        URL.revokeObjectURL(video.src);
+      };
+      video.src = URL.createObjectURL(file);
+    }
+  };
+
   // Upload handlers
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
+      const startIndex = pendingUploadFiles.length;
       setPendingUploadFiles(prev => [...prev, ...newFiles]);
+      newFiles.forEach((file, i) => {
+        const fileKey = `${file.name}-${startIndex + i}`;
+        generateFilePreview(file, fileKey);
+      });
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -1028,15 +1069,37 @@ export default function Dashboard() {
     setDragOver(false);
     if (e.dataTransfer.files.length > 0) {
       const newFiles = Array.from(e.dataTransfer.files);
-      setPendingUploadFiles(prev => [...prev, ...newFiles]);
+      setPendingUploadFiles(prev => {
+        const startIndex = prev.length;
+        newFiles.forEach((file, i) => {
+          const fileKey = `${file.name}-${startIndex + i}`;
+          generateFilePreview(file, fileKey);
+        });
+        return [...prev, ...newFiles];
+      });
     }
-  }, []);
+  }, [pendingUploadFiles.length]);
 
   const removePendingFile = (index: number) => {
-    setPendingUploadFiles(prev => prev.filter((_, i) => i !== index));
+    setPendingUploadFiles(prev => {
+      const file = prev[index];
+      const fileKey = `${file.name}-${index}`;
+      setPendingFilePreviews(prevPreviews => {
+        const newPreviews = { ...prevPreviews };
+        delete newPreviews[fileKey];
+        return newPreviews;
+      });
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const clearPendingFiles = () => {
+    Object.values(pendingFilePreviews).forEach(url => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    setPendingFilePreviews({});
     setPendingUploadFiles([]);
   };
 
@@ -2612,28 +2675,55 @@ export default function Dashboard() {
                         </button>
                       </div>
                       
-                      <div className="max-h-48 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-                        {pendingUploadFiles.map((file, index) => (
-                          <div
-                            key={`${file.name}-${index}`}
-                            className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/10 group"
-                            data-testid={`pending-file-${index}`}
-                          >
-                            <span className="text-lg">{getPendingFileEmoji(file.name)}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-white text-sm truncate" title={file.name}>{file.name}</p>
-                              <p className="text-white/50 text-xs">{formatBytes(file.size)}</p>
-                            </div>
-                            <button
-                              onClick={() => removePendingFile(index)}
-                              className="text-white/30 hover:text-red-400 transition-colors p-1"
-                              title="Remover ficheiro"
-                              data-testid={`remove-file-${index}`}
+                      <div className="max-h-52 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                        {pendingUploadFiles.map((file, index) => {
+                          const fileKey = `${file.name}-${index}`;
+                          const preview = pendingFilePreviews[fileKey];
+                          const isImage = file.type.startsWith('image/');
+                          const isVideo = file.type.startsWith('video/');
+                          const hasPreview = preview && (isImage || isVideo);
+                          
+                          return (
+                            <div
+                              key={fileKey}
+                              className="flex items-center gap-3 p-2 bg-white/5 rounded-lg border border-white/10 group"
+                              data-testid={`pending-file-${index}`}
                             >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
+                              {hasPreview ? (
+                                <div className="relative w-10 h-10 rounded-md overflow-hidden bg-black/30 flex-shrink-0">
+                                  <img 
+                                    src={preview} 
+                                    alt={file.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {isVideo && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                      <div className="w-4 h-4 rounded-full bg-white/80 flex items-center justify-center">
+                                        <div className="w-0 h-0 border-l-[6px] border-l-slate-800 border-y-[4px] border-y-transparent ml-0.5" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-lg">{getPendingFileEmoji(file.name)}</span>
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white text-sm truncate" title={file.name}>{file.name}</p>
+                                <p className="text-white/50 text-xs">{formatBytes(file.size)}</p>
+                              </div>
+                              <button
+                                onClick={() => removePendingFile(index)}
+                                className="text-white/30 hover:text-red-400 transition-colors p-1"
+                                title="Remover ficheiro"
+                                data-testid={`remove-file-${index}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                       
                       <div className="mt-3 pt-3 border-t border-white/10">
