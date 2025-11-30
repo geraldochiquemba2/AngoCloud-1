@@ -2401,15 +2401,13 @@ export default function Dashboard() {
                           data-testid={`folder-item-${folder.id}`}
                           style={{ transition: 'background-color 0.15s' }}
                         >
-                          <div className="relative">
-                            <Folder className="w-10 h-10 text-yellow-400 mb-2" />
-                            {folder.isPublic && (
-                              <Globe className="absolute -top-1 -right-1 w-4 h-4 text-green-400" />
-                            )}
-                          </div>
+                          <Folder className="w-10 h-10 text-yellow-400 mb-2" />
                           <span className="text-white text-sm font-medium text-center truncate w-full">{folder.nome}</span>
                           {folder.isPublic && (
-                            <span className="text-[10px] text-green-400/70">Pública</span>
+                            <div className="flex items-center gap-1 justify-center">
+                              <Globe className="w-3.5 h-3.5 text-green-400" />
+                              <span className="text-[10px] text-green-400/70">Pública</span>
+                            </div>
                           )}
                           <div className="absolute top-2 right-2 flex items-center gap-1 transition-opacity">
                             <button
