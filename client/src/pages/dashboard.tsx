@@ -1886,14 +1886,10 @@ export default function Dashboard() {
         {/* Support Bar - height ~28px */}
         <div className="w-full py-1.5 px-4 md:px-8 bg-black/40 backdrop-blur-sm border-b border-white/10 z-50 fixed top-0 left-0">
           <div className="max-w-7xl mx-auto flex flex-wrap justify-center md:justify-end items-center gap-3 md:gap-4 text-xs text-white/70">
-            <a href="mailto:gerladochiquemba@gmail.com" className="flex items-center gap-1.5 hover:text-white transition-colors">
+            <a href="mailto:OrbitalCloud@outlook.com.br" className="flex items-center gap-1.5 hover:text-white transition-colors">
               <Mail className="w-3 h-3" />
-              <span className="hidden sm:inline">gerladochiquemba@gmail.com</span>
+              <span className="hidden sm:inline">OrbitalCloud@outlook.com.br</span>
               <span className="sm:hidden">Email</span>
-            </a>
-            <a href="tel:+244943412688" className="flex items-center gap-1.5 hover:text-white transition-colors">
-              <Phone className="w-3 h-3" />
-              <span>943 412 688</span>
             </a>
             <span className="text-white/40 hidden lg:inline">| Suporte & Reclamacoes</span>
           </div>
