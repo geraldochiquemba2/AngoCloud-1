@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { createDb } from '../db';
 import { authMiddleware, JWTPayload } from '../middleware/auth';
 import { TelegramService } from '../services/telegram';
-import { files, users, folders, fileChunks } from '../../../shared/schema';
+import { files, users, folders, fileChunks, filePermissions, folderPermissions } from '../../../shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
 interface Env {
@@ -253,12 +253,62 @@ fileRoutes.get('/:id/download-data', async (c) => {
     
     const isOwner = file.userId === user.id;
     
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      // Verificar permissão na pasta
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+    }
+    
+    if (!hasAccess) {
+      // Verificar permissão direta no arquivo
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    // Buscar chave de encriptação compartilhada
+    let sharedEncryptionKey: string | undefined;
+    if (!isOwner) {
+      // Procurar chave nas permissões
+      if (file.folderId) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, file.folderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        sharedEncryptionKey = folderPerm?.sharedEncryptionKey || undefined;
+      }
+      
+      if (!sharedEncryptionKey) {
+        const [filePerm] = await db.select().from(filePermissions)
+          .where(and(
+            eq(filePermissions.fileId, fileId),
+            eq(filePermissions.userId, user.id)
+          ));
+        sharedEncryptionKey = filePerm?.sharedEncryptionKey || undefined;
+      }
+    }
+    
     return c.json({
       isEncrypted: file.isEncrypted || false,
       isOwner: isOwner,
       originalMimeType: file.originalMimeType || file.tipoMime,
       downloadUrl: `/api/files/${fileId}/download`,
-      sharedEncryptionKey: !isOwner ? file.sharedEncryptionKey : undefined,
+      sharedEncryptionKey: sharedEncryptionKey,
     });
   } catch (error) {
     console.error('Download data error:', error);
@@ -274,7 +324,36 @@ fileRoutes.get('/:id/content', async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     
     const [file] = await db.select().from(files).where(eq(files.id, fileId));
-    if (!file || file.userId !== user.id) {
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      // Verificar permissão na pasta
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+    }
+    
+    if (!hasAccess) {
+      // Verificar permissão direta no arquivo
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
       return c.json({ message: 'Não autorizado' }, 403);
     }
     
