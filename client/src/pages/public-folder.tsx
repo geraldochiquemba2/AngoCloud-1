@@ -329,28 +329,57 @@ export default function PublicFolderPage() {
                         ) : isVideo && thumbnail ? (
                           <>
                             <video 
+                              key={`video-${file.id}`}
                               src={thumbnail}
                               muted
                               playsInline
                               preload="metadata"
-                              className="w-full h-full object-cover"
-                              onLoadedData={(e) => {
-                                // Pause at first frame for thumbnail effect
+                              crossOrigin="anonymous"
+                              className="w-full h-full object-cover bg-slate-900"
+                              onLoadedMetadata={(e) => {
                                 const video = e.currentTarget;
-                                video.pause();
-                                video.currentTime = 0;
+                                setTimeout(() => {
+                                  try {
+                                    video.currentTime = Math.min(0.5, video.duration * 0.01);
+                                  } catch (e) {
+                                    // Ignore errors on mobile
+                                  }
+                                }, 100);
+                              }}
+                              onLoadedData={(e) => {
+                                const video = e.currentTarget;
+                                try {
+                                  video.pause();
+                                } catch (e) {
+                                  // Ignore errors
+                                }
+                              }}
+                              onCanPlay={(e) => {
+                                const video = e.currentTarget;
+                                try {
+                                  video.pause();
+                                } catch (e) {
+                                  // Ignore errors
+                                }
+                              }}
+                              onError={() => {
+                                // Video failed to load - will show fallback
+                                console.debug("Video load error for", file.nome);
                               }}
                             />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                <Play className="w-6 h-6 text-white fill-white" />
+                            {/* Play icon overlay */}
+                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-transparent via-black/20 to-black/40 pointer-events-none">
+                              <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg">
+                                <Play className="w-8 h-8 text-white fill-white ml-1" />
                               </div>
                             </div>
                           </>
                         ) : isVideo && !thumbnail ? (
-                          <div className="flex flex-col items-center justify-center">
-                            <Video className="w-12 h-12 text-purple-400" />
-                            <Loader2 className="w-4 h-4 text-white/40 animate-spin mt-2" />
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <div className="p-3 rounded-lg bg-purple-500/20">
+                              <Video className="w-8 h-8 text-purple-400" />
+                            </div>
+                            <Loader2 className="w-4 h-4 text-white/40 animate-spin" />
                           </div>
                         ) : isImage && !thumbnail ? (
                           <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
