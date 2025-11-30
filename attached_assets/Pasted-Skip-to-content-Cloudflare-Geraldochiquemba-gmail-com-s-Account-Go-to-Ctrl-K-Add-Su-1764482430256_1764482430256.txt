@@ -1,0 +1,309 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+
+Requests
+2k
+183000.00%
+
+Subrequests
+145
+14500.00%
+
+Errors
+0
+
+CPU Time
+1.68
+ms
+167.50%
+
+Wall Time
+203
+ms
+20335.40%
+
+Request duration
+1.01
+ms
+101.20%
+Active deployment
+Deploy version
+Version ID
+Deployed on
+Traffic %
+Requests/sec
+Error Rate
+Median CPU Time
+82a677f0
+2 hours ago
+100%
+0.2 req/sec
+0%
+1.22ms
+Split deployment
+Requests
+
+
+
+0c674bcc
+7
+13e1885e
+6
+2b887449
+38
+430456c8
+11
+473cad4c
+134
+7b4cfb6e
+6
+82a677f0
+1.4k
+95831e12
+176
+c8608cbe
+10
+d8ff028b
+8
+ef782d0f
+34
+5
+More
+Time (UTC)
+Subrequests
+
+
+All
+
+2xx
+
+3xx
+
+4xx
+
+5xx
+Search origins...
+Origin
+Requests
+Request Duration
+Cache Rate
+api.c-2.us-east-2.aws.neon.tech
+
+2xx
+862
+228.1ms
+0%
+api.telegram.org
+
+2xx
+60
+187.1ms
+22%
+Unknown
+
+2xx
+96
+
+3xx
+55
+4.9ms
+0%
+Showing 1-3 of 3
+1
+Errors by version
+
+
+0c674bcc
+0
+13e1885e
+0
+2b887449
+0
+430456c8
+0
+473cad4c
+0
+7b4cfb6e
+0
+95831e12
+0
+c8608cbe
+0
+d8ff028b
+0
+ef782d0f
+0
+4
+More
+Time (UTC)
+Errors by invocation status
+
+
+
+Exceeded Memory
+0
+Exceeded CPU Time Limits
+0
+Internal
+0
+Load Shed
+0
+Uncaught Exception
+0
+1
+More
+Time (UTC)
+Client disconnected by version
+
+
+82a677f0
+1
+95831e12
+2
+Time (UTC)
+Client disconnected by type
+
+
+Cancelled
+3
+Response stream disconnected
+0
+Time (UTC)
+Request Distribution
+
+
+
+© OpenStreetMap
+
+Placement Performance
+Enable Smart Placement to see the performance impact of Cloudflare's Smart Placement decisions.
+CPU Time
+
+P50
+0.84
+ms
+P90
+5.34
+ms
+P99
+12.87
+ms
+P999
+15.15
+ms
+Time (UTC)
+Wall Time
+
+P50
+56.58
+ms
+P90
+366.37
+ms
+P99
+1.34k
+ms
+P999
+1.88k
+ms
+1
+More
+Time (UTC)
+Request duration
+
+P50
+39.7
+ms
+P90
+364.1
+ms
+P99
+1.34k
+ms
+P999
+1.88k
+ms
+Time (UTC)
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+2025-11-29T20:00:00.000Z
