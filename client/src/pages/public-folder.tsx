@@ -5,7 +5,6 @@ import {
   Folder, FileText, Download, File, Image, Video, Music, 
   FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye
 } from "lucide-react";
-import cloudLogo from "@assets/generated_images/minimalist_cloud_storage_icon.png";
 
 interface PublicFile {
   id: string;
@@ -194,7 +193,6 @@ export default function PublicFolderPage() {
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => navigate("/")}
           >
-            <img src={cloudLogo} alt="OrbitalCloud" className="w-8 h-8" />
             <span className="text-xl font-bold text-white">OrbitalCloud</span>
           </div>
           <div className="flex items-center gap-2 text-white/60 text-sm">
@@ -372,10 +370,7 @@ export default function PublicFolderPage() {
 
       <footer className="border-t border-white/10 mt-16 py-8">
         <div className="max-w-6xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img src={cloudLogo} alt="OrbitalCloud" className="w-6 h-6" />
-            <span className="text-white font-semibold">OrbitalCloud</span>
-          </div>
+          <span className="text-white font-semibold mb-2 block">OrbitalCloud</span>
           <p className="text-white/40 text-sm">
             Armazenamento em nuvem para Angola · 20GB grátis
           </p>
