@@ -123,6 +123,29 @@ Configure via `wrangler secret put`:
 
 ## Recent Changes
 
+### November 30, 2025 - Session Timeout and Inactivity Detection
+
+Implemented automatic session timeout after 10 minutes of inactivity:
+
+**Server-side (Express):**
+- Session configured with `maxAge: 10 * 60 * 1000` (10 minutes)
+- `rolling: true` to extend session on each request
+- New `/api/auth/keepalive` endpoint that explicitly calls `req.session.touch()` and `req.session.save()` to ensure session extension
+
+**Client-side (React):**
+- `useInactivityTimeout` hook monitors user activity (mouse, keyboard, scroll, touch)
+- Warning modal appears 1 minute before session expires
+- "Continuar conectado" button calls `/api/auth/keepalive` to extend session
+- If session already expired on server, user is redirected to login with `?expired=true`
+- Login page shows session expired message when redirected
+
+**Files modified:**
+- `server/routes.ts` - Session config and keepalive endpoint
+- `client/src/hooks/useInactivityTimeout.ts` - Inactivity detection hook
+- `client/src/components/InactivityWarningModal.tsx` - Warning modal component
+- `client/src/App.tsx` - InactivityHandler wrapper
+- `client/src/pages/login.tsx` - Session expired message
+
 ### November 30, 2025 - System Routes and API Parity
 
 Added comprehensive system routes to the Cloudflare Worker for complete API parity:
