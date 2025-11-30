@@ -1,0 +1,134 @@
+Skip to content
+Cloudflare
+Geraldochiquemba@gmail.com's Account
+
+Go to...
+
+Ctrl+K
+
+Add
+
+Support
+
+Profile
+Account home
+
+Recents
+Workers & Pages
+Compute & AI
+
+an
+gocloud
+Workers
+
+orbit
+alcloud
+Workers
+
+Register domains
+Domain registration
+
+
+Analytics & logs
+Build
+
+Compute & AI
+Workers & Pages
+Observability
+Workers for Platforms
+Containers
+Durable Objects
+Queues
+Workflows
+Browser Rendering
+AI Search (AutoRAG)
+Workers AI
+AI Gateway
+VPC
+Workers plans
+
+Storage & databases
+
+Media
+Protect & Connect
+
+Application security
+Zero Trust
+
+Networking
+
+Delivery & performance
+
+Domain registration
+
+Manage account
+
+
+Workers & Pages
+/
+orbitalcloud
+Overview
+Metrics
+Deployments
+Bindings
+Observability
+Settings
+Latest build failed
+ Back to builds
+Build details
+Repository
+
+geraldochiquemba2/OrbitalCloud
+Status
+
+a few seconds ago
+Branch
+main
+788ecb4
+Update deployment script to correctly serve frontend assets Adjust the build and deploy commands in the Cloudflare Worker configuration to ensure proper deployment of frontend assets by using `npx wrangler deploy` as the deploy command. Replit-Commit-Author: Agent Replit-Commit-Session-Id: d8e68b13-49f5-4de8-a554-e2d168da542b Replit-Commit-Checkpoint-Type: full_checkpoint Replit-
+Duration
+1m 13s
+Build settings
+Build log
+Initializing build environment
+2s
+Cloning git repository
+2s
+Installing tools and dependencies
+16s
+Building application
+6s
+Deploying to Cloudflare's global network
+47s
+
+Download log
+
+Copy log
+01:55:39.641	  - Or create a "wrangler.jsonc" file containing:
+01:55:39.641	  
+01:55:39.641	  ```
+01:55:39.647	  {
+01:55:39.647	    "name": "worker-name",
+01:55:39.647	    "compatibility_date": "2025-11-30",
+01:55:39.647	    "assets": {
+01:55:39.647	      "directory": "./dist"
+01:55:39.647	    }
+01:55:39.647	  }
+01:55:39.647	  ```
+01:55:39.647	  
+01:55:39.649	
+01:55:39.649	
+01:55:39.649	
+01:55:39.649	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+01:55:39.661	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2025-11-30_00-55-38_826.log"
+01:55:39.760	Failed: error occurred while running deploy command
+
+Support
+System status
+Careers
+Terms of Use
+Report Security Issues
+Privacy Policy
+A blue and white pill with a checkmark and an x, representing privacy choicesCookie Preferences
+© 2025 Cloudflare, Inc.
+2025-11-29T00:30:00.000Z
