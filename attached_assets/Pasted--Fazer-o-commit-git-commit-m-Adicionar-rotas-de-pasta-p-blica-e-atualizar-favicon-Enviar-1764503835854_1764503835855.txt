@@ -1,0 +1,215 @@
+
+# Fazer o commit
+git commit -m "Adicionar rotas de pasta pública e atualizar favicon"
+
+# Enviar para o repositório remoto
+git push origin main
+On branch main
+Your branch is ahead of 'origin/main' by 3 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 27, done.
+Counting objects: 100% (27/27), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (18/18), done.
+Writing objects: 100% (18/18), 51.17 KiB | 17.06 MiB/s, done.
+Total 18 (delta 10), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (10/10), completed with 6 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   a36c86d..455d6c0  main -> main
+~/workspace$ git add .
+git commit -m "Corrigir rotas de pastas públicas no Cloudflare Worker"
+git push origin main
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 1.58 KiB | 1.58 MiB/s, done.
+Total 6 (delta 5), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (5/5), completed with 5 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   455d6c0..1916eff  main -> main
+~/workspace$ # Atualizar o repo
+git add .
+git commit -m "Corrigir rotas de pastas públicas - suporte a subpastas"
+git push origin main
+
+# Deploy no Cloudflare
+cd cloudflare
+npm install
+npm run deploy
+On branch main
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 13, done.
+Counting objects: 100% (13/13), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (7/7), done.
+Writing objects: 100% (7/7), 1.49 KiB | 1.49 MiB/s, done.
+Total 7 (delta 6), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (6/6), completed with 6 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   1916eff..e211bb9  main -> main
+
+up to date, audited 85 packages in 2s
+
+9 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> app-cloudflare@2.0.0 deploy
+> npm run build && wrangler deploy --keep-vars
+
+
+> app-cloudflare@2.0.0 build
+> npm install && cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+
+
+up to date, audited 85 packages in 1s
+
+9 packages are looking for funding
+  run `npm fund` for details
+
+2 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.1.12 building for production...
+✓ 2249 modules transformed.
+rendering chunks (1)...[meta-images] using dev domain: https://80eba168-32e0-464c-b7fe-a6364e0183a5-00-1s5gsku5wc974.worf.replit.dev
+[meta-images] OpenGraph image not found, skipping meta tag updates
+../dist/public/index.html                                                           4.56 kB │ gzip:   1.55 kB
+../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+../dist/public/assets/index-wYzi9DtB.css                                          142.11 kB │ gzip:  21.23 kB
+../dist/public/assets/index-CaYfDMXg.js                                           730.77 kB │ gzip: 206.36 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.84s
+building server...
+
+  dist/index.cjs  1.3mb ⚠️
+
+⚡ Done in 149ms
+
+Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+
+ ⛅️ wrangler 3.114.15 (update available 4.51.0)
+---------------------------------------------------------
+
+▲ [WARNING] The version of Wrangler you are using is now out-of-date.
+
+  Please update to the latest version to prevent critical errors.
+  Run `npm install --save-dev wrangler@4` to update to the latest version.
+  After installation, run Wrangler with `npx wrangler`.
+
+
+[custom build] Running: npm run build
+[custom build] 
+[custom build] > app-cloudflare@2.0.0 build
+[custom build] > npm install && cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+[custom build] 
+[custom build] 
+[custom build] 
+[custom build] up to date, audited 85 packages in 1s
+[custom build] 
+[custom build] 
+[custom build] 9 packages are looking for funding
+[custom build]   run `npm fund` for details
+[custom build] 
+[custom build] 
+[custom build] 2 moderate severity vulnerabilities
+[custom build] 
+[custom build] To address all issues (including breaking changes), run:
+[custom build]   npm audit fix --force
+[custom build] 
+[custom build] Run `npm audit` for details.
+[custom build] 
+[custom build] 
+[custom build] > rest-express@1.0.0 build
+[custom build] > tsx script/build.ts
+[custom build] 
+[custom build] 
+[custom build] building client...
+[custom build] 
+[custom build] vite v7.1.12 building for production...
+[custom build] 
+[custom build] transforming...
+[custom build] 
+[custom build] ✓ 2249 modules transformed.
+[custom build] 
+[custom build] rendering chunks...
+[custom build] 
+[custom build] [meta-images] using dev domain: https://80eba168-32e0-464c-b7fe-a6364e0183a5-00-1s5gsku5wc974.worf.replit.dev
+[custom build] 
+[custom build] [meta-images] OpenGraph image not found, skipping meta tag updates
+[custom build] 
+[custom build] computing gzip size...
+[custom build] 
+[custom build] ../dist/public/index.html                                                           4.56 kB │ gzip:   1.55 kB
+[custom build] 
+[custom build] ../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+[custom build] ../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+[custom build] ../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+[custom build] ../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+[custom build] ../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+[custom build] ../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+[custom build] ../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+[custom build] ../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+[custom build] ../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+[custom build] ../dist/public/assets/index-wYzi9DtB.css                                          142.11 kB │ gzip:  21.23 kB
+[custom build] ../dist/public/assets/index-CaYfDMXg.js                                           730.77 kB │ gzip: 206.36 kB
+[custom build] 
+[custom build] 
+[custom build] (!) Some chunks are larger than 500 kB after minification. Consider:
+[custom build] - Using dynamic import() to code-split the application
+[custom build] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+[custom build] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[custom build] 
+[custom build] ✓ built in 5.76s
+[custom build] building server...
+[custom build] 
+[custom build] 
+[custom build]   dist/index.cjs  1.3mb ⚠️
+[custom build] 
+[custom build] ⚡ Done in 297ms
+[custom build] 
+Attempting to login via OAuth...
+Opening a link in your default browser: https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=54d11594-84e4-41aa-b438-e81b8fa78ee7&redirect_uri=http%3A%2F%2Flocalhost%3A8976%2Foauth%2Fcallback&scope=account%3Aread%20user%3Aread%20workers%3Awrite%20workers_kv%3Awrite%20workers_routes%3Awrite%20workers_scripts%3Awrite%20workers_tail%3Aread%20d1%3Awrite%20pages%3Awrite%20zone%3Aread%20ssl_certs%3Awrite%20ai%3Awrite%20queues%3Awrite%20pipelines%3Awrite%20offline_access&state=CVCz4oMe-2-M96m9FGn7yonUSLyID~m2&code_challenge=qmShcD4kmZsTTkoBfVxE2YX1wincwCqrUgr0JwCD5pM&code_challenge_method=S256
