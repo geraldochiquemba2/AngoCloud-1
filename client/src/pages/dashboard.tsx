@@ -108,9 +108,13 @@ export default function Dashboard() {
   const [currentFileSize, setCurrentFileSize] = useState<number>(0);
   const [pendingUploadFiles, setPendingUploadFiles] = useState<globalThis.File[]>([]);
   const [pendingFilePreviews, setPendingFilePreviews] = useState<Record<string, string>>({});
+  const [uploadCancelled, setUploadCancelled] = useState(false);
+  const [uploadedFilesCount, setUploadedFilesCount] = useState(0);
+  const [currentXhr, setCurrentXhr] = useState<XMLHttpRequest | null>(null);
   const uploadStartTimeRef = useRef<number>(0);
   const lastProgressRef = useRef<{ time: number; loaded: number }>({ time: 0, loaded: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadCancelledRef = useRef(false);
   
   // Folder modal
   const [showFolderModal, setShowFolderModal] = useState(false);
