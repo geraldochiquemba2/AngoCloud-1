@@ -765,6 +765,184 @@ export async function registerRoutes(
     }
   });
 
+  // ========== PUBLIC FOLDER ROUTES (Authenticated) ==========
+
+  // Make folder public
+  app.post("/api/folders/:id/make-public", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const result = await storage.makeFolderPublic(req.params.id, req.user!.id);
+      res.json({ 
+        message: "Pasta tornada pública com sucesso",
+        slug: result.slug,
+        publicUrl: `/p/${result.slug}`
+      });
+    } catch (error: any) {
+      console.error("Make folder public error:", error);
+      res.status(500).json({ message: error.message || "Erro ao tornar pasta pública" });
+    }
+  });
+
+  // Make folder private
+  app.post("/api/folders/:id/make-private", requireAuth, async (req: Request, res: Response) => {
+    try {
+      await storage.makeFolderPrivate(req.params.id, req.user!.id);
+      res.json({ message: "Pasta tornada privada com sucesso" });
+    } catch (error: any) {
+      console.error("Make folder private error:", error);
+      res.status(500).json({ message: error.message || "Erro ao tornar pasta privada" });
+    }
+  });
+
+  // Regenerate public slug
+  app.post("/api/folders/:id/regenerate-slug", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const result = await storage.regeneratePublicSlug(req.params.id, req.user!.id);
+      res.json({ 
+        message: "Link regenerado com sucesso",
+        slug: result.slug,
+        publicUrl: `/p/${result.slug}`
+      });
+    } catch (error: any) {
+      console.error("Regenerate slug error:", error);
+      res.status(500).json({ message: error.message || "Erro ao regenerar link" });
+    }
+  });
+
+  // Get user's public folders
+  app.get("/api/folders/public", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const folders = await storage.getUserPublicFolders(req.user!.id);
+      res.json(folders);
+    } catch (error) {
+      console.error("Get public folders error:", error);
+      res.status(500).json({ message: "Erro ao buscar pastas públicas" });
+    }
+  });
+
+  // ========== PUBLIC FOLDER ROUTES (Unauthenticated) ==========
+
+  // Get public folder by slug (no auth required)
+  app.get("/api/public/folder/:slug", async (req: Request, res: Response) => {
+    try {
+      const folder = await storage.getPublicFolderBySlug(req.params.slug);
+      if (!folder) {
+        return res.status(404).json({ message: "Pasta não encontrada" });
+      }
+
+      const owner = await storage.getUser(folder.userId);
+      res.json({
+        id: folder.id,
+        nome: folder.nome,
+        publishedAt: folder.publishedAt,
+        ownerName: owner?.nome || "Anónimo"
+      });
+    } catch (error) {
+      console.error("Get public folder error:", error);
+      res.status(500).json({ message: "Erro ao buscar pasta pública" });
+    }
+  });
+
+  // Get public folder contents (no auth required)
+  app.get("/api/public/folder/:slug/contents", async (req: Request, res: Response) => {
+    try {
+      const folder = await storage.getPublicFolderBySlug(req.params.slug);
+      if (!folder) {
+        return res.status(404).json({ message: "Pasta não encontrada" });
+      }
+
+      const files = await storage.getPublicFolderFiles(folder.id);
+      const subfolders = await storage.getPublicFolderSubfolders(folder.id);
+
+      res.json({
+        files: files.map(f => ({
+          id: f.id,
+          nome: f.nome,
+          tamanho: f.tamanho,
+          tipoMime: f.tipoMime,
+          createdAt: f.createdAt
+        })),
+        folders: subfolders.map(sf => ({
+          id: sf.id,
+          nome: sf.nome,
+          createdAt: sf.createdAt
+        }))
+      });
+    } catch (error) {
+      console.error("Get public folder contents error:", error);
+      res.status(500).json({ message: "Erro ao buscar conteúdo da pasta" });
+    }
+  });
+
+  // Preview file from public folder (no auth required)
+  app.get("/api/public/file/:fileId/preview", async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.fileId);
+      if (!file || file.isDeleted || file.isEncrypted) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      // Verify the file is in a public folder
+      if (!file.folderId) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      const folder = await storage.getFolder(file.folderId);
+      if (!folder || !folder.isPublic) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      // Get download URL from Telegram
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Ficheiro não disponível" });
+      }
+
+      const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+      res.json({ 
+        url: downloadUrl,
+        tipoMime: file.tipoMime,
+        nome: file.nome
+      });
+    } catch (error) {
+      console.error("Public file preview error:", error);
+      res.status(500).json({ message: "Erro ao obter preview" });
+    }
+  });
+
+  // Download file from public folder (no auth required)
+  app.get("/api/public/file/:fileId/download", async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.fileId);
+      if (!file || file.isDeleted || file.isEncrypted) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      // Verify the file is in a public folder
+      if (!file.folderId) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      const folder = await storage.getFolder(file.folderId);
+      if (!folder || !folder.isPublic) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      // Download file from Telegram
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Ficheiro não disponível" });
+      }
+
+      const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      
+      res.setHeader("Content-Type", file.tipoMime);
+      res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.nome)}"`);
+      res.setHeader("Content-Length", file.tamanho.toString());
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Public file download error:", error);
+      res.status(500).json({ message: "Erro ao baixar ficheiro" });
+    }
+  });
+
   // ========== INVITATION ROUTES ==========
 
   // Create invitation (invite someone to access a file or folder)
