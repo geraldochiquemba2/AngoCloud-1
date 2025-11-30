@@ -433,9 +433,22 @@ shareRoutes.get('/:linkCode/preview', async (c) => {
     }
     
     const telegramService = new TelegramService(c.env);
-    const previewUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
     
-    return c.json({ url: previewUrl, mimeType: file.tipoMime });
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      return c.json({ message: 'Erro ao buscar arquivo' }, 500);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    return new Response(arrayBuffer, {
+      headers: {
+        'Content-Type': file.isEncrypted ? 'application/octet-stream' : (file.originalMimeType || file.tipoMime),
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Disposition': `inline; filename="${file.nome}"`
+      }
+    });
   } catch (error) {
     console.error('Preview error:', error);
     return c.json({ message: 'Erro ao obter preview' }, 500);
