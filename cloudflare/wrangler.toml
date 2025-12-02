@@ -48,7 +48,7 @@ ENVIRONMENT = "production"
 # - TELEGRAM_STORAGE_CHAT_ID: ID do chat para armazenamento
 
 [build]
-command = "npm run build"
+command = "npm install && npm run build"
 
 # Resolve modules from parent node_modules
 [build.upload]
