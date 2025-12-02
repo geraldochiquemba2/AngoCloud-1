@@ -913,7 +913,7 @@ export default function Dashboard() {
     });
   }, [isMobile]);
 
-  const loadThumbnail = useCallback(async (fileId: string, mimeType: string, isInPublicFolder: boolean = false) => {
+  const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
     if (fileThumbnails[fileId]) return;
     
     setLoadingThumbnails(prev => new Set(prev).add(fileId));
@@ -961,10 +961,8 @@ export default function Dashboard() {
       } else if (meta.isEncrypted && !encryptionKey) {
         setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
       } else {
-        // Use public endpoint for files in public folders, otherwise use authenticated endpoint
-        const streamEndpoint = isInPublicFolder 
-          ? `/api/public/file/${fileId}/stream` 
-          : `/api/files/${fileId}/stream`;
+        // Always use authenticated endpoint when logged in (more reliable with Cloudflare)
+        const streamEndpoint = `/api/files/${fileId}/stream`;
         
         if (mimeType.startsWith("video/") || meta.originalMimeType?.startsWith("video/")) {
           try {
@@ -999,7 +997,7 @@ export default function Dashboard() {
       : file.tipoMime;
   };
 
-  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string, isInPublicFolder: boolean}>>([]);
+  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
   const loadingCountRef = useRef(0);
   const generationRef = useRef(0);
   const MAX_CONCURRENT_LOADS = isMobile ? 2 : 4;
@@ -1024,7 +1022,7 @@ export default function Dashboard() {
       loadingCountRef.current++;
       const loadGeneration = generationRef.current;
       
-      loadThumbnail(item.id, item.mimeType, item.isInPublicFolder).finally(() => {
+      loadThumbnail(item.id, item.mimeType).finally(() => {
         if (generationRef.current === loadGeneration) {
           loadingCountRef.current = Math.max(0, loadingCountRef.current - 1);
           processQueue();
@@ -1033,33 +1031,32 @@ export default function Dashboard() {
     }
   }, [fileThumbnails, loadThumbnail]);
 
-  const queueThumbnailLoad = useCallback((fileId: string, mimeType: string, isInPublicFolder: boolean = false) => {
+  const queueThumbnailLoad = useCallback((fileId: string, mimeType: string) => {
     if (fileThumbnails[fileId]) return;
     if (thumbnailQueueRef.current.some(item => item.id === fileId)) return;
     
-    thumbnailQueueRef.current.push({ id: fileId, mimeType, isInPublicFolder });
+    thumbnailQueueRef.current.push({ id: fileId, mimeType });
     processQueue();
   }, [fileThumbnails, processQueue]);
 
   useEffect(() => {
-    const isInPublicFolder = folderPath.some(f => f.isPublic);
     const mediaFiles = files.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file), isInPublicFolder);
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
-  }, [files, queueThumbnailLoad, folderPath]);
+  }, [files, queueThumbnailLoad]);
 
   useEffect(() => {
     const mediaFiles = sharedFiles.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file), false);
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
   }, [sharedFiles, queueThumbnailLoad]);
 
   useEffect(() => {
     const mediaFiles = sharedFolderFiles.filter(isMediaFile);
     mediaFiles.slice(0, 12).forEach(file => {
-      queueThumbnailLoad(file.id, getEffectiveMimeType(file), false);
+      queueThumbnailLoad(file.id, getEffectiveMimeType(file));
     });
   }, [sharedFolderFiles, queueThumbnailLoad]);
 
@@ -1116,15 +1113,10 @@ export default function Dashboard() {
         toast.error("Faça logout e login novamente para desencriptar os ficheiros");
         throw new Error("No encryption key available");
       } else {
-        // Check if file is in a public folder first
-        const isInPublicFolder = folderPath.some(f => f.isPublic);
         const mimeType = meta.originalMimeType || file.tipoMime;
         
-        if (isInPublicFolder) {
-          // Use public endpoint for files in public folders
-          setPreviewUrl(`/api/public/file/${file.id}/stream`);
-        } else if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
-          // Use stream endpoint for media files (more reliable)
+        if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+          // Always use authenticated stream endpoint when logged in (more reliable with Cloudflare)
           setPreviewUrl(`/api/files/${file.id}/stream`);
         } else {
           setPreviewUrl(meta.previewUrl || meta.contentUrl);
