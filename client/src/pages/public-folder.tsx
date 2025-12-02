@@ -3,9 +3,15 @@ import { useParams, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { 
   Folder, FileText, Download, File, Image, Video, Music, 
-  FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye, Play
+  FileCode, FileArchive, Loader2, ChevronLeft, Globe, Eye, Play, Lock
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  getActiveEncryptionKey, 
+  decryptBuffer,
+  createDownloadUrl,
+  revokeDownloadUrl
+} from "@/lib/encryption";
 
 interface PublicFile {
   id: string;
@@ -13,6 +19,8 @@ interface PublicFile {
   tamanho: number;
   tipoMime: string;
   createdAt: string;
+  isEncrypted?: boolean;
+  originalMimeType?: string;
 }
 
 interface PublicFolder {
@@ -162,13 +170,31 @@ export default function PublicFolderPage() {
     if (file && !thumbnails[file.id]) {
       setLoadingThumbnails(prev => new Set(prev).add(file.id));
       try {
-        // Use the stream endpoint which has CORS headers for canvas access
-        const streamUrl = `/api/public/file/${file.id}/stream`;
-        const thumbnailDataUrl = await generateVideoThumbnail(streamUrl);
-        setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+        if (file.isEncrypted) {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (encryptionKey) {
+            const contentRes = await fetch(`/api/public/file/${file.id}/content`);
+            if (contentRes.ok) {
+              const encryptedBuffer = await contentRes.arrayBuffer();
+              const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+              const mimeType = file.originalMimeType || file.tipoMime;
+              const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+              const blobUrl = createDownloadUrl(decryptedBlob);
+              const thumbnailDataUrl = await generateVideoThumbnail(blobUrl);
+              revokeDownloadUrl(blobUrl);
+              setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+            }
+          } else {
+            setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+          }
+        } else {
+          const streamUrl = `/api/public/file/${file.id}/stream`;
+          const thumbnailDataUrl = await generateVideoThumbnail(streamUrl);
+          setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+        }
       } catch (err) {
         console.error("Error generating video thumbnail:", err);
-        setThumbnails(prev => ({ ...prev, [file.id]: "video_error" }));
+        setThumbnails(prev => ({ ...prev, [file.id]: file.isEncrypted ? "encrypted" : "video_error" }));
       } finally {
         setLoadingThumbnails(prev => {
           const next = new Set(prev);
@@ -196,7 +222,30 @@ export default function PublicFolderPage() {
         const res = await fetch(`/api/public/file/${file.id}/preview`);
         if (res.ok) {
           const data = await res.json();
-          setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+          
+          if (data.isEncrypted) {
+            const encryptionKey = await getActiveEncryptionKey();
+            if (encryptionKey) {
+              try {
+                const contentRes = await fetch(data.url);
+                if (contentRes.ok) {
+                  const encryptedBuffer = await contentRes.arrayBuffer();
+                  const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+                  const mimeType = data.originalMimeType || file.tipoMime;
+                  const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+                  const blobUrl = createDownloadUrl(decryptedBlob);
+                  setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
+                }
+              } catch (err) {
+                console.error("Error decrypting thumbnail:", err);
+                setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+              }
+            } else {
+              setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+            }
+          } else {
+            setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+          }
         }
       } catch (err) {
         console.error("Error loading thumbnail:", err);
@@ -273,7 +322,8 @@ export default function PublicFolderPage() {
   };
 
   const openPreview = async (file: PublicFile) => {
-    if (!file.tipoMime.startsWith("image/") && !file.tipoMime.startsWith("video/") && !file.tipoMime.startsWith("audio/")) {
+    const mimeType = file.originalMimeType || file.tipoMime;
+    if (!mimeType.startsWith("image/") && !mimeType.startsWith("video/") && !mimeType.startsWith("audio/")) {
       downloadFile(file);
       return;
     }
@@ -286,7 +336,26 @@ export default function PublicFolderPage() {
       const res = await fetch(`/api/public/file/${file.id}/preview`);
       if (res.ok) {
         const data = await res.json();
-        setPreviewUrl(data.url);
+        
+        if (data.isEncrypted) {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (!encryptionKey) {
+            console.log("No encryption key available for preview");
+            setPreviewUrl(null);
+            return;
+          }
+          
+          const contentRes = await fetch(data.url);
+          if (contentRes.ok) {
+            const encryptedBuffer = await contentRes.arrayBuffer();
+            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+            const decryptedBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || mimeType });
+            const blobUrl = createDownloadUrl(decryptedBlob);
+            setPreviewUrl(blobUrl);
+          }
+        } else {
+          setPreviewUrl(data.url);
+        }
       }
     } catch (err) {
       console.error("Error loading preview:", err);
@@ -296,6 +365,9 @@ export default function PublicFolderPage() {
   };
 
   const closePreview = () => {
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      revokeDownloadUrl(previewUrl);
+    }
     setPreviewFile(null);
     setPreviewUrl(null);
   };
@@ -305,7 +377,24 @@ export default function PublicFolderPage() {
     try {
       const res = await fetch(`/api/public/file/${file.id}/download`);
       if (res.ok) {
-        const blob = await res.blob();
+        const isEncrypted = res.headers.get("X-Is-Encrypted") === "true";
+        const originalMimeType = res.headers.get("X-Original-Mime-Type") || file.tipoMime;
+        
+        let blob = await res.blob();
+        
+        if (isEncrypted) {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (encryptionKey) {
+            try {
+              const encryptedBuffer = await blob.arrayBuffer();
+              const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+              blob = new Blob([decryptedBuffer], { type: originalMimeType });
+            } catch (err) {
+              console.error("Error decrypting file:", err);
+            }
+          }
+        }
+        
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -429,11 +518,13 @@ export default function PublicFolderPage() {
               <h2 className="text-lg font-semibold text-white mb-4">Ficheiros</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {files.map((file) => {
-                  const isImage = file.tipoMime.startsWith("image/");
-                  const isVideo = file.tipoMime.startsWith("video/");
-                  const isAudio = file.tipoMime.startsWith("audio/");
+                  const mimeType = file.originalMimeType || file.tipoMime;
+                  const isImage = mimeType.startsWith("image/");
+                  const isVideo = mimeType.startsWith("video/");
+                  const isAudio = mimeType.startsWith("audio/");
                   const isMedia = isImage || isVideo || isAudio;
                   const thumbnail = thumbnails[file.id];
+                  const isEncryptedNoKey = thumbnail === "encrypted";
                   
                   return (
                     <motion.div
@@ -444,14 +535,19 @@ export default function PublicFolderPage() {
                     >
                       {/* Thumbnail area */}
                       <div className="relative w-full aspect-square bg-slate-800/50 flex items-center justify-center overflow-hidden">
-                        {isImage && thumbnail ? (
+                        {isEncryptedNoKey ? (
+                          <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex flex-col items-center justify-center gap-2">
+                            <Lock className="w-10 h-10 text-yellow-400/70" />
+                            <span className="text-white/50 text-xs">Encriptado</span>
+                          </div>
+                        ) : isImage && thumbnail && thumbnail !== "encrypted" ? (
                           <img 
                             src={thumbnail} 
                             alt={file.nome}
                             className="w-full h-full object-cover"
                             loading="lazy"
                           />
-                        ) : isVideo && thumbnail && thumbnail !== "video_error" ? (
+                        ) : isVideo && thumbnail && thumbnail !== "video_error" && thumbnail !== "encrypted" ? (
                           <div className="relative w-full h-full">
                             <img 
                               src={thumbnail} 
@@ -481,7 +577,7 @@ export default function PublicFolderPage() {
                           <Loader2 className="w-8 h-8 text-white/40 animate-spin" />
                         ) : (
                           <div className="p-4">
-                            {getFileIcon(file.tipoMime, true)}
+                            {getFileIcon(mimeType, true)}
                           </div>
                         )}
                         

@@ -1247,9 +1247,11 @@ export async function registerRoutes(
         files: files.map(f => ({
           id: f.id,
           nome: f.nome,
-          tamanho: f.tamanho,
-          tipoMime: f.tipoMime,
-          createdAt: f.createdAt
+          tamanho: f.originalSize || f.tamanho,
+          tipoMime: f.originalMimeType || f.tipoMime,
+          createdAt: f.createdAt,
+          isEncrypted: f.isEncrypted || false,
+          originalMimeType: f.originalMimeType || f.tipoMime
         })),
         folders: subfolders.map(sf => ({
           id: sf.id,
@@ -1267,7 +1269,7 @@ export async function registerRoutes(
   app.get("/api/public/file/:fileId/preview", async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.fileId);
-      if (!file || file.isDeleted || file.isEncrypted) {
+      if (!file || file.isDeleted) {
         return res.status(404).json({ message: "Ficheiro não encontrado" });
       }
 
@@ -1286,14 +1288,30 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Ficheiro não disponível" });
       }
 
+      // For encrypted files, use the content endpoint that handles decryption on client
+      const isEncrypted = file.isEncrypted || false;
+      const originalMimeType = file.originalMimeType || file.tipoMime;
+
+      // For encrypted files, return content URL instead of direct Telegram URL
+      if (isEncrypted) {
+        return res.json({ 
+          url: `/api/public/file/${file.id}/content`,
+          tipoMime: originalMimeType,
+          nome: file.nome,
+          isEncrypted: true,
+          originalMimeType
+        });
+      }
+
       // For videos, return the video URL directly - client will use it with <video> tag
       // The <video> element will extract the first frame as thumbnail
-      if (file.tipoMime.startsWith("video/")) {
+      if (originalMimeType.startsWith("video/")) {
         const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
         return res.json({ 
           url: downloadUrl,
-          tipoMime: file.tipoMime,
-          nome: file.nome
+          tipoMime: originalMimeType,
+          nome: file.nome,
+          isEncrypted: false
         });
       }
 
@@ -1301,8 +1319,9 @@ export async function registerRoutes(
       const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
       res.json({ 
         url: downloadUrl,
-        tipoMime: file.tipoMime,
-        nome: file.nome
+        tipoMime: originalMimeType,
+        nome: file.nome,
+        isEncrypted: false
       });
     } catch (error) {
       console.error("Public file preview error:", error);
@@ -1314,7 +1333,7 @@ export async function registerRoutes(
   app.get("/api/public/file/:fileId/stream", async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.fileId);
-      if (!file || file.isDeleted || file.isEncrypted) {
+      if (!file || file.isDeleted) {
         return res.status(404).json({ message: "Ficheiro não encontrado" });
       }
 
@@ -1334,14 +1353,19 @@ export async function registerRoutes(
       }
 
       const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      const originalMimeType = file.originalMimeType || file.tipoMime;
+      const originalSize = file.originalSize || file.tamanho;
       
       // Add CORS headers for canvas access
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.setHeader("Content-Type", file.tipoMime);
-      res.setHeader("Content-Length", file.tamanho.toString());
+      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : originalMimeType);
+      res.setHeader("Content-Length", fileBuffer.length.toString());
       res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("X-Is-Encrypted", file.isEncrypted ? "true" : "false");
+      res.setHeader("X-Original-Mime-Type", originalMimeType);
+      res.setHeader("X-Original-Size", originalSize.toString());
       res.send(fileBuffer);
     } catch (error) {
       console.error("Public file stream error:", error);
@@ -1353,7 +1377,7 @@ export async function registerRoutes(
   app.get("/api/public/file/:fileId/download", async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.fileId);
-      if (!file || file.isDeleted || file.isEncrypted) {
+      if (!file || file.isDeleted) {
         return res.status(404).json({ message: "Ficheiro não encontrado" });
       }
 
@@ -1373,14 +1397,59 @@ export async function registerRoutes(
       }
 
       const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      const originalMimeType = file.originalMimeType || file.tipoMime;
       
-      res.setHeader("Content-Type", file.tipoMime);
+      // For encrypted files, include headers to inform client
+      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : originalMimeType);
       res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(file.nome)}"`);
-      res.setHeader("Content-Length", file.tamanho.toString());
+      res.setHeader("Content-Length", fileBuffer.length.toString());
+      res.setHeader("X-Is-Encrypted", file.isEncrypted ? "true" : "false");
+      res.setHeader("X-Original-Mime-Type", originalMimeType);
+      res.setHeader("X-Original-Size", (file.originalSize || file.tamanho).toString());
       res.send(fileBuffer);
     } catch (error) {
       console.error("Public file download error:", error);
       res.status(500).json({ message: "Erro ao baixar ficheiro" });
+    }
+  });
+
+  // Content endpoint for public files (serves raw data for client-side decryption)
+  app.get("/api/public/file/:fileId/content", async (req: Request, res: Response) => {
+    try {
+      const file = await storage.getFile(req.params.fileId);
+      if (!file || file.isDeleted) {
+        return res.status(404).json({ message: "Ficheiro não encontrado" });
+      }
+
+      // Verify the file is in a public folder
+      if (!file.folderId) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      const folder = await storage.getFolder(file.folderId);
+      if (!folder || !folder.isPublic) {
+        return res.status(403).json({ message: "Ficheiro não está numa pasta pública" });
+      }
+
+      // Download file from Telegram
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return res.status(404).json({ message: "Ficheiro não disponível" });
+      }
+
+      const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      const originalMimeType = file.originalMimeType || file.tipoMime;
+      
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Expose-Headers", "X-Is-Encrypted, X-Original-Mime-Type, X-Original-Size");
+      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : originalMimeType);
+      res.setHeader("Content-Length", fileBuffer.length.toString());
+      res.setHeader("X-Is-Encrypted", file.isEncrypted ? "true" : "false");
+      res.setHeader("X-Original-Mime-Type", originalMimeType);
+      res.setHeader("X-Original-Size", (file.originalSize || file.tamanho).toString());
+      res.send(fileBuffer);
+    } catch (error) {
+      console.error("Public file content error:", error);
+      res.status(500).json({ message: "Erro ao obter conteúdo do ficheiro" });
     }
   });
 
