@@ -1414,6 +1414,7 @@ export async function registerRoutes(
   });
 
   // Stream file from public folder (for video thumbnails with CORS support)
+  // Supports Range requests for mobile video playback (iOS/Safari)
   app.get("/api/public/file/:fileId/stream", async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.fileId);
@@ -1439,18 +1440,48 @@ export async function registerRoutes(
       const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
       const originalMimeType = file.originalMimeType || file.tipoMime;
       const originalSize = file.originalSize || file.tamanho;
+      const fileSize = fileBuffer.length;
       
-      // Add CORS headers for canvas access
+      // Handle Range requests for video seeking (critical for mobile)
+      const range = req.headers.range;
+      
+      // Set common headers
       res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Range");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length");
       res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : originalMimeType);
-      res.setHeader("Content-Length", fileBuffer.length.toString());
       res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Content-Type", file.isEncrypted ? "application/octet-stream" : originalMimeType);
       res.setHeader("X-Is-Encrypted", file.isEncrypted ? "true" : "false");
       res.setHeader("X-Original-Mime-Type", originalMimeType);
       res.setHeader("X-Original-Size", originalSize.toString());
-      res.send(fileBuffer);
+      
+      if (range) {
+        // Parse Range header
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        
+        // Validate range
+        if (start >= fileSize || end >= fileSize || start > end) {
+          res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
+          return res.end();
+        }
+        
+        const chunkSize = end - start + 1;
+        const chunk = fileBuffer.slice(start, end + 1);
+        
+        res.status(206);
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader("Content-Length", chunkSize.toString());
+        res.send(chunk);
+      } else {
+        // Full file response
+        res.setHeader("Content-Length", fileSize.toString());
+        res.send(fileBuffer);
+      }
     } catch (error) {
       console.error("Public file stream error:", error);
       res.status(500).json({ message: "Erro ao transmitir ficheiro" });
@@ -2315,6 +2346,7 @@ export async function registerRoutes(
   });
 
   // Proxy media stream for CORS-safe thumbnail generation and preview
+  // Supports Range requests for mobile video playback (iOS/Safari)
   app.get("/api/files/:id/stream", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
@@ -2339,22 +2371,47 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Este endpoint é apenas para mídia" });
       }
 
-      const downloadUrl = await telegramService.getDownloadUrl(
-        file.telegramFileId,
-        file.telegramBotId
-      );
-
-      const response = await fetch(downloadUrl);
-      if (!response.ok) {
-        return res.status(500).json({ message: "Erro ao buscar ficheiro" });
-      }
-
-      res.setHeader("Content-Type", mimeType);
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      // Download the file content
+      const fileBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+      const fileSize = fileBuffer.length;
       
-      const arrayBuffer = await response.arrayBuffer();
-      res.send(Buffer.from(arrayBuffer));
+      // Handle Range requests for video seeking (critical for mobile)
+      const range = req.headers.range;
+      
+      // Set common headers
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+      res.setHeader("Access-Control-Allow-Headers", "Range");
+      res.setHeader("Access-Control-Expose-Headers", "Content-Range, Accept-Ranges, Content-Length");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Content-Type", mimeType);
+      
+      if (range) {
+        // Parse Range header
+        const parts = range.replace(/bytes=/, "").split("-");
+        const start = parseInt(parts[0], 10);
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        
+        // Validate range
+        if (start >= fileSize || end >= fileSize || start > end) {
+          res.status(416).setHeader("Content-Range", `bytes */${fileSize}`);
+          return res.end();
+        }
+        
+        const chunkSize = end - start + 1;
+        const chunk = fileBuffer.slice(start, end + 1);
+        
+        res.status(206);
+        res.setHeader("Content-Range", `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader("Content-Length", chunkSize.toString());
+        res.send(chunk);
+      } else {
+        // Full file response
+        res.setHeader("Content-Length", fileSize.toString());
+        res.send(fileBuffer);
+      }
     } catch (error) {
       console.error("Stream error:", error);
       res.status(500).json({ message: "Erro ao fazer stream" });
