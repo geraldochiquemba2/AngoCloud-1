@@ -171,6 +171,17 @@ folderRoutes.post('/:id/make-public', async (c) => {
       });
     }
     
+    // Verificar quantos ficheiros estão encriptados
+    const encryptedFilesResult = await db.select({ id: files.id })
+      .from(files)
+      .where(and(
+        eq(files.folderId, folderId),
+        eq(files.isEncrypted, true),
+        eq(files.isDeleted, false)
+      ));
+    
+    const encryptedCount = encryptedFilesResult.length;
+    
     const slug = generateSlug();
     
     // Tornar a pasta pública
@@ -182,19 +193,24 @@ folderRoutes.post('/:id/make-public', async (c) => {
       })
       .where(eq(folders.id, folderId));
     
-    // Descriptografar automaticamente todos os ficheiros da pasta (marcar como não encriptados)
-    const updatedFiles = await db.update(files)
-      .set({ isEncrypted: false })
-      .where(eq(files.folderId, folderId))
-      .returning({ id: files.id });
-    
-    console.log(`[Make Public] Pasta ${folderId}: ${updatedFiles.length} ficheiros marcados como não encriptados`);
+    // Contar ficheiros visíveis (não encriptados e não deletados)
+    const visibleFilesResult = await db.select({ id: files.id })
+      .from(files)
+      .where(and(
+        eq(files.folderId, folderId),
+        eq(files.isEncrypted, false),
+        eq(files.isDeleted, false)
+      ));
     
     return c.json({ 
       message: 'Pasta tornada pública com sucesso',
       slug,
       publicUrl: `/p/${slug}`,
-      filesDecrypted: updatedFiles.length
+      visibleFiles: visibleFilesResult.length,
+      encryptedFiles: encryptedCount,
+      warning: encryptedCount > 0 
+        ? `${encryptedCount} ficheiro(s) encriptado(s) não serão visíveis. Para torná-los públicos, faça download, desencripte e reenvie sem encriptação.`
+        : undefined
     });
   } catch (error) {
     console.error('Make folder public error:', error);
@@ -223,18 +239,7 @@ folderRoutes.post('/:id/make-private', async (c) => {
       })
       .where(eq(folders.id, folderId));
     
-    // Encriptar automaticamente todos os ficheiros da pasta (marcar como encriptados)
-    const updatedFiles = await db.update(files)
-      .set({ isEncrypted: true })
-      .where(eq(files.folderId, folderId))
-      .returning({ id: files.id });
-    
-    console.log(`[Make Private] Pasta ${folderId}: ${updatedFiles.length} ficheiros marcados como encriptados`);
-    
-    return c.json({ 
-      message: 'Pasta tornada privada com sucesso',
-      filesEncrypted: updatedFiles.length
-    });
+    return c.json({ message: 'Pasta tornada privada com sucesso' });
   } catch (error) {
     console.error('Make folder private error:', error);
     return c.json({ message: 'Erro ao tornar pasta privada' }, 500);

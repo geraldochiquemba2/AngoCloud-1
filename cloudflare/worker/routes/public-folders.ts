@@ -160,32 +160,15 @@ publicFolderRoutes.get('/folder/:slug', async (c) => {
 publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
   try {
     const slug = c.req.param('slug');
-    console.log('[Public Folders] Getting contents for slug:', slug);
-    
     const db = createDb(c.env.DATABASE_URL);
 
     const folder = await getFolderBySlugOrId(db, slug);
-    console.log('[Public Folders] Found folder:', folder);
 
     if (!folder) {
-      console.log('[Public Folders] Folder not found for slug:', slug);
       return c.json({ message: 'Pasta não encontrada' }, 404);
     }
 
     const folderId = folder.id;
-    console.log('[Public Folders] Fetching contents for folderId:', folderId);
-
-    // Buscar todos os arquivos da pasta (para debug)
-    const allFilesInFolder = await db.select({
-      id: files.id,
-      nome: files.nome,
-      isDeleted: files.isDeleted,
-      isEncrypted: files.isEncrypted,
-      folderId: files.folderId,
-    }).from(files)
-      .where(eq(files.folderId, folderId));
-    
-    console.log('[Public Folders] All files in folder:', JSON.stringify(allFilesInFolder));
 
     const [filesResult, foldersResult] = await Promise.all([
       db.select({
@@ -209,8 +192,6 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
         .where(eq(folders.parentId, folderId))
         .orderBy(folders.nome)
     ]);
-
-    console.log('[Public Folders] Visible files:', filesResult.length, 'Subfolders:', foldersResult.length);
 
     return c.json({
       files: filesResult,
