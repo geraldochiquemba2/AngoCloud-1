@@ -65,38 +65,40 @@ export default function PublicFolderPage() {
   const generateVideoThumbnail = useCallback((videoUrl: string): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement("video");
-      video.preload = "auto";
+      video.preload = "metadata";
       video.muted = true;
       video.playsInline = true;
-      video.crossOrigin = "anonymous";
       video.setAttribute("webkit-playsinline", "true");
       
-      const timeoutMs = isMobile ? 15000 : 20000;
+      const timeoutMs = isMobile ? 30000 : 45000;
       let resolved = false;
-      let hasTriedDraw = false;
+      let drawAttempts = 0;
+      const maxDrawAttempts = 3;
       
       const timeoutId = setTimeout(() => {
         if (!resolved) {
           resolved = true;
           video.src = "";
+          video.load();
           reject(new Error("Video load timeout"));
         }
       }, timeoutMs);
       
       const drawThumbnail = () => {
-        if (resolved || hasTriedDraw) return;
+        if (resolved) return;
         
         if (video.videoWidth === 0 || video.videoHeight === 0) {
+          drawAttempts++;
+          if (drawAttempts < maxDrawAttempts) {
+            setTimeout(drawThumbnail, 500);
+          }
           return;
         }
         
-        hasTriedDraw = true;
+        resolved = true;
+        clearTimeout(timeoutId);
         
         setTimeout(() => {
-          if (resolved) return;
-          resolved = true;
-          clearTimeout(timeoutId);
-          
           try {
             const canvas = document.createElement("canvas");
             const maxWidth = isMobile ? 200 : 320;
@@ -112,32 +114,47 @@ export default function PublicFolderPage() {
               const quality = isMobile ? 0.7 : 0.8;
               const thumbnailUrl = canvas.toDataURL("image/jpeg", quality);
               video.src = "";
+              video.load();
               resolve(thumbnailUrl);
             } else {
+              video.src = "";
+              video.load();
               reject(new Error("Could not get canvas context"));
             }
           } catch (err) {
+            video.src = "";
+            video.load();
             reject(err);
           }
-        }, 100);
+        }, 150);
       };
       
       video.onloadedmetadata = () => {
         try {
-          const seekTime = Math.min(0.5, video.duration * 0.05);
-          video.currentTime = seekTime;
+          if (video.duration > 0) {
+            const seekTime = Math.min(1, video.duration * 0.1);
+            video.currentTime = seekTime;
+          }
         } catch (err) {
           console.error("Error seeking:", err);
+          drawThumbnail();
         }
       };
       
       video.onseeked = drawThumbnail;
-      video.onloadeddata = drawThumbnail;
+      video.onloadeddata = () => {
+        setTimeout(drawThumbnail, 200);
+      };
+      video.oncanplay = () => {
+        setTimeout(drawThumbnail, 100);
+      };
       
       video.onerror = (e) => {
         if (!resolved) {
           resolved = true;
           clearTimeout(timeoutId);
+          video.src = "";
+          video.load();
           reject(new Error("Video load error"));
         }
       };
@@ -147,11 +164,22 @@ export default function PublicFolderPage() {
     });
   }, [isMobile]);
 
+  const isVideoFile = useCallback((file: PublicFile) => {
+    const mimeType = file.originalMimeType || file.tipoMime;
+    return mimeType.startsWith("video/") || 
+           mimeType === "application/octet-stream" && file.nome.toLowerCase().match(/\.(mov|mp4|webm|avi|mkv|m4v|wmv|flv)$/);
+  }, []);
+
+  const isImageFile = useCallback((file: PublicFile) => {
+    const mimeType = file.originalMimeType || file.tipoMime;
+    return mimeType.startsWith("image/");
+  }, []);
+
   // Load thumbnails for media files
   useEffect(() => {
     if (files.length > 0) {
-      const imageFiles = files.filter(f => f.tipoMime.startsWith("image/"));
-      const videoFiles = files.filter(f => f.tipoMime.startsWith("video/"));
+      const imageFiles = files.filter(f => isImageFile(f));
+      const videoFiles = files.filter(f => isVideoFile(f));
       
       thumbnailQueueRef.current = imageFiles;
       videoThumbnailQueueRef.current = videoFiles;
@@ -159,7 +187,7 @@ export default function PublicFolderPage() {
       processNextThumbnail();
       processNextVideoThumbnail();
     }
-  }, [files]);
+  }, [files, isImageFile, isVideoFile]);
 
   const processNextVideoThumbnail = useCallback(async () => {
     if (isProcessingVideoRef.current || videoThumbnailQueueRef.current.length === 0) return;
@@ -519,8 +547,8 @@ export default function PublicFolderPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {files.map((file) => {
                   const mimeType = file.originalMimeType || file.tipoMime;
-                  const isImage = mimeType.startsWith("image/");
-                  const isVideo = mimeType.startsWith("video/");
+                  const isImage = isImageFile(file);
+                  const isVideo = isVideoFile(file);
                   const isAudio = mimeType.startsWith("audio/");
                   const isMedia = isImage || isVideo || isAudio;
                   const thumbnail = thumbnails[file.id];
