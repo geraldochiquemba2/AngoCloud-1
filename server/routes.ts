@@ -2314,7 +2314,7 @@ export async function registerRoutes(
     }
   });
 
-  // Proxy video stream for CORS-safe thumbnail generation
+  // Proxy media stream for CORS-safe thumbnail generation and preview
   app.get("/api/files/:id/stream", requireAuth, async (req: Request, res: Response) => {
     try {
       const file = await storage.getFile(req.params.id);
@@ -2332,8 +2332,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Arquivo não disponível" });
       }
 
-      if (!file.tipoMime.startsWith("video/")) {
-        return res.status(400).json({ message: "Este endpoint é apenas para vídeos" });
+      const mimeType = file.originalMimeType || file.tipoMime;
+      
+      // Accept both video and image files for streaming
+      if (!mimeType.startsWith("video/") && !mimeType.startsWith("image/") && !mimeType.startsWith("audio/")) {
+        return res.status(400).json({ message: "Este endpoint é apenas para mídia" });
       }
 
       const downloadUrl = await telegramService.getDownloadUrl(
@@ -2343,10 +2346,10 @@ export async function registerRoutes(
 
       const response = await fetch(downloadUrl);
       if (!response.ok) {
-        return res.status(500).json({ message: "Erro ao buscar vídeo" });
+        return res.status(500).json({ message: "Erro ao buscar ficheiro" });
       }
 
-      res.setHeader("Content-Type", file.tipoMime);
+      res.setHeader("Content-Type", mimeType);
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Cache-Control", "public, max-age=3600");
       

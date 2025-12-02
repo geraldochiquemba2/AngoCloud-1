@@ -269,6 +269,7 @@ publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
       nome: files.nome,
       tamanho: files.tamanho,
       tipoMime: files.tipoMime,
+      originalMimeType: files.originalMimeType,
       telegramFileId: files.telegramFileId,
       telegramBotId: files.telegramBotId,
       isEncrypted: files.isEncrypted,
@@ -301,13 +302,14 @@ publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
     
     const telegram = new TelegramService(c.env);
     const fileBuffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    const mimeType = file.originalMimeType || file.tipoMime;
     
     return new Response(fileBuffer, {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
         'Cross-Origin-Resource-Policy': 'cross-origin',
-        'Content-Type': file.tipoMime,
+        'Content-Type': mimeType,
         'Content-Length': file.tamanho.toString(),
         'Cache-Control': 'public, max-age=3600',
       }

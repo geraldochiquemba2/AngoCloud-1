@@ -833,8 +833,11 @@ fileRoutes.get('/:id/stream', async (c) => {
       return c.json({ message: 'Arquivo não disponível' }, 404);
     }
     
-    if (!file.tipoMime.startsWith('video/')) {
-      return c.json({ message: 'Este endpoint é apenas para vídeos' }, 400);
+    const mimeType = file.originalMimeType || file.tipoMime;
+    
+    // Accept video, image and audio files for streaming
+    if (!mimeType.startsWith('video/') && !mimeType.startsWith('image/') && !mimeType.startsWith('audio/')) {
+      return c.json({ message: 'Este endpoint é apenas para mídia' }, 400);
     }
     
     const telegramService = new TelegramService(c.env);
@@ -842,13 +845,13 @@ fileRoutes.get('/:id/stream', async (c) => {
     
     const response = await fetch(downloadUrl);
     if (!response.ok) {
-      return c.json({ message: 'Erro ao buscar vídeo' }, 500);
+      return c.json({ message: 'Erro ao buscar ficheiro' }, 500);
     }
     
     const arrayBuffer = await response.arrayBuffer();
     return new Response(arrayBuffer, {
       headers: {
-        'Content-Type': file.tipoMime,
+        'Content-Type': mimeType,
         'Access-Control-Allow-Origin': '*',
         'Cache-Control': 'public, max-age=3600'
       }
