@@ -1081,6 +1081,85 @@ fileRoutes.delete('/upload-session/:sessionId', async (c) => {
   }
 });
 
+fileRoutes.post('/:id/reprocess', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    const formData = await c.req.formData();
+    
+    const file = formData.get('file') as File;
+    if (!file) {
+      return c.json({ message: 'Nenhum arquivo enviado' }, 400);
+    }
+    
+    const isEncrypted = formData.get('isEncrypted') === 'true';
+    const originalMimeType = formData.get('originalMimeType') as string;
+    const originalSize = formData.get('originalSize') 
+      ? parseInt(formData.get('originalSize') as string, 10) 
+      : file.size;
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [existingFile] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!existingFile || existingFile.userId !== user.id) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (!telegram.isAvailable()) {
+      return c.json({ 
+        message: 'Serviço de armazenamento temporariamente indisponível.'
+      }, 503);
+    }
+    
+    const fileBuffer = await file.arrayBuffer();
+    const uploadResult = await telegram.uploadLargeFile(fileBuffer, existingFile.nome);
+    
+    const mainFileId = uploadResult.chunks[0].fileId;
+    const mainBotId = uploadResult.chunks[0].botId;
+    
+    if (existingFile.isChunked && existingFile.totalChunks > 1) {
+      await db.delete(fileChunks).where(eq(fileChunks.fileId, fileId));
+    }
+    
+    await db.update(files)
+      .set({
+        telegramFileId: mainFileId,
+        telegramBotId: mainBotId,
+        isEncrypted,
+        tipoMime: isEncrypted ? 'application/octet-stream' : originalMimeType,
+        originalMimeType,
+        originalSize,
+        tamanho: file.size,
+        isChunked: uploadResult.isChunked,
+        totalChunks: uploadResult.chunks.length,
+      })
+      .where(eq(files.id, fileId));
+    
+    if (uploadResult.isChunked && uploadResult.chunks.length > 1) {
+      const chunksData = uploadResult.chunks.map(chunk => ({
+        fileId: fileId,
+        chunkIndex: chunk.chunkIndex,
+        telegramFileId: chunk.fileId,
+        telegramBotId: chunk.botId,
+        chunkSize: chunk.chunkSize,
+      }));
+      await db.insert(fileChunks).values(chunksData);
+    }
+    
+    const [updatedFile] = await db.select().from(files).where(eq(files.id, fileId));
+    
+    return c.json({
+      message: 'Ficheiro reprocessado com sucesso',
+      file: updatedFile,
+    });
+  } catch (error) {
+    console.error('Reprocess file error:', error);
+    return c.json({ message: 'Erro ao reprocessar ficheiro' }, 500);
+  }
+});
+
 fileRoutes.get('/:id/shares', async (c) => {
   try {
     const user = c.get('user') as JWTPayload;

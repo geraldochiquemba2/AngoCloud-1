@@ -18,6 +18,7 @@ import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
 import { 
   encryptFile, 
+  encryptBuffer,
   decryptBuffer, 
   getActiveEncryptionKey,
   createDownloadUrl,
@@ -203,6 +204,8 @@ export default function Dashboard() {
   const [publicFolderLoading, setPublicFolderLoading] = useState(false);
   const [publicFolderLink, setPublicFolderLink] = useState<string | null>(null);
   const [publicLinkCopied, setPublicLinkCopied] = useState(false);
+  const [processingFiles, setProcessingFiles] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0, fileName: "" });
   
   // Upgrade requests tracking
   const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; requestedExtraGB?: number; totalPrice?: number; adminNote?: string; currentPlan: string}>>([]);
@@ -565,6 +568,62 @@ export default function Dashboard() {
     
     setPublicFolderLoading(true);
     try {
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      const filesResponse = await apiFetch(`/api/files?folderId=${publicFolderTarget.id}`);
+      if (!filesResponse.ok) {
+        toast.error("Erro ao buscar ficheiros da pasta");
+        return;
+      }
+      
+      const folderFiles: FileItem[] = await filesResponse.json();
+      const encryptedFiles = folderFiles.filter(f => f.isEncrypted);
+      
+      if (encryptedFiles.length > 0) {
+        if (!encryptionKey) {
+          toast.error("Chave de encriptação não disponível. Faça logout e login novamente.");
+          return;
+        }
+        
+        setProcessingFiles(true);
+        setProcessingProgress({ current: 0, total: encryptedFiles.length, fileName: "" });
+        
+        for (let i = 0; i < encryptedFiles.length; i++) {
+          const file = encryptedFiles[i];
+          setProcessingProgress({ current: i + 1, total: encryptedFiles.length, fileName: file.nome });
+          
+          try {
+            const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
+            if (!downloadResponse.ok) {
+              console.error(`Erro ao baixar ficheiro ${file.nome}`);
+              continue;
+            }
+            
+            const encryptedBuffer = await downloadResponse.arrayBuffer();
+            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+            
+            const formData = new FormData();
+            formData.append('file', new Blob([decryptedBuffer], { type: file.originalMimeType || file.tipoMime }));
+            formData.append('isEncrypted', 'false');
+            formData.append('originalMimeType', file.originalMimeType || file.tipoMime);
+            formData.append('originalSize', String(decryptedBuffer.byteLength));
+            
+            const reprocessResponse = await apiFetch(`/api/files/${file.id}/reprocess`, {
+              method: "POST",
+              body: formData,
+            });
+            
+            if (!reprocessResponse.ok) {
+              console.error(`Erro ao reprocessar ficheiro ${file.nome}`);
+            }
+          } catch (err) {
+            console.error(`Erro ao processar ficheiro ${file.nome}:`, err);
+          }
+        }
+        
+        setProcessingFiles(false);
+      }
+      
       const response = await apiFetch(`/api/folders/${publicFolderTarget.id}/make-public`, {
         method: "POST",
       });
@@ -585,6 +644,7 @@ export default function Dashboard() {
       toast.error("Erro ao tornar pasta pública");
     } finally {
       setPublicFolderLoading(false);
+      setProcessingFiles(false);
     }
   };
 
@@ -593,6 +653,62 @@ export default function Dashboard() {
     
     setPublicFolderLoading(true);
     try {
+      const encryptionKey = await getActiveEncryptionKey();
+      
+      const filesResponse = await apiFetch(`/api/files?folderId=${publicFolderTarget.id}`);
+      if (!filesResponse.ok) {
+        toast.error("Erro ao buscar ficheiros da pasta");
+        return;
+      }
+      
+      const folderFiles: FileItem[] = await filesResponse.json();
+      const unencryptedFiles = folderFiles.filter(f => !f.isEncrypted);
+      
+      if (unencryptedFiles.length > 0) {
+        if (!encryptionKey) {
+          toast.error("Chave de encriptação não disponível. Faça logout e login novamente.");
+          return;
+        }
+        
+        setProcessingFiles(true);
+        setProcessingProgress({ current: 0, total: unencryptedFiles.length, fileName: "" });
+        
+        for (let i = 0; i < unencryptedFiles.length; i++) {
+          const file = unencryptedFiles[i];
+          setProcessingProgress({ current: i + 1, total: unencryptedFiles.length, fileName: file.nome });
+          
+          try {
+            const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
+            if (!downloadResponse.ok) {
+              console.error(`Erro ao baixar ficheiro ${file.nome}`);
+              continue;
+            }
+            
+            const originalBuffer = await downloadResponse.arrayBuffer();
+            const encryptedBuffer = await encryptBuffer(originalBuffer, encryptionKey);
+            
+            const formData = new FormData();
+            formData.append('file', new Blob([encryptedBuffer], { type: 'application/octet-stream' }));
+            formData.append('isEncrypted', 'true');
+            formData.append('originalMimeType', file.originalMimeType || file.tipoMime);
+            formData.append('originalSize', String(originalBuffer.byteLength));
+            
+            const reprocessResponse = await apiFetch(`/api/files/${file.id}/reprocess`, {
+              method: "POST",
+              body: formData,
+            });
+            
+            if (!reprocessResponse.ok) {
+              console.error(`Erro ao reprocessar ficheiro ${file.nome}`);
+            }
+          } catch (err) {
+            console.error(`Erro ao processar ficheiro ${file.nome}:`, err);
+          }
+        }
+        
+        setProcessingFiles(false);
+      }
+      
       const response = await apiFetch(`/api/folders/${publicFolderTarget.id}/make-private`, {
         method: "POST",
       });
@@ -600,7 +716,7 @@ export default function Dashboard() {
       if (response.ok) {
         setPublicFolderLink(null);
         setPublicFolderTarget({ ...publicFolderTarget, isPublic: false, publicSlug: null });
-        toast.success("Pasta tornada privada");
+        toast.success("Pasta tornada privada e ficheiros encriptados!");
         setShowPublicFolderModal(false);
         fetchContent();
       } else {
@@ -612,6 +728,7 @@ export default function Dashboard() {
       toast.error("Erro ao tornar pasta privada");
     } finally {
       setPublicFolderLoading(false);
+      setProcessingFiles(false);
     }
   };
 
@@ -4096,7 +4213,7 @@ export default function Dashboard() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => setShowPublicFolderModal(false)}
+            onClick={() => !processingFiles && setShowPublicFolderModal(false)}
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
@@ -4111,12 +4228,14 @@ export default function Dashboard() {
                     <Globe className={`w-5 h-5 ${publicFolderTarget.isPublic ? 'text-green-400' : 'text-purple-400'}`} />
                   </div>
                   <h2 className="text-xl font-bold text-white">
-                    {publicFolderTarget.isPublic ? 'Pasta Pública' : 'Tornar Pasta Pública'}
+                    {processingFiles ? 'A processar ficheiros...' : publicFolderTarget.isPublic ? 'Pasta Pública' : 'Tornar Pasta Pública'}
                   </h2>
                 </div>
-                <button onClick={() => setShowPublicFolderModal(false)} className="text-white/50 hover:text-white">
-                  <X className="w-5 h-5" />
-                </button>
+                {!processingFiles && (
+                  <button onClick={() => setShowPublicFolderModal(false)} className="text-white/50 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
               </div>
               
               <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10">
@@ -4127,7 +4246,30 @@ export default function Dashboard() {
                 </p>
               </div>
 
-              {!publicFolderTarget.isPublic ? (
+              {processingFiles ? (
+                <div className="py-8">
+                  <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+                    <div className="text-center">
+                      <p className="text-white font-medium mb-1">
+                        A processar ficheiros...
+                      </p>
+                      <p className="text-white/70 text-sm">
+                        {processingProgress.current} de {processingProgress.total}
+                      </p>
+                      <p className="text-white/50 text-xs mt-2 truncate max-w-xs">
+                        {processingProgress.fileName}
+                      </p>
+                    </div>
+                    <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-purple-500 transition-all duration-300"
+                        style={{ width: `${(processingProgress.current / processingProgress.total) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : !publicFolderTarget.isPublic ? (
                 <>
                   <div className="mb-6 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <h3 className="text-purple-300 font-medium mb-2 flex items-center gap-2">
@@ -4145,7 +4287,7 @@ export default function Dashboard() {
                       </li>
                       <li className="flex items-start gap-2">
                         <Lock className="w-3 h-3 mt-1 text-purple-400 flex-shrink-0" />
-                        Ficheiros encriptados NÃO são incluídos
+                        Ficheiros encriptados serão automaticamente desencriptados
                       </li>
                     </ul>
                   </div>
@@ -4238,7 +4380,7 @@ export default function Dashboard() {
                       Tornar Privada
                     </button>
                     <p className="text-white/40 text-xs text-center mt-2">
-                      Isto irá remover o acesso público imediatamente
+                      Os ficheiros serão encriptados e a pasta ficará indisponível publicamente
                     </p>
                   </div>
                 </>
