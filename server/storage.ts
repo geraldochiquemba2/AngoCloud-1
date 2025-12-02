@@ -56,6 +56,7 @@ export interface IStorage {
   getFilesByFolder(folderId: string | null, userId: string): Promise<File[]>;
   getTrashFiles(userId: string): Promise<File[]>;
   createFile(file: InsertFile): Promise<File>;
+  updateFile(id: string, updates: Partial<Omit<File, "id" | "userId" | "createdAt">>): Promise<void>;
   deleteFile(id: string): Promise<void>;
   moveToTrash(id: string): Promise<void>;
   restoreFromTrash(id: string): Promise<void>;
@@ -262,6 +263,10 @@ export class DatabaseStorage implements IStorage {
   async createFile(file: InsertFile): Promise<File> {
     const [newFile] = await db.insert(files).values(file).returning();
     return newFile;
+  }
+
+  async updateFile(id: string, updates: Partial<Omit<File, "id" | "userId" | "createdAt">>): Promise<void> {
+    await db.update(files).set(updates).where(eq(files.id, id));
   }
 
   async deleteFile(id: string): Promise<void> {
@@ -818,6 +823,19 @@ export class DatabaseStorage implements IStorage {
 
     if (folder.isPublic && folder.publicSlug) {
       return { slug: folder.publicSlug };
+    }
+
+    const encryptedFiles = await db
+      .select()
+      .from(files)
+      .where(and(
+        eq(files.folderId, folderId),
+        eq(files.isDeleted, false),
+        eq(files.isEncrypted, true)
+      ));
+
+    if (encryptedFiles.length > 0) {
+      throw new Error(`Esta pasta contém ${encryptedFiles.length} ficheiro(s) encriptado(s). Por favor, reprocesse-os antes de tornar a pasta pública.`);
     }
 
     const slug = this.generatePublicSlug();

@@ -1088,6 +1088,90 @@ export async function registerRoutes(
     }
   });
 
+  // Reprocess file (decrypt and re-upload without encryption for public folders)
+  app.post("/api/files/:id/reprocess", requireAuth, upload.single("file"), async (req: Request, res: Response) => {
+    req.setTimeout(1800000);
+    res.setTimeout(1800000);
+    
+    try {
+      const file = await storage.getFile(req.params.id);
+      if (!file || file.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Arquivo não encontrado" });
+      }
+
+      if (!file.isEncrypted) {
+        return res.status(400).json({ message: "O ficheiro não está encriptado" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Ficheiro desencriptado não fornecido" });
+      }
+
+      if (!telegramService.isAvailable()) {
+        return res.status(500).json({ message: "Serviço de armazenamento indisponível" });
+      }
+
+      const trustedMimeType = file.originalMimeType || req.file.mimetype;
+      const trustedSize = req.file.size;
+
+      const oldTelegramFileId = file.telegramFileId;
+      const oldTelegramBotId = file.telegramBotId;
+      const oldStoredSize = file.tamanho;
+
+      const telegramResult = await telegramService.uploadFile(
+        req.file.buffer,
+        file.nome
+      );
+
+      try {
+        await storage.updateFile(file.id, {
+          telegramFileId: telegramResult.fileId,
+          telegramBotId: telegramResult.botId,
+          tamanho: trustedSize,
+          tipoMime: trustedMimeType,
+          originalMimeType: trustedMimeType,
+          originalSize: trustedSize,
+          isEncrypted: false,
+        });
+
+        const sizeDiff = trustedSize - oldStoredSize;
+        if (sizeDiff !== 0) {
+          await storage.updateUserStorage(req.user!.id, sizeDiff);
+        }
+
+        if (oldTelegramFileId && oldTelegramBotId) {
+          try {
+            await telegramService.deleteFile(oldTelegramFileId, oldTelegramBotId);
+          } catch (deleteError) {
+            console.warn(`Não foi possível eliminar ficheiro antigo do Telegram: ${oldTelegramFileId}`);
+          }
+        }
+
+        res.json({ 
+          message: "Ficheiro reprocessado com sucesso",
+          file: {
+            id: file.id,
+            nome: file.nome,
+            isEncrypted: false,
+            tamanho: trustedSize,
+            tipoMime: trustedMimeType,
+          }
+        });
+      } catch (dbError) {
+        console.error("Erro ao atualizar base de dados após upload:", dbError);
+        try {
+          await telegramService.deleteFile(telegramResult.fileId, telegramResult.botId);
+        } catch (cleanupError) {
+          console.warn("Não foi possível limpar ficheiro novo após erro de DB");
+        }
+        throw dbError;
+      }
+    } catch (error) {
+      console.error("Erro ao reprocessar ficheiro:", error);
+      res.status(500).json({ message: "Erro ao reprocessar ficheiro" });
+    }
+  });
+
   // ========== FOLDERS ROUTES ==========
 
   // Get all folders for current user
