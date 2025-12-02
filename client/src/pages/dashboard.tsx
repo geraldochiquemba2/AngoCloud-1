@@ -1058,6 +1058,14 @@ export default function Dashboard() {
     try {
       const metaResponse = await apiFetch(`/api/files/${file.id}/download-data`);
       if (!metaResponse.ok) {
+        console.warn(`Failed to fetch metadata for ${file.id}, trying direct stream...`);
+        // Fallback: try to load directly from stream endpoint
+        const mimeType = file.tipoMime;
+        if (mimeType.startsWith("image/") || mimeType.startsWith("video/")) {
+          setPreviewUrl(`/api/files/${file.id}/stream`);
+          setPreviewLoading(false);
+          return;
+        }
         throw new Error("Could not fetch file data");
       }
       
