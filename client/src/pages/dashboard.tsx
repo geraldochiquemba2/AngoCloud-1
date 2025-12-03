@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { toast } from "sonner";
 import dashboardBgImage from "@/assets/pexels-steve-29586678_1764345410863.jpg";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -89,8 +90,9 @@ type ViewMode = "files" | "trash" | "shared";
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
-  const { user, logout, refreshUser, needsEncryptionSetup, enableEncryption, hasEncryptionKey, loading: authLoading } = useAuth();
+  const { user, logout, refreshUser, revalidateSession, needsEncryptionSetup, enableEncryption, hasEncryptionKey, loading: authLoading } = useAuth();
   const isMobile = useIsMobile();
+  const [isRefreshingFromVisibility, setIsRefreshingFromVisibility] = useState(false);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -221,6 +223,73 @@ export default function Dashboard() {
 
   // WebSocket for real-time updates (production only)
   const { on: wsOn } = useWebSocket(user?.id, user?.isAdmin);
+
+  // Refs for thumbnail queue management (moved up to be accessible in visibility handler)
+  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
+  const loadingCountRef = useRef(0);
+  const generationRef = useRef(0);
+  
+  // Refs to hold stable references to async functions for visibility handler
+  const fetchContentRef = useRef<(() => Promise<void>) | null>(null);
+  const fetchSharedContentRef = useRef<(() => Promise<void>) | null>(null);
+  const viewModeRef = useRef(viewMode);
+  const userRef = useRef(user);
+  const isRefreshingRef = useRef(isRefreshingFromVisibility);
+
+  // Keep refs in sync with current values
+  useEffect(() => {
+    viewModeRef.current = viewMode;
+  }, [viewMode]);
+  
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+  
+  useEffect(() => {
+    isRefreshingRef.current = isRefreshingFromVisibility;
+  }, [isRefreshingFromVisibility]);
+
+  // Handle page visibility changes (when user comes back to the page after some time)
+  const handlePageVisible = useCallback(async () => {
+    if (!userRef.current || isRefreshingRef.current) return;
+    
+    setIsRefreshingFromVisibility(true);
+    console.log("[Dashboard] Page became visible, revalidating session and refreshing content...");
+    
+    try {
+      const isSessionValid = await revalidateSession();
+      
+      if (!isSessionValid) {
+        console.log("[Dashboard] Session expired, redirecting to login");
+        toast.error("Sessão expirada. Por favor, faça login novamente.");
+        navigate("/login?expired=true");
+        return;
+      }
+      
+      setFileThumbnails({});
+      setLoadingThumbnails(new Set());
+      setFailedThumbnails(new Set());
+      thumbnailQueueRef.current = [];
+      loadingCountRef.current = 0;
+      generationRef.current++;
+      
+      if (fetchContentRef.current) {
+        await fetchContentRef.current();
+      }
+      
+      toast.success("Conteúdo actualizado");
+      console.log("[Dashboard] Content refreshed successfully after visibility change");
+    } catch (err) {
+      console.error("[Dashboard] Error refreshing after visibility change:", err);
+    } finally {
+      setIsRefreshingFromVisibility(false);
+    }
+  }, [revalidateSession, navigate]);
+
+  usePageVisibility({
+    onVisible: handlePageVisible,
+    minHiddenDuration: 60000,
+  });
 
   // WebSocket event listeners for real-time updates
   useEffect(() => {
@@ -815,6 +884,15 @@ export default function Dashboard() {
     }
   };
 
+  // Keep refs updated with latest function references for visibility handler
+  useEffect(() => {
+    fetchContentRef.current = fetchContent;
+  });
+  
+  useEffect(() => {
+    fetchSharedContentRef.current = fetchSharedContent;
+  });
+
   const fetchAllFolders = async () => {
     try {
       const response = await apiFetch("/api/folders");
@@ -1017,9 +1095,6 @@ export default function Dashboard() {
       : file.tipoMime;
   };
 
-  const thumbnailQueueRef = useRef<Array<{id: string, mimeType: string}>>([]);
-  const loadingCountRef = useRef(0);
-  const generationRef = useRef(0);
   const MAX_CONCURRENT_LOADS = isMobile ? 2 : 4;
 
   useEffect(() => {

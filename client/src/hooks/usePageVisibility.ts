@@ -38,6 +38,24 @@ export function usePageVisibility(options: UsePageVisibilityOptions = {}): UsePa
   }, []);
 
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let lastTriggerTime = 0;
+    const DEBOUNCE_MS = 1000;
+
+    const triggerOnVisible = (hiddenDuration: number, source: string) => {
+      const now = Date.now();
+      if (now - lastTriggerTime < DEBOUNCE_MS) {
+        console.log(`[PageVisibility] Debouncing duplicate trigger from ${source}`);
+        return;
+      }
+      lastTriggerTime = now;
+      
+      console.log(`[PageVisibility] ${source} after ${Math.round(hiddenDuration / 1000)}s, triggering refresh`);
+      if (onVisibleRef.current) {
+        onVisibleRef.current();
+      }
+    };
+
     const handleVisibilityChange = () => {
       const nowHidden = document.hidden;
       
@@ -58,21 +76,27 @@ export function usePageVisibility(options: UsePageVisibilityOptions = {}): UsePa
         hiddenAtRef.current = null;
 
         if (hiddenDuration >= minHiddenDurationRef.current) {
-          console.log(`[PageVisibility] Page was hidden for ${Math.round(hiddenDuration / 1000)}s, triggering refresh`);
-          if (onVisibleRef.current) {
-            onVisibleRef.current();
-          }
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            triggerOnVisible(hiddenDuration, "Page became visible");
+          }, 100);
         }
       }
     };
 
     const handlePageShow = (event: PageTransitionEvent) => {
-      if (event.persisted) {
-        console.log("[PageVisibility] Page restored from bfcache, triggering refresh");
+      if (event.persisted && hiddenAtRef.current) {
+        const hiddenDuration = Date.now() - hiddenAtRef.current;
+        
         setIsVisible(true);
         setLastVisibleTime(Date.now());
-        if (onVisibleRef.current) {
-          onVisibleRef.current();
+        hiddenAtRef.current = null;
+        
+        if (hiddenDuration >= minHiddenDurationRef.current) {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            triggerOnVisible(hiddenDuration, "Page restored from bfcache");
+          }, 100);
         }
       }
     };
@@ -81,12 +105,13 @@ export function usePageVisibility(options: UsePageVisibilityOptions = {}): UsePa
       if (hiddenAtRef.current) {
         const hiddenDuration = Date.now() - hiddenAtRef.current;
         if (hiddenDuration >= minHiddenDurationRef.current) {
-          console.log(`[PageVisibility] Window focused after ${Math.round(hiddenDuration / 1000)}s, triggering refresh`);
           setWasHiddenFor(hiddenDuration);
           hiddenAtRef.current = null;
-          if (onVisibleRef.current) {
-            onVisibleRef.current();
-          }
+          
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            triggerOnVisible(hiddenDuration, "Window focused");
+          }, 100);
         }
       }
     };
@@ -96,6 +121,7 @@ export function usePageVisibility(options: UsePageVisibilityOptions = {}): UsePa
     window.addEventListener("focus", handleFocus);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("pageshow", handlePageShow);
       window.removeEventListener("focus", handleFocus);
