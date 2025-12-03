@@ -3153,6 +3153,19 @@ export default function Dashboard() {
             className="bg-white/5 p-6 rounded-2xl border border-white/20 min-h-[400px]"
             style={{ willChange: 'auto', contain: 'layout' }}
           >
+            {/* Upload Button */}
+            {viewMode === "files" && (
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg"
+                  data-testid="button-upload-grid"
+                >
+                  <Upload className="w-4 h-4" />
+                  Enviar
+                </button>
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
