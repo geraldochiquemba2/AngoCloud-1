@@ -3155,7 +3155,7 @@ export default function Dashboard() {
           >
             {/* Upload Button */}
             {viewMode === "files" && (
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-center mb-4">
                 <button
                   onClick={() => setShowUploadModal(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg"
