@@ -501,8 +501,45 @@ fileRoutes.get('/:id/download', async (c) => {
     const db = createDb(c.env.DATABASE_URL);
     
     const [file] = await db.select().from(files).where(eq(files.id, fileId));
-    if (!file || file.userId !== user.id) {
+    if (!file) {
       return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta (com herança)
+    const isOwner = file.userId === user.id;
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
+    }
+    
+    if (!hasAccess) {
+      // Verificar permissão direta no arquivo
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
     }
     
     if (!file.telegramFileId || !file.telegramBotId) {
@@ -580,19 +617,31 @@ fileRoutes.get('/:id/download-data', async (c) => {
     
     const isOwner = file.userId === user.id;
     
-    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta (com herança)
     let hasAccess = isOwner;
+    let foundFolderPerm: typeof folderPermissions.$inferSelect | null = null;
     
     if (!hasAccess && file.folderId) {
-      // Verificar permissão na pasta
-      const [folderPerm] = await db.select().from(folderPermissions)
-        .where(and(
-          eq(folderPermissions.folderId, file.folderId),
-          eq(folderPermissions.userId, user.id)
-        ));
-      hasAccess = !!folderPerm;
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          foundFolderPerm = folderPerm;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
     }
     
+    let foundFilePerm: typeof filePermissions.$inferSelect | null = null;
     if (!hasAccess) {
       // Verificar permissão direta no arquivo
       const [filePerm] = await db.select().from(filePermissions)
@@ -600,7 +649,10 @@ fileRoutes.get('/:id/download-data', async (c) => {
           eq(filePermissions.fileId, fileId),
           eq(filePermissions.userId, user.id)
         ));
-      hasAccess = !!filePerm;
+      if (filePerm) {
+        hasAccess = true;
+        foundFilePerm = filePerm;
+      }
     }
     
     if (!hasAccess) {
@@ -610,23 +662,11 @@ fileRoutes.get('/:id/download-data', async (c) => {
     // Buscar chave de encriptação compartilhada
     let sharedEncryptionKey: string | undefined;
     if (!isOwner) {
-      // Procurar chave nas permissões
-      if (file.folderId) {
-        const [folderPerm] = await db.select().from(folderPermissions)
-          .where(and(
-            eq(folderPermissions.folderId, file.folderId),
-            eq(folderPermissions.userId, user.id)
-          ));
-        sharedEncryptionKey = folderPerm?.sharedEncryptionKey || undefined;
-      }
-      
-      if (!sharedEncryptionKey) {
-        const [filePerm] = await db.select().from(filePermissions)
-          .where(and(
-            eq(filePermissions.fileId, fileId),
-            eq(filePermissions.userId, user.id)
-          ));
-        sharedEncryptionKey = filePerm?.sharedEncryptionKey || undefined;
+      // Usar permissões já encontradas
+      if (foundFolderPerm?.sharedEncryptionKey) {
+        sharedEncryptionKey = foundFolderPerm.sharedEncryptionKey;
+      } else if (foundFilePerm?.sharedEncryptionKey) {
+        sharedEncryptionKey = foundFilePerm.sharedEncryptionKey;
       }
     }
     
@@ -666,17 +706,26 @@ fileRoutes.get('/:id/content', async (c) => {
     
     const isOwner = file.userId === user.id;
     
-    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta (com herança)
     let hasAccess = isOwner;
     
     if (!hasAccess && file.folderId) {
-      // Verificar permissão na pasta
-      const [folderPerm] = await db.select().from(folderPermissions)
-        .where(and(
-          eq(folderPermissions.folderId, file.folderId),
-          eq(folderPermissions.userId, user.id)
-        ));
-      hasAccess = !!folderPerm;
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
     }
     
     if (!hasAccess) {
@@ -932,13 +981,38 @@ fileRoutes.get('/:id/preview', async (c) => {
       return c.json({ message: 'Arquivo não encontrado' }, 404);
     }
     
-    const hasAccess = file.userId === user.id || 
-      (await db.select().from(filePermissions)
-        .where(and(eq(filePermissions.fileId, fileId), eq(filePermissions.userId, user.id)))
-        .then(r => r.length > 0)) ||
-      (file.folderId && await db.select().from(folderPermissions)
-        .where(and(eq(folderPermissions.folderId, file.folderId), eq(folderPermissions.userId, user.id)))
-        .then(r => r.length > 0));
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta (com herança)
+    const isOwner = file.userId === user.id;
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
+    }
+    
+    if (!hasAccess) {
+      // Verificar permissão direta no arquivo
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
     
     if (!hasAccess) {
       return c.json({ message: 'Acesso negado' }, 403);
@@ -983,13 +1057,38 @@ fileRoutes.get('/:id/stream', async (c) => {
       return c.json({ message: 'Arquivo não encontrado' }, 404);
     }
     
-    const hasAccess = file.userId === user.id || 
-      (await db.select().from(filePermissions)
-        .where(and(eq(filePermissions.fileId, fileId), eq(filePermissions.userId, user.id)))
-        .then(r => r.length > 0)) ||
-      (file.folderId && await db.select().from(folderPermissions)
-        .where(and(eq(folderPermissions.folderId, file.folderId), eq(folderPermissions.userId, user.id)))
-        .then(r => r.length > 0));
+    // Verificar acesso: dono, permissão direta no arquivo, ou permissão na pasta (com herança)
+    const isOwner = file.userId === user.id;
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
+    }
+    
+    if (!hasAccess) {
+      // Verificar permissão direta no arquivo
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
     
     if (!hasAccess) {
       return c.json({ message: 'Acesso negado' }, 403);
@@ -1532,12 +1631,22 @@ fileRoutes.get('/:id/chunks-info', async (c) => {
     let hasAccess = isOwner;
     
     if (!hasAccess && file.folderId) {
-      const [folderPerm] = await db.select().from(folderPermissions)
-        .where(and(
-          eq(folderPermissions.folderId, file.folderId),
-          eq(folderPermissions.userId, user.id)
-        ));
-      hasAccess = !!folderPerm;
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
     }
     
     if (!hasAccess) {
@@ -1608,12 +1717,22 @@ fileRoutes.get('/:id/chunk/:index', async (c) => {
     let hasAccess = isOwner;
     
     if (!hasAccess && file.folderId) {
-      const [folderPerm] = await db.select().from(folderPermissions)
-        .where(and(
-          eq(folderPermissions.folderId, file.folderId),
-          eq(folderPermissions.userId, user.id)
-        ));
-      hasAccess = !!folderPerm;
+      // Verificar permissão na pasta ou em qualquer pasta ancestral
+      let currentFolderId: string | null = file.folderId;
+      while (currentFolderId && !hasAccess) {
+        const [folderPerm] = await db.select().from(folderPermissions)
+          .where(and(
+            eq(folderPermissions.folderId, currentFolderId),
+            eq(folderPermissions.userId, user.id)
+          ));
+        if (folderPerm) {
+          hasAccess = true;
+          break;
+        }
+        // Verificar pasta pai
+        const [parentFolder] = await db.select().from(folders).where(eq(folders.id, currentFolderId));
+        currentFolderId = parentFolder?.parentId || null;
+      }
     }
     
     if (!hasAccess) {
