@@ -2329,7 +2329,6 @@ export default function Dashboard() {
   const downloadFile = async (file: FileItem) => {
     downloadCancelledRef.current = false;
     console.log("📥 Starting download for file:", file.id, file.nome);
-    alert("Download started for: " + file.nome);
     
     try {
       setDownloadProgress({ fileId: file.id, progress: 0, fileName: file.nome });
@@ -2421,21 +2420,27 @@ export default function Dashboard() {
           fileBlob = new Blob(chunkBlobs, { type: data.originalMimeType || chunksInfo.originalMimeType || file.tipoMime });
         }
       } else {
+        console.log("📥 Single file download path (not chunked)");
         setDownloadProgress({ fileId: file.id, progress: 30, fileName: file.nome });
         
         if (data.isEncrypted && encryptionKey) {
+          console.log("📥 Downloading encrypted single file, version:", data.encryptionVersion);
           const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
+          console.log("📥 Content response status:", fileResponse.status);
           if (!fileResponse.ok) {
             throw new Error("Erro ao descarregar ficheiro");
           }
           
           setDownloadProgress({ fileId: file.id, progress: 70, fileName: file.nome });
           const encryptedBuffer = await fileResponse.arrayBuffer();
+          console.log("📥 Encrypted buffer size:", encryptedBuffer.byteLength);
           toast.info("A desencriptar ficheiro...");
           const isV2 = isChunkedEncryption(data.encryptionVersion);
+          console.log("📥 Using V2 decryption:", isV2);
           const decryptedBuffer = isV2
             ? await decryptChunk(encryptedBuffer, encryptionKey)
             : await decryptBuffer(encryptedBuffer, encryptionKey);
+          console.log("📥 Decrypted buffer size:", decryptedBuffer.byteLength);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
           // Use server endpoint instead of direct Telegram URL to avoid CORS issues on Cloudflare Workers
