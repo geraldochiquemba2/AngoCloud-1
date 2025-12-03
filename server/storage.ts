@@ -124,6 +124,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   countUsers(): Promise<number>;
   countFiles(): Promise<number>;
+  getTotalStorageUsed(): Promise<number>;
   updateUserAdmin(userId: string, isAdmin: boolean): Promise<void>;
   incrementUserUploadCount(userId: string): Promise<void>;
   updateUserPlanFull(userId: string, plano: string, uploadLimit: number, storageLimit: number): Promise<void>;
@@ -700,6 +701,11 @@ export class DatabaseStorage implements IStorage {
   async countFiles(): Promise<number> {
     const result = await db.select({ count: sql`count(*)` }).from(files);
     return result[0]?.count ? Number(result[0].count) : 0;
+  }
+
+  async getTotalStorageUsed(): Promise<number> {
+    const result = await db.select({ total: sql`COALESCE(SUM(${files.tamanho}), 0)` }).from(files).where(eq(files.isDeleted, false));
+    return result[0]?.total ? Number(result[0].total) : 0;
   }
 
   async updateUserAdmin(userId: string, isAdmin: boolean): Promise<void> {

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone, FileText, X } from "lucide-react";
+import { Check, Cloud, Server, Lock, HardDrive, Heart, Mail, Phone, FileText, X, Files, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VideoBackground from "@/components/ui/video-background";
 import { useLocation } from "wouter";
@@ -14,12 +14,26 @@ import cubeImage from "@assets/generated_images/3d_abstract_floating_cube.png";
 import heroVideo from "@assets/4354033-hd_1280_720_25fps_1764245575076.mp4";
 import pricingPoster from "@assets/generated_images/pricing_video_first_frame.png";
 
+interface PlatformStats {
+  ficheiros: number;
+  armazenamentoUsado: number;
+}
+
+const formatBytes = (bytes: number): string => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
 export default function Home() {
   const [, navigate] = useLocation();
   const { isLoggedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [videosLoaded, setVideosLoaded] = useState(0);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null);
   const totalVideos = 2;
   const isMobile = useIsMobile();
 
@@ -28,6 +42,27 @@ export default function Home() {
       navigate("/dashboard");
     }
   }, [isLoggedIn, navigate]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/stats");
+        if (response.ok) {
+          const data = await response.json();
+          setPlatformStats({
+            ficheiros: data.ficheiros,
+            armazenamentoUsado: data.armazenamentoUsado
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar estatísticas:", error);
+      }
+    };
+    
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timeout = isMobile ? 2000 : 3000;
@@ -155,7 +190,7 @@ export default function Home() {
               </button>
             </div>
             
-            <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:gap-8 gap-4 text-xs sm:text-sm font-medium text-white/80">
+            <div className="mt-8 md:mt-12 flex flex-wrap sm:gap-6 gap-3 text-xs sm:text-sm font-medium text-white/80">
               <div className="flex items-center gap-2">
                 <Lock className="w-4 h-4 text-white" />
                 <span>Encriptado</span>
@@ -168,6 +203,18 @@ export default function Home() {
                 <Cloud className="w-4 h-4 text-white" />
                 <span>20GB Grátis</span>
               </div>
+              {platformStats && (
+                <>
+                  <div className="flex items-center gap-2 text-green-300">
+                    <Files className="w-4 h-4" />
+                    <span>{platformStats.ficheiros.toLocaleString()} ficheiros</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-300">
+                    <Database className="w-4 h-4" />
+                    <span>{formatBytes(platformStats.armazenamentoUsado)} guardados</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

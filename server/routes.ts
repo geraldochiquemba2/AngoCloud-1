@@ -3252,10 +3252,12 @@ export async function registerRoutes(
     try {
       const usersCount = await storage.countUsers();
       const filesCount = await storage.countFiles();
+      const totalStorageUsed = await storage.getTotalStorageUsed();
       
       res.json({
         utilizadores: usersCount,
         ficheiros: filesCount,
+        armazenamentoUsado: totalStorageUsed,
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
