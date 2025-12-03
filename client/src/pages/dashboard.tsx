@@ -3154,7 +3154,7 @@ export default function Dashboard() {
             style={{ willChange: 'auto', contain: 'layout' }}
           >
             {/* Upload Button */}
-            {(viewMode === "files" || viewMode === "shared") && (
+            {viewMode === "shared" && currentSharedFolderId && (
               <div className="flex justify-center mb-4">
                 <button
                   onClick={() => setShowUploadModal(true)}
