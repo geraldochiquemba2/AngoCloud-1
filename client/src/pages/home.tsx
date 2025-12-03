@@ -204,16 +204,10 @@ export default function Home() {
                 <span>20GB Grátis</span>
               </div>
               {platformStats && (
-                <>
-                  <div className="flex items-center gap-2 text-green-300">
-                    <Files className="w-4 h-4" />
-                    <span>{platformStats.ficheiros.toLocaleString()} ficheiros</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-blue-300">
-                    <Database className="w-4 h-4" />
-                    <span>{formatBytes(platformStats.armazenamentoUsado)} guardados</span>
-                  </div>
-                </>
+                <div className="flex items-center gap-2 text-blue-300">
+                  <Database className="w-4 h-4" />
+                  <span>{formatBytes(platformStats.armazenamentoUsado)} guardados</span>
+                </div>
               )}
             </div>
           </div>
