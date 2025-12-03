@@ -131,6 +131,11 @@ export default function Dashboard() {
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   
+  // Rename folder
+  const [showRenameFolderModal, setShowRenameFolderModal] = useState(false);
+  const [folderToRename, setFolderToRename] = useState<FolderItem | null>(null);
+  const [newFolderRename, setNewFolderRename] = useState("");
+  
   // File actions
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [showFileMenu, setShowFileMenu] = useState<string | null>(null);
@@ -1960,6 +1965,41 @@ export default function Dashboard() {
     }
   };
 
+  const openRenameFolderModal = (folder: FolderItem) => {
+    setFolderToRename(folder);
+    setNewFolderRename(folder.nome);
+    setShowRenameFolderModal(true);
+  };
+
+  const renameFolder = async () => {
+    if (!folderToRename || !newFolderRename.trim()) {
+      toast.error("Nome de pasta inválido");
+      return;
+    }
+    
+    try {
+      const response = await apiFetch(`/api/folders/${folderToRename.id}/rename`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: newFolderRename })
+      });
+      
+      if (response.ok) {
+        toast.success("Pasta renomeada com sucesso");
+        setShowRenameFolderModal(false);
+        setFolderToRename(null);
+        setNewFolderRename("");
+        fetchContent();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Erro ao renomear pasta");
+      }
+    } catch (err) {
+      console.error("Error renaming folder:", err);
+      toast.error("Erro ao renomear pasta");
+    }
+  };
+
   // Mostrar diálogo de confirmação antes de eliminar
   const confirmDeleteFile = (file: FileItem) => {
     setFileToDelete(file);
@@ -3261,8 +3301,17 @@ export default function Dashboard() {
                               <UserPlus className="w-3 h-3" />
                             </button>
                             <button
+                              onClick={(e) => { e.stopPropagation(); openRenameFolderModal(folder); }}
+                              className="p-1 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/40"
+                              title="Renomear"
+                              data-testid={`button-rename-folder-${folder.id}`}
+                            >
+                              <Edit className="w-3 h-3" />
+                            </button>
+                            <button
                               onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}
                               className="p-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/40"
+                              title="Eliminar"
                               data-testid={`button-delete-folder-${folder.id}`}
                             >
                               <Trash2 className="w-3 h-3" />
@@ -4168,6 +4217,63 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Rename Folder Modal */}
+      <AnimatePresence>
+        {showRenameFolderModal && folderToRename && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) { setShowRenameFolderModal(false); setFolderToRename(null); } }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-slate-800 rounded-2xl p-6 w-full max-w-md border border-white/20"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-white">Renomear Pasta</h2>
+                <button onClick={() => { setShowRenameFolderModal(false); setFolderToRename(null); }} className="text-white/50 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <input
+                type="text"
+                value={newFolderRename}
+                onChange={(e) => setNewFolderRename(e.target.value)}
+                placeholder="Novo nome da pasta"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-primary/50 mb-4"
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); renameFolder(); } }}
+                autoFocus
+                data-testid="input-new-folder-name"
+              />
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowRenameFolderModal(false); setFolderToRename(null); }}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+                  data-testid="button-cancel-rename-folder"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => renameFolder()}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/80 transition-colors"
+                  data-testid="button-confirm-rename-folder"
+                >
+                  Renomear
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
       {/* Move Modal */}
       <AnimatePresence>
         {showMoveModal && selectedFile && (
