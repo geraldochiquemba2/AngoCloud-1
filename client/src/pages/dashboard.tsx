@@ -1846,6 +1846,11 @@ export default function Dashboard() {
     let successCount = 0;
     let wasCancelled = false;
     
+    // Determine target folder: use currentSharedFolderId when inside a shared folder
+    const targetFolderId = viewMode === "shared" && currentSharedFolderId 
+      ? currentSharedFolderId 
+      : currentFolderId;
+    
     for (let i = 0; i < filesToUpload.length; i++) {
       if (uploadCancelledRef.current) {
         wasCancelled = true;
@@ -1857,7 +1862,7 @@ export default function Dashboard() {
       setCurrentUploadFile(file.name);
       setUploadProgress(0);
       
-      const result = await uploadSingleFile(file, currentFolderId);
+      const result = await uploadSingleFile(file, targetFolderId);
       
       if (result === "success") {
         successCount++;
@@ -3153,19 +3158,24 @@ export default function Dashboard() {
             className="bg-white/5 p-6 rounded-2xl border border-white/20 min-h-[400px]"
             style={{ willChange: 'auto', contain: 'layout' }}
           >
-            {/* Upload Button */}
-            {viewMode === "shared" && currentSharedFolderId && (
-              <div className="flex justify-center mb-4">
-                <button
-                  onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg ml-[320px] mr-[320px] pt-[8px] pb-[8px]"
-                  data-testid="button-upload-grid"
-                >
-                  <Upload className="w-4 h-4" />
-                  Enviar
-                </button>
-              </div>
-            )}
+            {/* Upload Button - only show inside shared folder when user is collaborator */}
+            {viewMode === "shared" && currentSharedFolderId && (() => {
+              const currentFolder = sharedFolders.find(f => f.id === currentSharedFolderId) || 
+                                    (sharedFolderPath.length > 0 ? sharedFolders.find(f => f.id === sharedFolderPath[0]?.id) : null);
+              const isCollaborator = currentFolder?.role === "collaborator";
+              return isCollaborator ? (
+                <div className="flex justify-center mb-4">
+                  <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg ml-[320px] mr-[320px] pt-[8px] pb-[8px]"
+                    data-testid="button-upload-grid"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Enviar
+                  </button>
+                </div>
+              ) : null;
+            })()}
             {loading ? (
               <div className="flex items-center justify-center h-64">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
