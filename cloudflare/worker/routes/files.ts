@@ -1486,3 +1486,166 @@ fileRoutes.delete('/:id/shares/:shareId', async (c) => {
     return c.json({ message: 'Erro ao remover partilha' }, 500);
   }
 });
+
+fileRoutes.get('/:id/chunks-info', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+    }
+    
+    if (!hasAccess) {
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    if (!file.isChunked || file.totalChunks <= 1) {
+      return c.json({
+        isChunked: false,
+        totalChunks: 1,
+        totalSize: file.tamanho,
+        chunks: [{
+          index: 0,
+          size: file.tamanho,
+        }],
+      });
+    }
+    
+    const chunks = await db.select().from(fileChunks)
+      .where(eq(fileChunks.fileId, file.id))
+      .orderBy(fileChunks.chunkIndex);
+    
+    return c.json({
+      isChunked: true,
+      totalChunks: chunks.length,
+      totalSize: file.tamanho,
+      originalSize: file.originalSize || file.tamanho,
+      isEncrypted: file.isEncrypted,
+      originalMimeType: file.originalMimeType || file.tipoMime,
+      chunks: chunks.map(chunk => ({
+        index: chunk.chunkIndex,
+        size: chunk.chunkSize,
+      })),
+    });
+  } catch (error) {
+    console.error('Get chunks info error:', error);
+    return c.json({ message: 'Erro ao buscar informações dos chunks' }, 500);
+  }
+});
+
+fileRoutes.get('/:id/chunk/:index', async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    const fileId = c.req.param('id');
+    const chunkIndex = parseInt(c.req.param('index'), 10);
+    
+    if (isNaN(chunkIndex) || chunkIndex < 0) {
+      return c.json({ message: 'Índice de chunk inválido' }, 400);
+    }
+    
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) {
+      return c.json({ message: 'Arquivo não encontrado' }, 404);
+    }
+    
+    const isOwner = file.userId === user.id;
+    let hasAccess = isOwner;
+    
+    if (!hasAccess && file.folderId) {
+      const [folderPerm] = await db.select().from(folderPermissions)
+        .where(and(
+          eq(folderPermissions.folderId, file.folderId),
+          eq(folderPermissions.userId, user.id)
+        ));
+      hasAccess = !!folderPerm;
+    }
+    
+    if (!hasAccess) {
+      const [filePerm] = await db.select().from(filePermissions)
+        .where(and(
+          eq(filePermissions.fileId, fileId),
+          eq(filePermissions.userId, user.id)
+        ));
+      hasAccess = !!filePerm;
+    }
+    
+    if (!hasAccess) {
+      return c.json({ message: 'Acesso negado' }, 403);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    
+    if (!file.isChunked || file.totalChunks <= 1) {
+      if (chunkIndex !== 0) {
+        return c.json({ message: 'Arquivo não é chunked, apenas chunk 0 disponível' }, 400);
+      }
+      
+      if (!file.telegramFileId || !file.telegramBotId) {
+        return c.json({ message: 'Arquivo sem referência de download' }, 400);
+      }
+      
+      const buffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+      
+      return new Response(buffer, {
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Length': buffer.byteLength.toString(),
+          'X-Chunk-Index': '0',
+          'X-Total-Chunks': '1',
+        },
+      });
+    }
+    
+    const [chunk] = await db.select().from(fileChunks)
+      .where(and(
+        eq(fileChunks.fileId, file.id),
+        eq(fileChunks.chunkIndex, chunkIndex)
+      ));
+    
+    if (!chunk) {
+      return c.json({ message: `Chunk ${chunkIndex} não encontrado` }, 404);
+    }
+    
+    const buffer = await telegram.downloadFile(chunk.telegramFileId, chunk.telegramBotId);
+    
+    return new Response(buffer, {
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': buffer.byteLength.toString(),
+        'X-Chunk-Index': chunkIndex.toString(),
+        'X-Total-Chunks': file.totalChunks.toString(),
+        'X-Chunk-Size': chunk.chunkSize.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Download chunk error:', error);
+    return c.json({ message: 'Erro ao baixar chunk' }, 500);
+  }
+});

@@ -2045,20 +2045,203 @@ export default function Dashboard() {
     }
   };
 
-  const downloadFile = async (file: FileItem) => {
+  const [downloadProgress, setDownloadProgress] = useState<{fileId: string; progress: number; fileName: string; speed?: string} | null>(null);
+  const downloadCancelledRef = useRef(false);
+  
+  const hasFileSystemAccess = (): boolean => {
+    return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+  };
+  
+  const streamToFile = async (
+    file: FileItem,
+    chunksInfo: any,
+    mimeType: string
+  ): Promise<boolean> => {
+    if (!hasFileSystemAccess()) return false;
+    
     try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: file.nome,
+        types: [{
+          description: 'File',
+          accept: { [mimeType]: [`.${file.nome.split('.').pop() || 'bin'}`] }
+        }]
+      });
+      
+      const writable = await handle.createWritable();
+      const totalChunks = chunksInfo.totalChunks;
+      let downloadedBytes = 0;
+      const startTime = Date.now();
+      
+      for (let i = 0; i < totalChunks; i++) {
+        if (downloadCancelledRef.current) {
+          await writable.abort();
+          throw new Error("Download cancelado");
+        }
+        
+        const progress = Math.round((i / totalChunks) * 95);
+        const elapsed = (Date.now() - startTime) / 1000;
+        const speed = downloadedBytes > 0 ? formatBytes(downloadedBytes / elapsed) + '/s' : '';
+        setDownloadProgress({ fileId: file.id, progress, fileName: file.nome, speed });
+        
+        let retries = 0;
+        const maxRetries = 3;
+        let success = false;
+        
+        while (!success && retries < maxRetries) {
+          try {
+            const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${i}`);
+            if (!chunkResponse.ok) throw new Error(`HTTP ${chunkResponse.status}`);
+            
+            const chunkBlob = await chunkResponse.blob();
+            await writable.write(chunkBlob);
+            downloadedBytes += chunkBlob.size;
+            success = true;
+          } catch (err) {
+            retries++;
+            if (retries >= maxRetries) {
+              await writable.abort();
+              throw new Error(`Erro ao baixar chunk ${i + 1}/${totalChunks}`);
+            }
+            await new Promise(r => setTimeout(r, 1000 * retries));
+          }
+        }
+      }
+      
+      await writable.close();
+      return true;
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return false;
+      }
+      throw err;
+    }
+  };
+  
+  const streamingDownloadLargeFile = async (
+    file: FileItem, 
+    chunksInfo: any, 
+    data: any, 
+    encryptionKey: CryptoKey | null
+  ): Promise<void> => {
+    const fileSize = file.originalSize || file.tamanho;
+    const MAX_ENCRYPTED_MOBILE = 200 * 1024 * 1024;
+    const MAX_ENCRYPTED_DESKTOP = 500 * 1024 * 1024;
+    const maxEncryptedSize = isMobile ? MAX_ENCRYPTED_MOBILE : MAX_ENCRYPTED_DESKTOP;
+    
+    if (data.isEncrypted && fileSize > maxEncryptedSize) {
+      const sizeMB = Math.round(maxEncryptedSize / (1024 * 1024));
+      toast.error(`Ficheiros encriptados acima de ${sizeMB}MB não são suportados em ${isMobile ? 'telemóveis' : 'browsers sem streaming'}. Considere mover para uma pasta pública.`);
+      throw new Error("File too large for encrypted download");
+    }
+    
+    if (!hasFileSystemAccess() && fileSize > 500 * 1024 * 1024) {
+      toast.warning(`Download de ficheiro grande (${formatBytes(fileSize)}). Pode demorar e usar muita memória.`);
+    }
+    
+    if (!data.isEncrypted && hasFileSystemAccess()) {
+      const mimeType = chunksInfo.originalMimeType || file.tipoMime || 'application/octet-stream';
+      const streamed = await streamToFile(file, chunksInfo, mimeType);
+      if (streamed) return;
+    }
+    
+    const totalChunks = chunksInfo.totalChunks;
+    const chunkBlobs: Blob[] = [];
+    let downloadedBytes = 0;
+    const startTime = Date.now();
+    
+    for (let i = 0; i < totalChunks; i++) {
+      if (downloadCancelledRef.current) {
+        throw new Error("Download cancelado");
+      }
+      
+      const progress = Math.round((i / totalChunks) * 90);
+      const elapsed = (Date.now() - startTime) / 1000;
+      const speed = downloadedBytes > 0 ? formatBytes(downloadedBytes / elapsed) + '/s' : '';
+      setDownloadProgress({ fileId: file.id, progress, fileName: file.nome, speed });
+      
+      let retries = 0;
+      const maxRetries = 3;
+      let chunkBlob: Blob | null = null;
+      
+      while (!chunkBlob && retries < maxRetries) {
+        try {
+          const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${i}`);
+          if (!chunkResponse.ok) {
+            throw new Error(`HTTP ${chunkResponse.status}`);
+          }
+          chunkBlob = await chunkResponse.blob();
+          downloadedBytes += chunkBlob.size;
+        } catch (err) {
+          retries++;
+          if (retries >= maxRetries) {
+            throw new Error(`Erro ao baixar chunk ${i + 1}/${totalChunks} após ${maxRetries} tentativas`);
+          }
+          await new Promise(r => setTimeout(r, 1000 * retries));
+        }
+      }
+      
+      if (chunkBlob) {
+        chunkBlobs.push(chunkBlob);
+      }
+    }
+    
+    setDownloadProgress({ fileId: file.id, progress: 92, fileName: file.nome });
+    
+    let finalBlob: Blob;
+    
+    if (data.isEncrypted && encryptionKey) {
+      toast.info("A desencriptar ficheiro grande...");
+      setDownloadProgress({ fileId: file.id, progress: 93, fileName: file.nome });
+      
+      const combinedBlob = new Blob(chunkBlobs);
+      chunkBlobs.length = 0;
+      
+      const encryptedBuffer = await combinedBlob.arrayBuffer();
+      
+      setDownloadProgress({ fileId: file.id, progress: 95, fileName: file.nome });
+      const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+      finalBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
+    } else {
+      finalBlob = new Blob(chunkBlobs, { type: chunksInfo.originalMimeType || file.tipoMime });
+      chunkBlobs.length = 0;
+    }
+    
+    setDownloadProgress({ fileId: file.id, progress: 98, fileName: file.nome });
+    
+    const downloadUrl = URL.createObjectURL(finalBlob);
+    
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = file.nome;
+    link.style.cssText = "position:fixed;left:-9999px;top:-9999px;";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+  };
+  
+  const downloadFile = async (file: FileItem) => {
+    downloadCancelledRef.current = false;
+    
+    try {
+      setDownloadProgress({ fileId: file.id, progress: 0, fileName: file.nome });
       toast.info("A preparar download...");
       
-      const response = await apiFetch(`/api/files/${file.id}/download-data`);
+      const [metaResponse, chunksInfoResponse] = await Promise.all([
+        apiFetch(`/api/files/${file.id}/download-data`),
+        apiFetch(`/api/files/${file.id}/chunks-info`),
+      ]);
       
-      if (!response.ok) {
+      if (!metaResponse.ok) {
         throw new Error("Erro ao buscar ficheiro");
       }
       
-      const data = await response.json();
-      let encryptionKey = await getActiveEncryptionKey();
+      const data = await metaResponse.json();
+      const chunksInfo = chunksInfoResponse.ok ? await chunksInfoResponse.json() : { isChunked: false, totalChunks: 1 };
       
-      let fileBlob: Blob;
+      let encryptionKey = await getActiveEncryptionKey();
       
       if (data.isEncrypted && !data.isOwner && data.sharedEncryptionKey) {
         try {
@@ -2073,29 +2256,76 @@ export default function Dashboard() {
         throw new Error("No shared encryption key available");
       }
       
-      if (data.isEncrypted) {
-        if (!encryptionKey) {
-          toast.error("Faça logout e login novamente para desencriptar os ficheiros");
-          throw new Error("No encryption key available");
-        }
-        
-        const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
-        if (!fileResponse.ok) {
-          throw new Error("Erro ao descarregar ficheiro");
-        }
-        
-        const encryptedBuffer = await fileResponse.arrayBuffer();
-        toast.info("A desencriptar ficheiro...");
-        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-        fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
-      } else {
-        const fileResponse = await apiFetch(data.downloadUrl);
-        if (!fileResponse.ok) {
-          throw new Error("Erro ao descarregar ficheiro");
-        }
-        const buffer = await fileResponse.arrayBuffer();
-        fileBlob = new Blob([buffer], { type: file.tipoMime });
+      if (data.isEncrypted && !encryptionKey) {
+        toast.error("Faça logout e login novamente para desencriptar os ficheiros");
+        throw new Error("No encryption key available");
       }
+      
+      const fileSize = file.originalSize || file.tamanho;
+      const LARGE_FILE_THRESHOLD = 50 * 1024 * 1024;
+      const isLargeFile = fileSize > LARGE_FILE_THRESHOLD || (chunksInfo.isChunked && chunksInfo.totalChunks > 5);
+      
+      if (isLargeFile && chunksInfo.isChunked && chunksInfo.totalChunks > 1) {
+        await streamingDownloadLargeFile(file, chunksInfo, data, encryptionKey);
+        setDownloadProgress({ fileId: file.id, progress: 100, fileName: file.nome });
+        toast.success("Download concluído!");
+        return;
+      }
+      
+      let fileBlob: Blob;
+      
+      if (chunksInfo.isChunked && chunksInfo.totalChunks > 1) {
+        const chunkBlobs: Blob[] = [];
+        const totalChunks = chunksInfo.totalChunks;
+        
+        for (let i = 0; i < totalChunks; i++) {
+          const progress = Math.round(((i) / totalChunks) * 90);
+          setDownloadProgress({ fileId: file.id, progress, fileName: file.nome });
+          
+          const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${i}`);
+          if (!chunkResponse.ok) {
+            throw new Error(`Erro ao baixar chunk ${i + 1}/${totalChunks}`);
+          }
+          
+          chunkBlobs.push(await chunkResponse.blob());
+        }
+        
+        setDownloadProgress({ fileId: file.id, progress: 92, fileName: file.nome });
+        
+        if (data.isEncrypted && encryptionKey) {
+          toast.info("A desencriptar ficheiro...");
+          const combinedBlob = new Blob(chunkBlobs);
+          const encryptedBuffer = await combinedBlob.arrayBuffer();
+          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+          fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
+        } else {
+          fileBlob = new Blob(chunkBlobs, { type: chunksInfo.originalMimeType || file.tipoMime });
+        }
+      } else {
+        setDownloadProgress({ fileId: file.id, progress: 30, fileName: file.nome });
+        
+        if (data.isEncrypted && encryptionKey) {
+          const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
+          if (!fileResponse.ok) {
+            throw new Error("Erro ao descarregar ficheiro");
+          }
+          
+          setDownloadProgress({ fileId: file.id, progress: 70, fileName: file.nome });
+          const encryptedBuffer = await fileResponse.arrayBuffer();
+          toast.info("A desencriptar ficheiro...");
+          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+          fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
+        } else {
+          const fileResponse = await apiFetch(data.downloadUrl);
+          if (!fileResponse.ok) {
+            throw new Error("Erro ao descarregar ficheiro");
+          }
+          setDownloadProgress({ fileId: file.id, progress: 70, fileName: file.nome });
+          fileBlob = await fileResponse.blob();
+        }
+      }
+      
+      setDownloadProgress({ fileId: file.id, progress: 100, fileName: file.nome });
       
       const downloadUrl = createDownloadUrl(fileBlob);
       
@@ -2116,7 +2346,11 @@ export default function Dashboard() {
       toast.success("Download concluído!");
     } catch (err) {
       console.error("Download error:", err);
-      toast.error("Erro ao fazer download");
+      if (!downloadCancelledRef.current) {
+        toast.error("Erro ao fazer download");
+      }
+    } finally {
+      setTimeout(() => setDownloadProgress(null), 1000);
     }
   };
 

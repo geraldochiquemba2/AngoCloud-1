@@ -78,12 +78,36 @@ When folders are toggled between public and private, files are automatically pro
 
 **Important:** This process happens in the browser and shows a progress UI. For files larger than 20MB, the reprocessing may fail in Cloudflare Workers due to request size limits. Files uploaded through the chunked upload system maintain their original encryption state when toggling.
 
+### Large File Download (Streaming)
+
+The system supports downloading files up to 2GB through chunked streaming:
+
+**Backend (Cloudflare Workers):**
+- `GET /api/files/:id/chunks-info` - Returns chunk metadata (count, sizes, encryption status)
+- `GET /api/files/:id/chunk/:index` - Downloads individual chunk by index
+
+**Frontend Download Strategy:**
+1. **Chrome/Edge Desktop (File System Access API):** True streaming to disk via `showSaveFilePicker()`. Each chunk is written directly to file without accumulating in memory. Best option for large files.
+
+2. **Other Browsers (Safari, Firefox, Mobile):** Uses Blob accumulation. Browser manages memory by potentially offloading Blobs to disk. Works well for unencrypted files up to ~1GB.
+
+3. **Encrypted Files:** Must be buffered entirely for AES-GCM decryption. Limited by browser memory:
+   - Mobile: 200MB max
+   - Desktop: 500MB max
+   - Files exceeding these limits show error with suggestion to move to public folder
+
+**Chunk Sizes:**
+- Upload: 10MB per chunk (within Telegram's 50MB limit, allows for encryption overhead)
+- Download from Telegram: 19MB per chunk (within Telegram's 20MB limit)
+
 ### Known Limitations
 
 - **Telegram Dependency:** Primary storage relies on Telegram Bot API. Monitor ToS changes and prepare Cloudflare R2 fallback.
 - **Single Instance:** Current architecture assumes single server instance. Multi-instance scaling requires shared session/quota storage.
 - **WebSocket in Development:** Real-time WebSocket features are disabled in development mode due to Vite HMR conflicts. Test real-time features in production builds.
 - **Cloudflare Workers Reprocess Limit:** File reprocessing (for encryption toggle) is limited to 20MB per file due to Cloudflare Workers request size limits. Larger files maintain their original encryption state.
+- **Encrypted Large Files:** Due to AES-GCM requiring full-buffer decryption, encrypted files over 200MB (mobile) or 500MB (desktop) cannot be downloaded. Users should move such files to public folders for large downloads.
+- **Mobile Browser Streaming:** iOS Safari and most mobile browsers don't support File System Access API, so large file downloads use Blob accumulation which may exhaust memory for very large files.
 
 ## Deployment (Cloudflare Workers)
 
