@@ -1,0 +1,21 @@
+1fc1f250-4658-4d8e-99a1-de486e7b8221-00-1lvu78ifn90wr.spock.replit.dev/:59 <link rel=preload> uses an unsupported `as` value
+1fc1f250-4658-4d8e-99a1-de486e7b8221-00-1lvu78ifn90wr.spock.replit.dev/:60 <link rel=preload> uses an unsupported `as` value
+contentScript.js:2 i18next: languageChanged pt-PT
+contentScript.js:2 i18next: initialized Object
+react-dom_client.js?v=4fbec743:20103 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+content-script.js-Ctkr-J3m.js:1 [Smart Unit Converter] Content script loaded
+content-script.js-Ctkr-J3m.js:1 [Smart Unit Converter] Smart Unit Converter initialized with state: false
+content-script.js-Ctkr-J3m.js:1 [Smart Unit Converter] State changed: false
+api/auth/me:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)
+useWebSocket.ts:76 WebSocket connection to 'wss://1fc1f250-4658-4d8e-99a1-de486e7b8221-00-1lvu78ifn90wr.spock.replit.dev/ws' failed: WebSocket is closed before the connection is established.
+(anonymous) @ useWebSocket.ts:76
+8The resource <URL> was preloaded using link preload but not used within a few seconds from the window's load event. Please make sure it has an appropriate `as` value and it is preloaded intentionally.
+dashboard.tsx:2331 📥 Starting download for file: 8eadda28-2c41-47d7-84cd-f363eedb471b Gemini_Generated_Image_l05y5kl05y5kl05y.png
+dashboard.tsx:2331 📥 Starting download for file: 2f1dcde0-fc1a-4bec-9199-ea0133c604ed WhatsApp Image 2025-12-02 at 21.02.17.jpeg
+dashboard.tsx:2479 Download error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+downloadFile @ dashboard.tsx:2479
+dashboard.tsx:2331 📥 Starting download for file: 2f1dcde0-fc1a-4bec-9199-ea0133c604ed WhatsApp Image 2025-12-02 at 21.02.17.jpeg
+dashboard.tsx:2479 Download error: SyntaxError: Failed to execute 'json' on 'Response': Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+    at downloadFile (dashboard.tsx:2347:75)
+downloadFile @ dashboard.tsx:2479
+dashboard.tsx:2479 Download error: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
