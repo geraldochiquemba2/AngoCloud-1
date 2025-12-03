@@ -3158,7 +3158,7 @@ export default function Dashboard() {
               <div className="flex justify-center mb-4">
                 <button
                   onClick={() => setShowUploadModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/80 text-white font-medium transition-all shadow-lg ml-[320px] mr-[320px] pt-[8px] pb-[8px]"
                   data-testid="button-upload-grid"
                 >
                   <Upload className="w-4 h-4" />
