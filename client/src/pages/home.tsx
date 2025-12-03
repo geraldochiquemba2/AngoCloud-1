@@ -176,24 +176,22 @@ export default function Home() {
       </section>
       {/* Features Grid */}
       <section id="features" className="py-24 px-6 md:px-12 relative overflow-hidden">
-        {/* Background with fallback gradient for mobile */}
+        {/* Fallback background color while image loads */}
         <div 
-          className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+          className="absolute inset-0 bg-slate-900"
           style={{ zIndex: 0 }}
         />
-        {/* Background image - lazy loaded with better mobile handling */}
-        <div 
-          className="absolute inset-0 hidden md:block"
-          style={{
-            backgroundImage: 'url(/features-bg.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            zIndex: 1
-          }}
+        {/* Background image */}
+        <img 
+          src="/features-bg.jpg"
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 1 }}
         />
         {/* Overlay for better text readability */}
         <div 
-          className="absolute inset-0 bg-black/30 md:bg-black/20"
+          className="absolute inset-0 bg-black/20"
           style={{ zIndex: 2 }}
         />
         <div className="max-w-7xl mx-auto relative z-10">
