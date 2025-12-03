@@ -1022,7 +1022,10 @@ export default function Dashboard() {
         if (!fileResponse.ok) return;
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
-        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+        const isV2 = isChunkedEncryption(meta.encryptionVersion);
+        const decryptedBuffer = isV2 
+          ? await decryptChunk(encryptedBuffer, encryptionKey)
+          : await decryptBuffer(encryptedBuffer, encryptionKey);
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         
@@ -1209,7 +1212,10 @@ export default function Dashboard() {
         }
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
-        const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+        const isV2 = isChunkedEncryption(meta.encryptionVersion);
+        const decryptedBuffer = isV2
+          ? await decryptChunk(encryptedBuffer, encryptionKey)
+          : await decryptBuffer(encryptedBuffer, encryptionKey);
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         setPreviewUrl(url);
