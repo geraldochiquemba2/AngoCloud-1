@@ -2322,6 +2322,7 @@ export default function Dashboard() {
   
   const downloadFile = async (file: FileItem) => {
     downloadCancelledRef.current = false;
+    console.log("📥 Starting download for file:", file.id, file.nome);
     
     try {
       setDownloadProgress({ fileId: file.id, progress: 0, fileName: file.nome });
@@ -2338,8 +2339,10 @@ export default function Dashboard() {
       
       const data = await metaResponse.json();
       const chunksInfo = chunksInfoResponse.ok ? await chunksInfoResponse.json() : { isChunked: false, totalChunks: 1 };
+      console.log("📥 File metadata:", { isEncrypted: data.isEncrypted, isOwner: data.isOwner, isChunked: chunksInfo.isChunked, totalChunks: chunksInfo.totalChunks });
       
       let encryptionKey = await getActiveEncryptionKey();
+      console.log("📥 Encryption key available:", !!encryptionKey);
       
       if (data.isEncrypted && !data.isOwner && data.sharedEncryptionKey) {
         try {
@@ -2426,12 +2429,15 @@ export default function Dashboard() {
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
           // Use server endpoint instead of direct Telegram URL to avoid CORS issues on Cloudflare Workers
+          console.log("📥 Downloading non-encrypted file via /content endpoint");
           const fileResponse = await apiFetch(`/api/files/${file.id}/content`);
+          console.log("📥 Content response status:", fileResponse.status, fileResponse.ok);
           if (!fileResponse.ok) {
             throw new Error("Erro ao descarregar ficheiro");
           }
           setDownloadProgress({ fileId: file.id, progress: 70, fileName: file.nome });
           fileBlob = await fileResponse.blob();
+          console.log("📥 Downloaded blob size:", fileBlob.size);
         }
       }
       
