@@ -1368,7 +1368,8 @@ export async function registerRoutes(
           tipoMime: f.originalMimeType || f.tipoMime,
           createdAt: f.createdAt,
           isEncrypted: f.isEncrypted || false,
-          originalMimeType: f.originalMimeType || f.tipoMime
+          originalMimeType: f.originalMimeType || f.tipoMime,
+          encryptionVersion: f.encryptionVersion
         })),
         folders: subfolders.map(sf => ({
           id: sf.id,

@@ -9,8 +9,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   getActiveEncryptionKey, 
   decryptBuffer,
+  decryptAuto,
   createDownloadUrl,
-  revokeDownloadUrl
+  revokeDownloadUrl,
+  ENCRYPTION_VERSION,
+  MAX_V2_CHUNK_SIZE,
+  isChunkedEncryption
 } from "@/lib/encryption";
 
 interface PublicFile {
@@ -21,6 +25,7 @@ interface PublicFile {
   createdAt: string;
   isEncrypted?: boolean;
   originalMimeType?: string;
+  encryptionVersion?: number;
 }
 
 interface PublicFolder {
@@ -204,13 +209,18 @@ export default function PublicFolderPage() {
             const contentRes = await fetch(`/api/public/file/${file.id}/content`);
             if (contentRes.ok) {
               const encryptedBuffer = await contentRes.arrayBuffer();
-              const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-              const mimeType = file.originalMimeType || file.tipoMime;
-              const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
-              const blobUrl = createDownloadUrl(decryptedBlob);
-              const thumbnailDataUrl = await generateVideoThumbnail(blobUrl);
-              revokeDownloadUrl(blobUrl);
-              setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+              if (isChunkedEncryption(file.encryptionVersion) && encryptedBuffer.byteLength > MAX_V2_CHUNK_SIZE) {
+                console.warn("V2 multi-chunk file cannot be decrypted in public folder preview");
+                setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+              } else {
+                const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, file.encryptionVersion);
+                const mimeType = file.originalMimeType || file.tipoMime;
+                const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+                const blobUrl = createDownloadUrl(decryptedBlob);
+                const thumbnailDataUrl = await generateVideoThumbnail(blobUrl);
+                revokeDownloadUrl(blobUrl);
+                setThumbnails(prev => ({ ...prev, [file.id]: thumbnailDataUrl }));
+              }
             }
           } else {
             setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
@@ -254,11 +264,16 @@ export default function PublicFolderPage() {
               const contentRes = await fetch(`/api/public/file/${file.id}/content`);
               if (contentRes.ok) {
                 const encryptedBuffer = await contentRes.arrayBuffer();
-                const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-                const mimeType = file.originalMimeType || file.tipoMime;
-                const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
-                const blobUrl = createDownloadUrl(decryptedBlob);
-                setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
+                if (isChunkedEncryption(file.encryptionVersion) && encryptedBuffer.byteLength > MAX_V2_CHUNK_SIZE) {
+                  console.warn("V2 multi-chunk file cannot be decrypted in public folder preview");
+                  setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+                } else {
+                  const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, file.encryptionVersion);
+                  const mimeType = file.originalMimeType || file.tipoMime;
+                  const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+                  const blobUrl = createDownloadUrl(decryptedBlob);
+                  setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
+                }
               }
             } catch (err) {
               console.error("Error decrypting thumbnail:", err);
@@ -372,10 +387,15 @@ export default function PublicFolderPage() {
         const contentRes = await fetch(`/api/public/file/${file.id}/content`);
         if (contentRes.ok) {
           const encryptedBuffer = await contentRes.arrayBuffer();
-          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-          const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
-          const blobUrl = createDownloadUrl(decryptedBlob);
-          setPreviewUrl(blobUrl);
+          if (isChunkedEncryption(file.encryptionVersion) && encryptedBuffer.byteLength > MAX_V2_CHUNK_SIZE) {
+            console.error("V2 multi-chunk file cannot be previewed in public folder");
+            setPreviewUrl(null);
+          } else {
+            const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, file.encryptionVersion);
+            const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+            const blobUrl = createDownloadUrl(decryptedBlob);
+            setPreviewUrl(blobUrl);
+          }
         }
       } else if (mimeType.startsWith("video/")) {
         setPreviewUrl(`/api/public/file/${file.id}/stream`);
@@ -417,7 +437,11 @@ export default function PublicFolderPage() {
           if (encryptionKey) {
             try {
               const encryptedBuffer = await blob.arrayBuffer();
-              const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+              if (isChunkedEncryption(file.encryptionVersion) && encryptedBuffer.byteLength > MAX_V2_CHUNK_SIZE) {
+                console.error("V2 multi-chunk file cannot be downloaded in public folder");
+                return;
+              }
+              const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, file.encryptionVersion);
               blob = new Blob([decryptedBuffer], { type: originalMimeType });
             } catch (err) {
               console.error("Error decrypting file:", err);

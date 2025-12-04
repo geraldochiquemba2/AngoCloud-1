@@ -20,7 +20,8 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { 
   encryptFile, 
   encryptBuffer,
-  decryptBuffer, 
+  decryptBuffer,
+  decryptAuto,
   getActiveEncryptionKey,
   createDownloadUrl,
   revokeDownloadUrl,
@@ -47,6 +48,7 @@ interface FileItem {
   isEncrypted?: boolean;
   originalMimeType?: string | null;
   originalSize?: number | null;
+  encryptionVersion?: number;
 }
 
 interface FolderItem {
@@ -677,14 +679,49 @@ export default function Dashboard() {
           setProcessingProgress({ current: i + 1, total: processableFiles.length, fileName: file.nome });
           
           try {
-            const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
-            if (!downloadResponse.ok) {
-              console.error(`Erro ao baixar ficheiro ${file.nome}`);
+            const [metaResponse, chunksInfoResponse] = await Promise.all([
+              apiFetch(`/api/files/${file.id}/download-data`),
+              apiFetch(`/api/files/${file.id}/chunks-info`)
+            ]);
+            
+            if (!metaResponse.ok) {
+              console.error(`Erro ao obter metadados do ficheiro ${file.nome}`);
               continue;
             }
+            const meta = await metaResponse.json();
+            const chunksInfo = chunksInfoResponse.ok ? await chunksInfoResponse.json() : { isChunked: false };
             
-            const encryptedBuffer = await downloadResponse.arrayBuffer();
-            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+            let decryptedBuffer: ArrayBuffer;
+            const isV2Encryption = isChunkedEncryption(meta.encryptionVersion);
+            
+            if (isV2Encryption && chunksInfo.isChunked && chunksInfo.totalChunks > 1) {
+              const decryptedChunks: ArrayBuffer[] = [];
+              for (let j = 0; j < chunksInfo.totalChunks; j++) {
+                const chunkResponse = await apiFetch(`/api/files/${file.id}/chunk/${j}`);
+                if (!chunkResponse.ok) {
+                  throw new Error(`Erro ao baixar chunk ${j + 1}/${chunksInfo.totalChunks}`);
+                }
+                const encryptedChunk = await chunkResponse.arrayBuffer();
+                const decryptedChunk = await decryptChunk(encryptedChunk, encryptionKey);
+                decryptedChunks.push(decryptedChunk);
+              }
+              const totalSize = decryptedChunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+              const combined = new Uint8Array(totalSize);
+              let offset = 0;
+              for (const chunk of decryptedChunks) {
+                combined.set(new Uint8Array(chunk), offset);
+                offset += chunk.byteLength;
+              }
+              decryptedBuffer = combined.buffer;
+            } else {
+              const downloadResponse = await apiFetch(`/api/files/${file.id}/content`);
+              if (!downloadResponse.ok) {
+                console.error(`Erro ao baixar ficheiro ${file.nome}`);
+                continue;
+              }
+              const encryptedBuffer = await downloadResponse.arrayBuffer();
+              decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
+            }
             
             const formData = new FormData();
             formData.append('file', new Blob([decryptedBuffer], { type: file.originalMimeType || file.tipoMime }));
@@ -1027,10 +1064,7 @@ export default function Dashboard() {
         if (!fileResponse.ok) return;
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
-        const isV2 = isChunkedEncryption(meta.encryptionVersion);
-        const decryptedBuffer = isV2 
-          ? await decryptChunk(encryptedBuffer, encryptionKey)
-          : await decryptBuffer(encryptedBuffer, encryptionKey);
+        const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         
@@ -1217,10 +1251,7 @@ export default function Dashboard() {
         }
         
         const encryptedBuffer = await fileResponse.arrayBuffer();
-        const isV2 = isChunkedEncryption(meta.encryptionVersion);
-        const decryptedBuffer = isV2
-          ? await decryptChunk(encryptedBuffer, encryptionKey)
-          : await decryptBuffer(encryptedBuffer, encryptionKey);
+        const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
         const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
         const url = createDownloadUrl(blob);
         setPreviewUrl(url);
@@ -2343,7 +2374,7 @@ export default function Dashboard() {
       const encryptedBuffer = await combinedBlob.arrayBuffer();
       
       setDownloadProgress({ fileId: file.id, progress: 95, fileName: file.nome });
-      const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+      const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, ENCRYPTION_VERSION.V1_FULL_FILE);
       finalBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
     } else {
       // V2 encrypted files or non-encrypted: chunks are already processed
@@ -2454,7 +2485,7 @@ export default function Dashboard() {
           toast.info("A desencriptar ficheiro...");
           const combinedBlob = new Blob(chunkBlobs);
           const encryptedBuffer = await combinedBlob.arrayBuffer();
-          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+          const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, ENCRYPTION_VERSION.V1_FULL_FILE);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {
           fileBlob = new Blob(chunkBlobs, { type: data.originalMimeType || chunksInfo.originalMimeType || file.tipoMime });
@@ -2475,11 +2506,8 @@ export default function Dashboard() {
           const encryptedBuffer = await fileResponse.arrayBuffer();
           console.log("📥 Encrypted buffer size:", encryptedBuffer.byteLength);
           toast.info("A desencriptar ficheiro...");
-          const isV2 = isChunkedEncryption(data.encryptionVersion);
-          console.log("📥 Using V2 decryption:", isV2);
-          const decryptedBuffer = isV2
-            ? await decryptChunk(encryptedBuffer, encryptionKey)
-            : await decryptBuffer(encryptedBuffer, encryptionKey);
+          console.log("📥 Using version hint for decryption:", data.encryptionVersion);
+          const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, data.encryptionVersion);
           console.log("📥 Decrypted buffer size:", decryptedBuffer.byteLength);
           fileBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || file.tipoMime });
         } else {

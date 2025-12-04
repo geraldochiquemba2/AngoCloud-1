@@ -379,6 +379,132 @@ export function isChunkedEncryption(encryptionVersion: number | undefined): bool
 }
 
 /**
+ * GCM authentication tag size (always 16 bytes for AES-GCM)
+ */
+const GCM_TAG_SIZE = 16;
+
+/**
+ * Maximum size of a single V2 encrypted chunk (5MB plaintext + overhead)
+ */
+export const MAX_V2_CHUNK_SIZE = ENCRYPTION_CHUNK_SIZE + CHUNK_HEADER_SIZE + GCM_TAG_SIZE;
+
+/**
+ * Detect encryption version from encrypted data
+ * V2 format: [4 bytes size][12 bytes IV][encrypted data + 16 bytes auth tag]
+ * V1 format: [12 bytes IV][encrypted data + 16 bytes auth tag]
+ * 
+ * Detection heuristic:
+ * - Buffer must be <= max single chunk size to be V2
+ * - Read first 4 bytes as potential V2 size header
+ * - If size + header (16 bytes) + auth tag (16 bytes) equals total buffer length, it's V2
+ * - Otherwise assume V1
+ * 
+ * For multi-chunk combined buffers, always returns V1 (they should use per-chunk decryption)
+ */
+export function detectEncryptionVersion(encryptedBuffer: ArrayBuffer): number {
+  const bufferLength = encryptedBuffer.byteLength;
+  
+  // Minimum V2 size: header (16) + auth tag (16) + at least 1 byte of plaintext
+  if (bufferLength < CHUNK_HEADER_SIZE + GCM_TAG_SIZE + 1) {
+    return ENCRYPTION_VERSION.V1_FULL_FILE;
+  }
+  
+  // V2 chunks are limited to ENCRYPTION_CHUNK_SIZE (5MB) plaintext
+  // If buffer is larger, it's either V1 full-file or combined multi-chunk (not suitable for decryptAuto)
+  if (bufferLength > MAX_V2_CHUNK_SIZE) {
+    return ENCRYPTION_VERSION.V1_FULL_FILE;
+  }
+  
+  const sizeView = new DataView(encryptedBuffer);
+  const potentialOriginalSize = sizeView.getUint32(0, false);
+  
+  // Original size must be positive and within chunk size limit
+  if (potentialOriginalSize <= 0 || potentialOriginalSize > ENCRYPTION_CHUNK_SIZE) {
+    return ENCRYPTION_VERSION.V1_FULL_FILE;
+  }
+  
+  // V2 expected length: header (16) + encrypted data (originalSize + 16 for auth tag)
+  const v2ExpectedLength = CHUNK_HEADER_SIZE + potentialOriginalSize + GCM_TAG_SIZE;
+  
+  if (v2ExpectedLength === bufferLength) {
+    return ENCRYPTION_VERSION.V2_PER_CHUNK;
+  }
+  
+  return ENCRYPTION_VERSION.V1_FULL_FILE;
+}
+
+/**
+ * Auto-detect encryption version and decrypt accordingly
+ * This function analyzes the buffer format and uses the correct decryption method
+ * 
+ * IMPORTANT: Only use this for single-buffer decryption (single files or single chunks)
+ * For multi-chunk V2 files, use decryptChunk on each chunk individually
+ * 
+ * @param encryptedBuffer - The encrypted buffer (single file or single chunk)
+ * @param key - The decryption key
+ * @param versionHint - Optional hint for encryption version (from file metadata)
+ */
+export async function decryptAuto(
+  encryptedBuffer: ArrayBuffer, 
+  key: CryptoKey,
+  versionHint?: number
+): Promise<ArrayBuffer> {
+  // If caller provides a version hint, trust it
+  if (versionHint === ENCRYPTION_VERSION.V2_PER_CHUNK) {
+    return await decryptChunk(encryptedBuffer, key);
+  }
+  
+  if (versionHint === ENCRYPTION_VERSION.V1_FULL_FILE) {
+    return await decryptBuffer(encryptedBuffer, key);
+  }
+  
+  // Auto-detect based on buffer format
+  const detectedVersion = detectEncryptionVersion(encryptedBuffer);
+  
+  if (detectedVersion === ENCRYPTION_VERSION.V2_PER_CHUNK) {
+    try {
+      return await decryptChunk(encryptedBuffer, key);
+    } catch (e) {
+      console.warn('V2 decryption failed, trying V1 as fallback:', e);
+      try {
+        return await decryptBuffer(encryptedBuffer, key);
+      } catch (e2) {
+        console.error('Both V2 and V1 decryption failed:', e2);
+        throw e; // Throw original V2 error since that was the detected format
+      }
+    }
+  }
+  
+  // V1 detected or fallback
+  try {
+    return await decryptBuffer(encryptedBuffer, key);
+  } catch (e) {
+    console.warn('V1 decryption failed, trying V2 as fallback:', e);
+    try {
+      return await decryptChunk(encryptedBuffer, key);
+    } catch (e2) {
+      console.error('Both V1 and V2 decryption failed:', e2);
+      throw e; // Throw original V1 error since that was the detected format
+    }
+  }
+}
+
+/**
+ * Auto-detect and decrypt a full file
+ * For single-chunk files or V1 files, works directly
+ * For multi-chunk V2 files, the caller should use per-chunk decryption instead
+ */
+export async function decryptFileAuto(
+  encryptedBuffer: ArrayBuffer,
+  key: CryptoKey,
+  mimeType: string,
+  encryptionVersion?: number
+): Promise<Blob> {
+  const decrypted = await decryptAuto(encryptedBuffer, key, encryptionVersion);
+  return new Blob([decrypted], { type: mimeType });
+}
+
+/**
  * Streaming decryption helper that processes chunks one at a time
  * Use this for memory-efficient download of large encrypted files
  */
