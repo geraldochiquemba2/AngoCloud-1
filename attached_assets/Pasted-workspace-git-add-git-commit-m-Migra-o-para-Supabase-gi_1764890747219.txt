@@ -1,0 +1,77 @@
+workspace$ git add .
+git commit -m "Migração para Supabase"
+git push origin main
+On branch main
+Your branch is ahead of 'origin/main' by 3 commits.
+  (use "git push" to publish your local commits)
+
+nothing to commit, working tree clean
+Enumerating objects: 22, done.
+Counting objects: 100% (22/22), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (15/15), done.
+Writing objects: 100% (15/15), 23.68 KiB | 11.84 MiB/s, done.
+Total 15 (delta 11), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (11/11), completed with 6 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   79f07b7..84aa0aa  main -> main
+~/workspace$ git push origin main
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (9/9), done.
+Writing objects: 100% (9/9), 6.37 KiB | 6.37 MiB/s, done.
+Total 9 (delta 6), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (6/6), completed with 2 local objects.
+remote: This repository moved. Please use the new location:
+remote:   https://github.com/geraldochiquemba2/OrbitalCloud.git
+To https://github.com/geraldochiquemba2/AngoCloud-1
+   84aa0aa..25d5a85  main -> main
+~/workspace$ cd cloudflare && npx wrangler hyperdrive create orbital-db --connection-string="postgresql://postgres.qbysugdrbxqdvrnhqodk:Geraldo943412688@aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require"
+▲ [WARNING] Processing wrangler.toml configuration:
+
+    - Deprecation: "build.upload.format":
+      The format is inferred automatically from the code.
+
+
+🚧 Creating 'orbital-db'
+Attempting to login via OAuth...
+Opening a link in your default browser: https://dash.cloudflare.com/oauth2/auth?response_type=code&client_id=54d11594-84e4-41aa-b438-e81b8fa78ee7&redirect_uri=http%3A%2F%2Flocalhost%3A8976%2Foauth%2Fcallback&scope=account%3Aread%20user%3Aread%20workers%3Awrite%20workers_kv%3Awrite%20workers_routes%3Awrite%20workers_scripts%3Awrite%20workers_tail%3Aread%20d1%3Awrite%20pages%3Awrite%20zone%3Aread%20ssl_certs%3Awrite%20ai%3Awrite%20queues%3Awrite%20pipelines%3Awrite%20offline_access&state=dRP8MdkixYy-.5uOMF7V6AHVjp.Rudfg&code_challenge=aORhVSPMeXt834pXIUyKIHQU5LSBmgH40E4Ru33_Mzg&code_challenge_method=S256
+
+✘ [ERROR] Timed out waiting for authorization code, please try again.
+
+
+🪵  Logs were written to "/home/runner/workspace/.config/.wrangler/logs/wrangler-2025-12-04_23-14-36_720.log"
+~/workspace/cloudflare$ export CLOUDFLARE_API_TOKEN="Bdql_h1e0GoB8t0TFNGSLX7eDFSM2McA_VHM2PwV"
+~/workspace/cloudflare$ cd ~/workspace/cloudflare && npx wrangler hyperdrive create orbital-db --connection-string="postgresql://postgres.qbysugdrbxqdvrnhqodk:Geraldo943412688@aws-1-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require"
+▲ [WARNING] Processing wrangler.toml configuration:
+
+    - Deprecation: "build.upload.format":
+      The format is inferred automatically from the code.
+
+
+🚧 Creating 'orbital-db'
+
+✘ [ERROR] A request to the Cloudflare API (/accounts/7b9b72c1becf3f8423c732cf1ec2f367/hyperdrive/configs) failed.
+
+  Authentication error [code: 10000]
+
+
+📎 It looks like you are authenticating Wrangler via a custom API token set in an environment variable.
+Please ensure it has the correct permissions for this operation.
+
+Getting User settings...
+ℹ️  The API Token is read from the CLOUDFLARE_API_TOKEN environment variable.
+👋 You are logged in with an User API Token, associated with the email geraldochiquemba@gmail.com.
+┌──────────────────────────────────────┬──────────────────────────────────┐
+│ Account Name                         │ Account ID                       │
+├──────────────────────────────────────┼──────────────────────────────────┤
+│ Geraldochiquemba@gmail.com's Account │ 7b9b72c1becf3f8423c732cf1ec2f367 │
+└──────────────────────────────────────┴──────────────────────────────────┘
+🔓 To see token permissions visit https://dash.cloudflare.com/profile/api-tokens.
+🎢 Membership roles in "Geraldochiquemba@gmail.com's Account": Contact account super admin to change your permissions.
+- Super Administrator - All Privileges
+🪵  Logs were written to "/home/runner/workspace/.config/.wrangler/logs/wrangler-2025-12-04_23-25-31_147.log"
+~/workspace/cloudflare$ 
