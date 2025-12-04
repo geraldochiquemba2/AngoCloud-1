@@ -1,0 +1,197 @@
+2025-12-04T22:47:37.152Z	Initializing build environment...
+2025-12-04T22:47:38.793Z	Success: Finished initializing build environment
+2025-12-04T22:47:37.152Z	Initializing build environment...
+2025-12-04T22:47:38.793Z	Success: Finished initializing build environment
+2025-12-04T22:47:41.775Z	Cloning repository...
+2025-12-04T22:47:44.965Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2025-12-04T22:47:44.967Z	Restoring from dependencies cache
+2025-12-04T22:47:44.968Z	Restoring from build output cache
+2025-12-04T22:47:52.646Z	Success: Dependencies restored from build cache.
+2025-12-04T22:47:52.803Z	Installing project dependencies: npm clean-install --progress=false
+2025-12-04T22:47:56.987Z	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+2025-12-04T22:47:57.161Z	npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+2025-12-04T22:48:25.749Z	
+2025-12-04T22:48:25.749Z	added 545 packages, and audited 546 packages in 33s
+2025-12-04T22:48:25.749Z	
+2025-12-04T22:48:25.749Z	46 packages are looking for funding
+2025-12-04T22:48:25.749Z	  run `npm fund` for details
+2025-12-04T22:48:25.768Z	
+2025-12-04T22:48:25.768Z	7 vulnerabilities (2 low, 4 moderate, 1 high)
+2025-12-04T22:48:25.768Z	
+2025-12-04T22:48:25.768Z	To address issues that do not require attention, run:
+2025-12-04T22:48:25.768Z	  npm audit fix
+2025-12-04T22:48:25.769Z	
+2025-12-04T22:48:25.769Z	To address all issues (including breaking changes), run:
+2025-12-04T22:48:25.769Z	  npm audit fix --force
+2025-12-04T22:48:25.769Z	
+2025-12-04T22:48:25.769Z	Run `npm audit` for details.
+2025-12-04T22:48:26.011Z	Executing user build command: cd cloudflare && npm run build
+2025-12-04T22:48:28.065Z	
+2025-12-04T22:48:28.065Z	> app-cloudflare@2.0.0 build
+2025-12-04T22:48:28.065Z	> cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+2025-12-04T22:48:28.065Z	
+2025-12-04T22:48:28.220Z	
+2025-12-04T22:48:28.220Z	> rest-express@1.0.0 build
+2025-12-04T22:48:28.220Z	> tsx script/build.ts
+2025-12-04T22:48:28.220Z	
+2025-12-04T22:48:29.322Z	building client...
+2025-12-04T22:48:29.485Z	vite v7.1.12 building for production...
+2025-12-04T22:48:29.702Z	transforming...
+2025-12-04T22:48:33.200Z	✓ 2252 modules transformed.
+2025-12-04T22:48:33.692Z	rendering chunks...
+2025-12-04T22:48:33.701Z	[meta-images] no Replit deployment domain found, skipping meta tag updates
+2025-12-04T22:48:33.721Z	computing gzip size...
+2025-12-04T22:48:34.302Z	../dist/public/index.html                                                           4.56 kB │ gzip:   1.55 kB
+2025-12-04T22:48:34.302Z	../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/index-BMklj-xj.css                                          147.65 kB │ gzip:  21.87 kB
+2025-12-04T22:48:34.303Z	../dist/public/assets/index-9NV8juJ5.js                                           768.88 kB │ gzip: 217.11 kB
+2025-12-04T22:48:34.303Z	
+2025-12-04T22:48:34.303Z	(!) Some chunks are larger than 500 kB after minification. Consider:
+2025-12-04T22:48:34.303Z	- Using dynamic import() to code-split the application
+2025-12-04T22:48:34.303Z	- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-12-04T22:48:34.303Z	- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-12-04T22:48:34.304Z	✓ built in 4.64s
+2025-12-04T22:48:34.304Z	building server...
+2025-12-04T22:48:34.580Z	
+2025-12-04T22:48:34.580Z	  dist/index.cjs  1.4mb ⚠️
+2025-12-04T22:48:34.580Z	
+2025-12-04T22:48:34.580Z	⚡ Done in 271ms
+2025-12-04T22:48:34.728Z	Success: Build command completed
+2025-12-04T22:48:34.880Z	Executing user deploy command: cd cloudflare && npx wrangler deploy --keep-vars
+2025-12-04T22:48:47.421Z	npm warn exec The following package was not found and will be installed: wrangler@4.53.0
+2025-12-04T22:48:52.422Z	
+2025-12-04T22:48:52.422Z	 ⛅️ wrangler 4.53.0
+2025-12-04T22:48:52.422Z	───────────────────
+2025-12-04T22:48:52.478Z	▲ [WARNING] Processing wrangler.toml configuration:
+2025-12-04T22:48:52.478Z	
+2025-12-04T22:48:52.478Z	    - Unexpected fields found in build field: "upload"
+2025-12-04T22:48:52.478Z	
+2025-12-04T22:48:52.478Z	
+2025-12-04T22:48:52.491Z	[custom build] Running: npm install && npm run build
+2025-12-04T22:48:54.310Z	[custom build] npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
+2025-12-04T22:48:54.311Z	[custom build] 
+2025-12-04T22:48:54.322Z	[custom build] npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+2025-12-04T22:48:54.324Z	[custom build] 
+2025-12-04T22:48:56.762Z	[custom build] 
+2025-12-04T22:48:56.762Z	[custom build] added 84 packages, and audited 85 packages in 4s
+2025-12-04T22:48:56.762Z	[custom build] 
+2025-12-04T22:48:56.763Z	[custom build] 
+2025-12-04T22:48:56.763Z	[custom build] 9 packages are looking for funding
+2025-12-04T22:48:56.764Z	[custom build]   run `npm fund` for details
+2025-12-04T22:48:56.764Z	[custom build] 
+2025-12-04T22:48:56.798Z	[custom build] 
+2025-12-04T22:48:56.798Z	[custom build] 2 moderate severity vulnerabilities
+2025-12-04T22:48:56.800Z	[custom build] 
+2025-12-04T22:48:56.800Z	[custom build] To address all issues (including breaking changes), run:
+2025-12-04T22:48:56.801Z	[custom build]   npm audit fix --force
+2025-12-04T22:48:56.801Z	[custom build] 
+2025-12-04T22:48:56.801Z	[custom build] Run `npm audit` for details.
+2025-12-04T22:48:56.801Z	[custom build] 
+2025-12-04T22:48:56.997Z	[custom build] 
+2025-12-04T22:48:57.000Z	[custom build] > app-cloudflare@2.0.0 build
+2025-12-04T22:48:57.001Z	[custom build] > cd .. && npm run build && mkdir -p cloudflare/dist/public && cp -r dist/public/* cloudflare/dist/public/
+2025-12-04T22:48:57.001Z	[custom build] 
+2025-12-04T22:48:57.001Z	[custom build] 
+2025-12-04T22:48:57.169Z	[custom build] 
+2025-12-04T22:48:57.169Z	[custom build] > rest-express@1.0.0 build
+2025-12-04T22:48:57.169Z	[custom build] > tsx script/build.ts
+2025-12-04T22:48:57.169Z	[custom build] 
+2025-12-04T22:48:57.169Z	[custom build] 
+2025-12-04T22:48:58.045Z	[custom build] building client...
+2025-12-04T22:48:58.046Z	[custom build] 
+2025-12-04T22:48:58.242Z	[custom build] vite v7.1.12 building for production...
+2025-12-04T22:48:58.242Z	[custom build] 
+2025-12-04T22:48:58.542Z	[custom build] transforming...
+2025-12-04T22:48:58.543Z	[custom build] 
+2025-12-04T22:49:02.949Z	[custom build] ✓ 2252 modules transformed.
+2025-12-04T22:49:02.949Z	[custom build] 
+2025-12-04T22:49:03.598Z	[custom build] rendering chunks...
+2025-12-04T22:49:03.598Z	[custom build] 
+2025-12-04T22:49:03.611Z	[custom build] [meta-images] no Replit deployment domain found, skipping meta tag updates
+2025-12-04T22:49:03.612Z	[custom build] 
+2025-12-04T22:49:03.635Z	[custom build] computing gzip size...
+2025-12-04T22:49:03.635Z	[custom build] 
+2025-12-04T22:49:03.658Z	[custom build] ../dist/public/index.html                                                           4.56 kB │ gzip:   1.55 kB
+2025-12-04T22:49:03.659Z	[custom build] ../dist/public/assets/minimalist_cloud_storage_icon-LZRPUkIw.png                  305.45 kB
+2025-12-04T22:49:03.659Z	[custom build] ../dist/public/assets/pexels-steve-29586678_1764345410863-BsZ6TKOH.jpg            717.30 kB
+2025-12-04T22:49:03.659Z	[custom build] ../dist/public/assets/pexels-shkrabaanthony-5475778_1764258312022-G6HgS3If.jpg    898.00 kB
+2025-12-04T22:49:03.660Z	[custom build] ../dist/public/assets/pricing_video_first_frame-is5UPM7j.png                    1,144.89 kB
+2025-12-04T22:49:03.660Z	[custom build] ../dist/public/assets/pexels-yankrukov-7315485_1764254260497-DEv-jXR0.jpg       1,274.42 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/about_page_video_first_frame-CrpgHI0Q.png                 1,474.57 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/loading-background-KpomVLYn.jpg                           2,083.68 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/4351798-hd_1280_720_50fps_1764253527054-Dm7T-Vrj.mp4      2,334.77 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/4354033-hd_1280_720_25fps_1764245575076-BljCyuzL.mp4      4,171.48 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/index-BMklj-xj.css                                          147.65 kB │ gzip:  21.87 kB
+2025-12-04T22:49:03.661Z	[custom build] ../dist/public/assets/index-9NV8juJ5.js                                           768.88 kB │ gzip: 217.11 kB
+2025-12-04T22:49:03.661Z	[custom build] ✓ built in 5.17s
+2025-12-04T22:49:03.661Z	[custom build] building server...
+2025-12-04T22:49:03.661Z	[custom build] 
+2025-12-04T22:49:03.661Z	[custom build] 
+2025-12-04T22:49:03.662Z	[custom build] (!) Some chunks are larger than 500 kB after minification. Consider:
+2025-12-04T22:49:03.662Z	[custom build] - Using dynamic import() to code-split the application
+2025-12-04T22:49:03.662Z	[custom build] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2025-12-04T22:49:03.662Z	[custom build] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2025-12-04T22:49:03.662Z	[custom build] 
+2025-12-04T22:49:03.884Z	[custom build] 
+2025-12-04T22:49:03.884Z	[custom build]   dist/index.cjs  1.4mb ⚠️
+2025-12-04T22:49:03.884Z	[custom build] 
+2025-12-04T22:49:03.884Z	[custom build] ⚡ Done in 222ms
+2025-12-04T22:49:03.884Z	[custom build] 
+2025-12-04T22:49:05.410Z	▲ [WARNING] The local configuration being used (generated from your local configuration file) differs from the remote configuration of your Worker set via the Cloudflare Dashboard:
+2025-12-04T22:49:05.410Z	
+2025-12-04T22:49:05.410Z	   {
+2025-12-04T22:49:05.410Z	     vars: {
+2025-12-04T22:49:05.410Z	  -    DATABASE_URL: "postgresql://postgres.qbysugdrbxqdvrnhqodk:Geraldo943412688@aws-1-eu-west-1.pooler.supabase.com:5432/postgres"
+2025-12-04T22:49:05.410Z	  -    JWT_SECRET: "my-secure-jwt-key-2025-orbital-cloud-32chars"
+2025-12-04T22:49:05.410Z	  -    TELEGRAM_BOT_10_TOKEN: "8230014962:AAFnTR2xjp1S_xCfkreCBfkyPlZkmD3BSoA"
+2025-12-04T22:49:05.410Z	  -    TELEGRAM_BOT_1_TOKEN: "8223016324:AAE8xZTuOf3-15oa_7xv32vKcNvU2xE-pAs"
+2025-12-04T22:49:05.411Z	  -    TELEGRAM_BOT_2_TOKEN: "8576824412:AAGeYbEXZJHUgtq_0PvmvrF9iPTjYJoG0-c"
+2025-12-04T22:49:05.413Z	  -    TELEGRAM_BOT_3_TOKEN: "8555207296:AAGx8CuDZg23GvHvjsvlRXfw9lJzMv3MZGM"
+2025-12-04T22:49:05.413Z	  -    TELEGRAM_BOT_4_TOKEN: "8594705763:AAFK3lypHEe0J6grp2qJ49viUCbZgCwqa3g"
+2025-12-04T22:49:05.414Z	  -    TELEGRAM_BOT_5_TOKEN: "8519422868:AAGeH02obXLonBLnEBcPXrY7c5MH80M3i9s"
+2025-12-04T22:49:05.414Z	  -    TELEGRAM_BOT_6_TOKEN: "8563562007:AAGL0hLE-DujYdRV5Xcw0ZPPpS59Cg8WWSA"
+2025-12-04T22:49:05.414Z	  -    TELEGRAM_BOT_7_TOKEN: "8193939525:AAEq2sDmCTJpg8vBcdzU8JfwvH0S-ry3Sw8"
+2025-12-04T22:49:05.414Z	  -    TELEGRAM_BOT_8_TOKEN: "8100426334:AAG1iWaB-3f4TXqU1SMcnhbtIYRdY1U18JQ"
+2025-12-04T22:49:05.415Z	  -    TELEGRAM_BOT_9_TOKEN: "8491149974:AAGMpsPl2-faA8gvx-ZlCZaZ4d70S97eRnc"
+2025-12-04T22:49:05.415Z	  -    TELEGRAM_STORAGE_CHAT_ID: "-1003232695027"
+2025-12-04T22:49:05.415Z	     }
+2025-12-04T22:49:05.415Z	   }
+2025-12-04T22:49:05.415Z	  
+2025-12-04T22:49:05.415Z	  
+2025-12-04T22:49:05.415Z	  Deploying the Worker will override the remote configuration with your local one.
+2025-12-04T22:49:05.415Z	
+2025-12-04T22:49:05.415Z	
+2025-12-04T22:49:05.416Z	? Would you like to continue?
+2025-12-04T22:49:05.416Z	🤖 Using fallback value in non-interactive context: yes
+2025-12-04T22:49:05.847Z	🌀 Building list of assets...
+2025-12-04T22:49:05.848Z	✨ Read 18 files from the assets directory /opt/buildhome/repo/cloudflare/dist/public
+2025-12-04T22:49:06.020Z	🌀 Starting asset upload...
+2025-12-04T22:49:07.820Z	🌀 Found 1 new or modified static asset to upload. Proceeding with upload...
+2025-12-04T22:49:07.820Z	+ /opengraph.jpg
+2025-12-04T22:49:09.529Z	Uploaded 1 of 1 asset
+2025-12-04T22:49:09.529Z	✨ Success! Uploaded 1 file (16 already uploaded) (1.71 sec)
+2025-12-04T22:49:09.529Z	
+2025-12-04T22:49:09.556Z	Total Upload: 1074.06 KiB / gzip: 204.80 KiB
+2025-12-04T22:49:12.531Z	Worker Startup Time: 50 ms
+2025-12-04T22:49:12.533Z	Your Worker has access to the following bindings:
+2025-12-04T22:49:12.534Z	Binding                             Resource                  
+2025-12-04T22:49:12.534Z	env.ASSETS                          Assets                    
+2025-12-04T22:49:12.534Z	env.ENVIRONMENT ("production")      Environment Variable      
+2025-12-04T22:49:12.534Z	
+2025-12-04T22:49:12.536Z	Uploaded orbitalcloud (7.13 sec)
+2025-12-04T22:49:13.378Z	Deployed orbitalcloud triggers (0.84 sec)
+2025-12-04T22:49:13.378Z	  https://orbitalcloud.orbt.workers.dev
+2025-12-04T22:49:13.378Z	Current Version ID: ff5e1abe-77ae-4bca-a18b-78a6ff5061b4
+2025-12-04T22:49:13.382Z	
+2025-12-04T22:49:13.382Z	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+2025-12-04T22:49:13.474Z	Success: Deploy command completed
+2025-12-04T22:49:13.476Z	Skipping build output cache as it's not supported for your project
+2025-12-04T22:49:13.672Z	✨ Success! Build completed.
