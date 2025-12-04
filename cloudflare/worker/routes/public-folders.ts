@@ -203,7 +203,7 @@ publicFolderRoutes.get('/folder/:slug/contents', async (c) => {
   }
 });
 
-// Preview file from public folder
+// Preview file from public folder - serve content directly for better CORS support
 publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
   try {
     const fileId = c.req.param('fileId');
@@ -214,6 +214,7 @@ publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
       nome: files.nome,
       tamanho: files.tamanho,
       tipoMime: files.tipoMime,
+      originalMimeType: files.originalMimeType,
       telegramFileId: files.telegramFileId,
       telegramBotId: files.telegramBotId,
       isEncrypted: files.isEncrypted,
@@ -245,12 +246,19 @@ publicFolderRoutes.get('/file/:fileId/preview', async (c) => {
     }
     
     const telegram = new TelegramService(c.env);
-    const downloadUrl = await telegram.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    const fileBuffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    const mimeType = file.originalMimeType || file.tipoMime;
     
-    return c.json({ 
-      url: downloadUrl,
-      tipoMime: file.tipoMime,
-      nome: file.nome
+    return new Response(fileBuffer, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Content-Type': mimeType,
+        'Content-Length': file.tamanho.toString(),
+        'Cache-Control': 'public, max-age=3600',
+        'Content-Disposition': `inline; filename="${encodeURIComponent(file.nome)}"`,
+      }
     });
   } catch (error) {
     console.error('Error previewing file:', error);
@@ -317,6 +325,65 @@ publicFolderRoutes.get('/file/:fileId/stream', async (c) => {
   } catch (error) {
     console.error('Error streaming file:', error);
     return c.json({ message: 'Erro ao transmitir ficheiro' }, 500);
+  }
+});
+
+// Get raw file content (for encrypted files decryption in frontend)
+publicFolderRoutes.get('/file/:fileId/content', async (c) => {
+  try {
+    const fileId = c.req.param('fileId');
+    const db = createDb(c.env.DATABASE_URL);
+    
+    const fileResult = await db.select({
+      id: files.id,
+      nome: files.nome,
+      tamanho: files.tamanho,
+      tipoMime: files.tipoMime,
+      telegramFileId: files.telegramFileId,
+      telegramBotId: files.telegramBotId,
+      folderId: files.folderId,
+    }).from(files)
+      .where(and(
+        eq(files.id, fileId),
+        eq(files.isDeleted, false)
+      ))
+      .limit(1);
+
+    if (fileResult.length === 0) {
+      return c.json({ message: 'Ficheiro não encontrado' }, 404);
+    }
+
+    const file = fileResult[0];
+    
+    if (!file.folderId) {
+      return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
+    }
+
+    const isPublic = await isFolderOrAncestorPublic(db, file.folderId);
+    if (!isPublic) {
+      return c.json({ message: 'Ficheiro não está numa pasta pública' }, 403);
+    }
+    
+    if (!file.telegramFileId || !file.telegramBotId) {
+      return c.json({ message: 'Ficheiro não disponível' }, 404);
+    }
+    
+    const telegram = new TelegramService(c.env);
+    const fileBuffer = await telegram.downloadFile(file.telegramFileId, file.telegramBotId);
+    
+    return new Response(fileBuffer, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': file.tamanho.toString(),
+        'Cache-Control': 'public, max-age=3600',
+      }
+    });
+  } catch (error) {
+    console.error('Error getting file content:', error);
+    return c.json({ message: 'Erro ao obter conteúdo do ficheiro' }, 500);
   }
 });
 

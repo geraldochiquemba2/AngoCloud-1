@@ -182,8 +182,9 @@ export default function SharePage() {
       } else if (mimeType.startsWith("image/")) {
         const response = await fetch(`/api/shares/${linkCode}/preview`);
         if (response.ok) {
-          const data = await response.json();
-          setThumbnailUrl(data.url);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          setThumbnailUrl(blobUrl);
         }
       }
     } catch (err) {
@@ -204,8 +205,9 @@ export default function SharePage() {
       } else {
         const response = await fetch(`/api/shares/${params.linkCode}/preview`);
         if (response.ok) {
-          const data = await response.json();
-          setPreviewUrl(data.url);
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          setPreviewUrl(blobUrl);
         }
       }
     } catch (err) {

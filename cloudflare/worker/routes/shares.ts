@@ -572,20 +572,17 @@ shareRoutes.get('/:linkCode/preview', async (c) => {
     }
     
     const telegramService = new TelegramService(c.env);
-    const downloadUrl = await telegramService.getDownloadUrl(file.telegramFileId, file.telegramBotId);
+    const arrayBuffer = await telegramService.downloadFile(file.telegramFileId, file.telegramBotId);
+    const mimeType = file.isEncrypted ? 'application/octet-stream' : (file.originalMimeType || file.tipoMime);
     
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      return c.json({ message: 'Erro ao buscar arquivo' }, 500);
-    }
-    
-    const arrayBuffer = await response.arrayBuffer();
     return new Response(arrayBuffer, {
       headers: {
-        'Content-Type': file.isEncrypted ? 'application/octet-stream' : (file.originalMimeType || file.tipoMime),
+        'Content-Type': mimeType,
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
         'Cache-Control': 'public, max-age=3600',
-        'Content-Disposition': `inline; filename="${file.nome}"`
+        'Content-Disposition': `inline; filename="${encodeURIComponent(file.nome)}"`
       }
     });
   } catch (error) {

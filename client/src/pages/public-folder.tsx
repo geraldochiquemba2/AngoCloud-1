@@ -247,32 +247,32 @@ export default function PublicFolderPage() {
     
     if (file && !thumbnails[file.id]) {
       try {
-        const res = await fetch(`/api/public/file/${file.id}/preview`);
-        if (res.ok) {
-          const data = await res.json();
-          
-          if (data.isEncrypted) {
-            const encryptionKey = await getActiveEncryptionKey();
-            if (encryptionKey) {
-              try {
-                const contentRes = await fetch(data.url);
-                if (contentRes.ok) {
-                  const encryptedBuffer = await contentRes.arrayBuffer();
-                  const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-                  const mimeType = data.originalMimeType || file.tipoMime;
-                  const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
-                  const blobUrl = createDownloadUrl(decryptedBlob);
-                  setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
-                }
-              } catch (err) {
-                console.error("Error decrypting thumbnail:", err);
-                setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+        if (file.isEncrypted) {
+          const encryptionKey = await getActiveEncryptionKey();
+          if (encryptionKey) {
+            try {
+              const contentRes = await fetch(`/api/public/file/${file.id}/content`);
+              if (contentRes.ok) {
+                const encryptedBuffer = await contentRes.arrayBuffer();
+                const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+                const mimeType = file.originalMimeType || file.tipoMime;
+                const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+                const blobUrl = createDownloadUrl(decryptedBlob);
+                setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
               }
-            } else {
+            } catch (err) {
+              console.error("Error decrypting thumbnail:", err);
               setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
             }
           } else {
-            setThumbnails(prev => ({ ...prev, [file.id]: data.url }));
+            setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
+          }
+        } else {
+          const res = await fetch(`/api/public/file/${file.id}/preview`);
+          if (res.ok) {
+            const blob = await res.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            setThumbnails(prev => ({ ...prev, [file.id]: blobUrl }));
           }
         }
       } catch (err) {
@@ -282,7 +282,6 @@ export default function PublicFolderPage() {
     
     isProcessingRef.current = false;
     
-    // Process next thumbnail with a small delay
     if (thumbnailQueueRef.current.length > 0) {
       setTimeout(processNextThumbnail, 100);
     }
@@ -361,55 +360,31 @@ export default function PublicFolderPage() {
     setPreviewUrl(null);
 
     try {
-      // For videos, use stream URL directly as it's more reliable
-      if (mimeType.startsWith("video/")) {
-        if (file.isEncrypted) {
-          const encryptionKey = await getActiveEncryptionKey();
-          if (!encryptionKey) {
-            console.log("No encryption key available for preview");
-            setPreviewUrl(null);
-            setPreviewLoading(false);
-            return;
-          }
-          
-          const contentRes = await fetch(`/api/public/file/${file.id}/content`);
-          if (contentRes.ok) {
-            const encryptedBuffer = await contentRes.arrayBuffer();
-            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-            const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
-            const blobUrl = createDownloadUrl(decryptedBlob);
-            setPreviewUrl(blobUrl);
-          }
-        } else {
-          setPreviewUrl(`/api/public/file/${file.id}/stream`);
+      if (file.isEncrypted) {
+        const encryptionKey = await getActiveEncryptionKey();
+        if (!encryptionKey) {
+          console.log("No encryption key available for preview");
+          setPreviewUrl(null);
+          setPreviewLoading(false);
+          return;
         }
-        setPreviewLoading(false);
-        return;
-      }
-
-      const res = await fetch(`/api/public/file/${file.id}/preview`);
-      if (res.ok) {
-        const data = await res.json();
         
-        if (data.isEncrypted) {
-          const encryptionKey = await getActiveEncryptionKey();
-          if (!encryptionKey) {
-            console.log("No encryption key available for preview");
-            setPreviewUrl(null);
-            setPreviewLoading(false);
-            return;
-          }
-          
-          const contentRes = await fetch(data.url);
-          if (contentRes.ok) {
-            const encryptedBuffer = await contentRes.arrayBuffer();
-            const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
-            const decryptedBlob = new Blob([decryptedBuffer], { type: data.originalMimeType || mimeType });
-            const blobUrl = createDownloadUrl(decryptedBlob);
-            setPreviewUrl(blobUrl);
-          }
-        } else {
-          setPreviewUrl(data.url);
+        const contentRes = await fetch(`/api/public/file/${file.id}/content`);
+        if (contentRes.ok) {
+          const encryptedBuffer = await contentRes.arrayBuffer();
+          const decryptedBuffer = await decryptBuffer(encryptedBuffer, encryptionKey);
+          const decryptedBlob = new Blob([decryptedBuffer], { type: mimeType });
+          const blobUrl = createDownloadUrl(decryptedBlob);
+          setPreviewUrl(blobUrl);
+        }
+      } else if (mimeType.startsWith("video/")) {
+        setPreviewUrl(`/api/public/file/${file.id}/stream`);
+      } else {
+        const res = await fetch(`/api/public/file/${file.id}/preview`);
+        if (res.ok) {
+          const blob = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          setPreviewUrl(blobUrl);
         }
       }
     } catch (err) {
