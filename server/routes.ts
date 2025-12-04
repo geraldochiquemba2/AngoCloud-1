@@ -11,6 +11,34 @@ import multer, { type Multer } from "multer";
 import { telegramService } from "./telegram";
 import bcrypt from "bcrypt";
 import { wsManager } from "./websocket";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString('hex');
+const JWT_EXPIRY = '7d';
+
+interface JWTPayload {
+  id: string;
+  email: string;
+  nome: string;
+  plano: string;
+  storageLimit: number;
+  storageUsed: number;
+  uploadsCount: number;
+  uploadLimit: number;
+  isAdmin: boolean;
+}
+
+function createJWT(user: JWTPayload): string {
+  return jwt.sign(user, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+function verifyJWT(token: string): JWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch {
+    return null;
+  }
+}
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -294,16 +322,30 @@ export async function registerRoutes(
         return res.status(401).json({ message: info?.message || "Credenciais inválidas" });
       }
       
-      // Get full user data including encryption salt
       const fullUser = await storage.getUser(user.id);
+      
+      const token = createJWT({
+        id: user.id,
+        email: user.email,
+        nome: user.nome,
+        plano: user.plano,
+        storageLimit: Number(user.storageLimit),
+        storageUsed: Number(user.storageUsed),
+        uploadsCount: user.uploadsCount,
+        uploadLimit: user.uploadLimit,
+        isAdmin: user.isAdmin,
+      });
       
       req.login(user, (err) => {
         if (err) {
           return res.status(500).json({ message: "Erro ao fazer login" });
         }
         res.json({
-          ...user,
-          encryptionSalt: fullUser?.encryptionSalt || null,
+          token,
+          user: {
+            ...user,
+            encryptionSalt: fullUser?.encryptionSalt || null,
+          },
         });
       });
     })(req, res, next);
@@ -347,6 +389,47 @@ export async function registerRoutes(
       ...req.user,
       encryptionSalt: fullUser?.encryptionSalt || null,
     });
+  });
+
+  // Refresh JWT token
+  app.post("/api/auth/refresh", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const fullUser = await storage.getUser(req.user!.id);
+      if (!fullUser) {
+        return res.status(404).json({ message: "Utilizador não encontrado" });
+      }
+      
+      const newToken = createJWT({
+        id: fullUser.id,
+        email: fullUser.email,
+        nome: fullUser.nome,
+        plano: fullUser.plano,
+        storageLimit: Number(fullUser.storageLimit),
+        storageUsed: Number(fullUser.storageUsed),
+        uploadsCount: fullUser.uploadsCount,
+        uploadLimit: fullUser.uploadLimit,
+        isAdmin: fullUser.isAdmin,
+      });
+      
+      res.json({
+        token: newToken,
+        user: {
+          id: fullUser.id,
+          email: fullUser.email,
+          nome: fullUser.nome,
+          plano: fullUser.plano,
+          storageLimit: Number(fullUser.storageLimit),
+          storageUsed: Number(fullUser.storageUsed),
+          uploadsCount: fullUser.uploadsCount,
+          uploadLimit: fullUser.uploadLimit,
+          isAdmin: fullUser.isAdmin,
+          encryptionSalt: fullUser.encryptionSalt,
+        },
+      });
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      res.status(500).json({ message: "Erro ao renovar token" });
+    }
   });
 
   // Enable encryption for legacy accounts

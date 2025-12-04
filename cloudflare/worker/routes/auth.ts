@@ -260,6 +260,50 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   });
 });
 
+authRoutes.post('/refresh', authMiddleware, async (c) => {
+  try {
+    const user = c.get('user') as JWTPayload;
+    
+    const db = createDb(c.env.DATABASE_URL);
+    const [fullUser] = await db.select().from(users).where(eq(users.id, user.id));
+    
+    if (!fullUser) {
+      return c.json({ message: 'Utilizador não encontrado' }, 404);
+    }
+
+    const newToken = await createToken({
+      id: fullUser.id,
+      email: fullUser.email,
+      nome: fullUser.nome,
+      plano: fullUser.plano,
+      storageLimit: Number(fullUser.storageLimit),
+      storageUsed: Number(fullUser.storageUsed),
+      uploadsCount: fullUser.uploadsCount,
+      uploadLimit: fullUser.uploadLimit,
+      isAdmin: fullUser.isAdmin,
+    }, c.env.JWT_SECRET);
+
+    return c.json({
+      token: newToken,
+      user: {
+        id: fullUser.id,
+        email: fullUser.email,
+        nome: fullUser.nome,
+        plano: fullUser.plano,
+        storageLimit: Number(fullUser.storageLimit),
+        storageUsed: Number(fullUser.storageUsed),
+        uploadsCount: fullUser.uploadsCount,
+        uploadLimit: fullUser.uploadLimit,
+        isAdmin: fullUser.isAdmin,
+        encryptionSalt: fullUser.encryptionSalt,
+      },
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return c.json({ message: 'Erro ao renovar token' }, 500);
+  }
+});
+
 authRoutes.post('/enable-encryption', authMiddleware, async (c) => {
   try {
     const user = c.get('user') as JWTPayload;

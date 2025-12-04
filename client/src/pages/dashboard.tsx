@@ -1036,14 +1036,21 @@ export default function Dashboard() {
     });
   }, [isMobile]);
 
-  const loadThumbnail = useCallback(async (fileId: string, mimeType: string) => {
+  const loadThumbnail = useCallback(async (fileId: string, mimeType: string, retryCount: number = 0) => {
     if (fileThumbnails[fileId]) return;
     
     setLoadingThumbnails(prev => new Set(prev).add(fileId));
     
     try {
       const metaResponse = await apiFetch(`/api/files/${fileId}/download-data`);
-      if (!metaResponse.ok) return;
+      if (!metaResponse.ok) {
+        if (metaResponse.status === 401 && retryCount < 2) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return loadThumbnail(fileId, mimeType, retryCount + 1);
+        }
+        setFailedThumbnails(prev => new Set(prev).add(fileId));
+        return;
+      }
       
       const meta = await metaResponse.json();
       let encryptionKey = await getActiveEncryptionKey();
