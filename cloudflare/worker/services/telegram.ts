@@ -257,9 +257,9 @@ export class TelegramService {
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.error(`⏱️ Timeout: upload de ${fileSizeMB}MB excedeu 25s`);
+      console.error(`⏱️ Timeout: upload de ${fileSizeMB}MB excedeu 120s`);
       controller.abort();
-    }, 25000);
+    }, 120000);
 
     try {
       const startTime = Date.now();
@@ -291,7 +291,7 @@ export class TelegramService {
       return { fileId: data.result.document.file_id, botId: bot.id };
     } catch (error: any) {
       if (error.name === 'AbortError') {
-        throw new Error(`Upload timeout: ficheiro de ${fileSizeMB}MB demorou mais de 25 segundos. Tente um ficheiro menor.`);
+        throw new Error(`Upload timeout: ficheiro de ${fileSizeMB}MB demorou mais de 2 minutos. Tente um ficheiro menor ou verifique sua conexão.`);
       }
       throw error;
     } finally {
