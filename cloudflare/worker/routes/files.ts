@@ -194,6 +194,9 @@ fileRoutes.post('/upload', async (c) => {
       ? parseInt(formData.get('originalSize') as string, 10) 
       : file.size;
     const folderId = formData.get('folderId') as string || null;
+    const encryptionVersion = formData.get('encryptionVersion') 
+      ? parseInt(formData.get('encryptionVersion') as string, 10) 
+      : 1;
     
     const db = createDb(c.env.DATABASE_URL);
     
@@ -320,6 +323,7 @@ fileRoutes.post('/upload', async (c) => {
       telegramFileId: mainFileId,
       telegramBotId: mainBotId,
       isEncrypted,
+      encryptionVersion: isEncrypted ? encryptionVersion : 1,
       originalMimeType,
       originalSize,
       isChunked: uploadResult.isChunked,
@@ -396,6 +400,9 @@ fileRoutes.post('/:id/reprocess', async (c) => {
     const originalSize = formData.get('originalSize') 
       ? parseInt(formData.get('originalSize') as string, 10) 
       : file.size;
+    const encryptionVersion = formData.get('encryptionVersion') 
+      ? parseInt(formData.get('encryptionVersion') as string, 10) 
+      : 1;
     
     const db = createDb(c.env.DATABASE_URL);
     
@@ -455,6 +462,7 @@ fileRoutes.post('/:id/reprocess', async (c) => {
         tamanho: file.size,
         tipoMime: isEncrypted ? 'application/octet-stream' : originalMimeType,
         isEncrypted,
+        encryptionVersion: isEncrypted ? encryptionVersion : 1,
         originalMimeType,
         originalSize,
         isChunked: uploadResult.isChunked,
@@ -1131,7 +1139,7 @@ fileRoutes.post('/init-upload', async (c) => {
     const user = c.get('user') as JWTPayload;
     const body = await c.req.json();
     
-    const { fileName, fileSize, mimeType, folderId, isEncrypted: clientSentEncrypted, originalMimeType, originalSize } = body;
+    const { fileName, fileSize, mimeType, folderId, isEncrypted: clientSentEncrypted, originalMimeType, originalSize, encryptionVersion: clientEncryptionVersion } = body;
     
     console.log(`📂 Init upload: fileName=${fileName}, fileSize=${fileSize}, mimeType=${mimeType}`);
     
@@ -1172,6 +1180,8 @@ fileRoutes.post('/init-upload', async (c) => {
     
     console.log(`📂 Init upload: criando sessão com ${totalChunks} chunks...`);
     
+    const encryptionVersion = isEncrypted ? (clientEncryptionVersion || 1) : 1;
+    
     const [session] = await db.insert(uploadSessions).values({
       userId: user.id,
       fileName,
@@ -1180,6 +1190,7 @@ fileRoutes.post('/init-upload', async (c) => {
       totalChunks,
       folderId: folderId || null,
       isEncrypted: isEncrypted || false,
+      encryptionVersion,
       originalMimeType: originalMimeType || mimeType,
       originalSize: originalSize || fileSize,
       expiresAt,
@@ -1387,6 +1398,7 @@ fileRoutes.post('/complete-upload', async (c) => {
       telegramFileId: mainChunk.telegramFileId,
       telegramBotId: mainChunk.telegramBotId,
       isEncrypted: finalIsEncrypted,
+      encryptionVersion: finalIsEncrypted ? (session.encryptionVersion || 1) : 1,
       originalMimeType: session.originalMimeType,
       originalSize: session.originalSize,
       isChunked: chunks.length > 1,
@@ -1664,6 +1676,10 @@ fileRoutes.get('/:id/chunks-info', async (c) => {
         isChunked: false,
         totalChunks: 1,
         totalSize: file.tamanho,
+        originalSize: file.originalSize || file.tamanho,
+        isEncrypted: file.isEncrypted,
+        encryptionVersion: file.encryptionVersion || 1,
+        originalMimeType: file.originalMimeType || file.tipoMime,
         chunks: [{
           index: 0,
           size: file.tamanho,
@@ -1681,6 +1697,7 @@ fileRoutes.get('/:id/chunks-info', async (c) => {
       totalSize: file.tamanho,
       originalSize: file.originalSize || file.tamanho,
       isEncrypted: file.isEncrypted,
+      encryptionVersion: file.encryptionVersion || 1,
       originalMimeType: file.originalMimeType || file.tipoMime,
       chunks: chunks.map(chunk => ({
         index: chunk.chunkIndex,

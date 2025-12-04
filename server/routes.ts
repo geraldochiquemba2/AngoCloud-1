@@ -2909,7 +2909,9 @@ export async function registerRoutes(
         isChunked: file.isChunked || false,
         totalChunks: file.totalChunks || 1,
         originalMimeType: file.originalMimeType || file.tipoMime,
-        originalSize: file.originalSize || file.tamanho
+        originalSize: file.originalSize || file.tamanho,
+        isEncrypted: file.isEncrypted || false,
+        encryptionVersion: file.encryptionVersion || 1
       });
     } catch (error) {
       console.error("Chunks info error:", error);
