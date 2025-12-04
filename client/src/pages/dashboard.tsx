@@ -1060,26 +1060,33 @@ export default function Dashboard() {
       }
       
       if (meta.isEncrypted && encryptionKey) {
-        const fileResponse = await apiFetch(`/api/files/${fileId}/content`);
-        if (!fileResponse.ok) return;
-        
-        const encryptedBuffer = await fileResponse.arrayBuffer();
-        const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
-        const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
-        const url = createDownloadUrl(blob);
-        
-        if (meta.originalMimeType?.startsWith("video/")) {
-          try {
-            const thumbnailDataUrl = await generateVideoThumbnail(url);
-            revokeDownloadUrl(url);
-            setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
-          } catch (err) {
-            console.error("Error generating video thumbnail:", err);
-            revokeDownloadUrl(url);
+        try {
+          const fileResponse = await apiFetch(`/api/files/${fileId}/content`);
+          if (!fileResponse.ok) {
             setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+            return;
           }
-        } else {
-          setFileThumbnails(prev => ({ ...prev, [fileId]: url }));
+          
+          const encryptedBuffer = await fileResponse.arrayBuffer();
+          const decryptedBuffer = await decryptAuto(encryptedBuffer, encryptionKey, meta.encryptionVersion);
+          const blob = new Blob([decryptedBuffer], { type: meta.originalMimeType });
+          const url = createDownloadUrl(blob);
+          
+          if (meta.originalMimeType?.startsWith("video/")) {
+            try {
+              const thumbnailDataUrl = await generateVideoThumbnail(url);
+              revokeDownloadUrl(url);
+              setFileThumbnails(prev => ({ ...prev, [fileId]: thumbnailDataUrl }));
+            } catch (err) {
+              revokeDownloadUrl(url);
+              setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
+            }
+          } else {
+            setFileThumbnails(prev => ({ ...prev, [fileId]: url }));
+          }
+        } catch (decryptError) {
+          // Silently handle decryption errors (OperationError) - key may be invalid or data corrupted
+          setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
         }
       } else if (meta.isEncrypted && !encryptionKey) {
         setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
@@ -1116,13 +1123,14 @@ export default function Dashboard() {
               setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
             }
           } catch (err) {
-            console.error("Error loading image thumbnail:", err);
+            // Silently handle image thumbnail errors
             setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
           }
         }
       }
     } catch (err) {
-      console.error("Error loading thumbnail:", err);
+      // Silently handle thumbnail loading errors - may be network issues or auth problems
+      setFileThumbnails(prev => ({ ...prev, [fileId]: "" }));
     } finally {
       setLoadingThumbnails(prev => { const next = new Set(prev); next.delete(fileId); return next; });
     }
@@ -1277,8 +1285,11 @@ export default function Dashboard() {
         }
       }
     } catch (err) {
-      console.error("Error loading preview:", err);
-      toast.error("Não foi possível carregar o preview");
+      // Only show toast for non-decryption errors (user already sees message for encryption key issues)
+      const errorMessage = err instanceof Error ? err.message : '';
+      if (!errorMessage.includes('encryption') && !errorMessage.includes('OperationError')) {
+        toast.error("Não foi possível carregar o preview");
+      }
     } finally {
       setPreviewLoading(false);
     }

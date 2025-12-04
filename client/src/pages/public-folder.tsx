@@ -276,7 +276,7 @@ export default function PublicFolderPage() {
                 }
               }
             } catch (err) {
-              console.error("Error decrypting thumbnail:", err);
+              // Silently handle decryption errors
               setThumbnails(prev => ({ ...prev, [file.id]: "encrypted" }));
             }
           } else {
@@ -291,7 +291,7 @@ export default function PublicFolderPage() {
           }
         }
       } catch (err) {
-        console.error("Error loading thumbnail:", err);
+        // Silently handle thumbnail loading errors
       }
     }
     

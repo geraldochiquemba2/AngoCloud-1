@@ -177,7 +177,7 @@ export default function SharePage() {
           const thumbnail = await generateVideoThumbnail(streamUrl);
           setThumbnailUrl(thumbnail);
         } catch (err) {
-          console.error("Error generating video thumbnail:", err);
+          // Silently handle video thumbnail errors
         }
       } else if (mimeType.startsWith("image/")) {
         const response = await fetch(`/api/shares/${linkCode}/preview`);
@@ -188,7 +188,7 @@ export default function SharePage() {
         }
       }
     } catch (err) {
-      console.error("Error loading thumbnail:", err);
+      // Silently handle thumbnail loading errors
     }
   };
 
@@ -211,7 +211,7 @@ export default function SharePage() {
         }
       }
     } catch (err) {
-      console.error("Error loading preview:", err);
+      // Silently handle preview loading errors
     } finally {
       setLoadingPreview(false);
     }

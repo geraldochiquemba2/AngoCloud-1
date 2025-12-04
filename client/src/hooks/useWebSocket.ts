@@ -8,12 +8,18 @@ interface WebSocketMessage {
 
 type MessageHandler = (message: WebSocketMessage) => void;
 
+// Check if running on Cloudflare Workers (no WebSocket support without Durable Objects)
+const isCloudflareWorkers = (): boolean => {
+  const host = window.location.host;
+  return host.includes('.workers.dev') || host.includes('angocloud.ao');
+};
+
 export function useWebSocket(userId?: string, isAdmin?: boolean) {
   const wsRef = useRef<WebSocket | null>(null);
   const handlersRef = useRef<Map<string, Set<MessageHandler>>>(new Map());
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttemptsRef = useRef(3);
-  const isDisabledRef = useRef(false);
+  const isDisabledRef = useRef(isCloudflareWorkers()); // Disable on Cloudflare Workers
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
