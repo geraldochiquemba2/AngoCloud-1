@@ -34,11 +34,47 @@ export async function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>, secr
   );
 }
 
+function isValidJWTFormat(token: string): boolean {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  for (const part of parts) {
+    if (!part || part.length === 0) return false;
+    if (!/^[A-Za-z0-9_-]+$/.test(part)) return false;
+  }
+  return true;
+}
+
+function cleanToken(token: string): string {
+  if (!token) return '';
+  let cleaned = token.trim();
+  cleaned = decodeURIComponent(cleaned);
+  cleaned = cleaned.replace(/\s+/g, '');
+  return cleaned;
+}
+
 export async function verifyToken(token: string, secret: string): Promise<JWTPayload | null> {
   try {
-    const payload = await verify(token, secret);
+    if (!token || !secret) {
+      return null;
+    }
+    
+    const cleanedToken = cleanToken(token);
+    
+    if (!isValidJWTFormat(cleanedToken)) {
+      console.log('Invalid JWT format detected');
+      return null;
+    }
+    
+    const payload = await verify(cleanedToken, secret);
     return payload as unknown as JWTPayload;
-  } catch (error) {
+  } catch (error: any) {
+    const errorMessage = error?.message || String(error);
+    if (errorMessage.includes('pattern') || errorMessage.includes('expired') || errorMessage.includes('invalid')) {
+      console.log('JWT verification failed:', errorMessage);
+    } else {
+      console.error('Unexpected JWT error:', errorMessage);
+    }
     return null;
   }
 }
@@ -48,7 +84,8 @@ export function getTokenFromHeader(c: Context): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
-  return authHeader.substring(7);
+  const token = authHeader.substring(7).trim();
+  return token || null;
 }
 
 export function getTokenFromCookie(c: Context): string | null {
@@ -58,7 +95,14 @@ export function getTokenFromCookie(c: Context): string | null {
   for (const cookie of cookies) {
     const trimmed = cookie.trim();
     if (trimmed.startsWith('auth_token=')) {
-      return trimmed.substring('auth_token='.length) || null;
+      const token = trimmed.substring('auth_token='.length).trim();
+      if (token && token.length > 0) {
+        try {
+          return decodeURIComponent(token);
+        } catch {
+          return token;
+        }
+      }
     }
   }
   
