@@ -5,7 +5,7 @@ import {
   File, Image, Video, Music, FileCode, FileArchive, Lock,
   Shield, Loader2, AlertTriangle, UserPlus, Mail, Users,
   CheckCircle, XCircle, Clock, FolderOpen, Settings, UserX, Key,
-  Phone, Globe, LinkIcon, Eye,
+  Phone, Globe, LinkIcon, Eye, CheckSquare, Square,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -222,6 +222,11 @@ export default function Dashboard() {
   // Upgrade requests tracking
   const [upgradeRequests, setUpgradeRequests] = useState<Array<{id: string; status: string; requestedPlan: string; requestedExtraGB?: number; totalPrice?: number; adminNote?: string; currentPlan: string}>>([]);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
+  
+  // Multi-select state
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
   const [selectedRejection, setSelectedRejection] = useState<{id: string; message?: string; requestedGB?: number; totalPrice?: number} | null>(null);
   const [showApprovedSection, setShowApprovedSection] = useState(true);
   const [showRejectedSection, setShowRejectedSection] = useState(true);
@@ -400,6 +405,12 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     fetchContent();
+  }, [currentFolderId, viewMode]);
+
+  // Clear selection when changing folder or view mode
+  useEffect(() => {
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
   }, [currentFolderId, viewMode]);
 
   // Handle shared folder navigation
@@ -2920,6 +2931,132 @@ export default function Dashboard() {
     }
   };
 
+  // Multi-select functions
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFiles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(fileId)) {
+        newSet.delete(fileId);
+      } else {
+        newSet.add(fileId);
+      }
+      if (newSet.size === 0) {
+        setIsSelectionMode(false);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllFiles = () => {
+    if (displayFiles.length === 0) return;
+    const allFileIds = displayFiles.map(f => f.id);
+    setSelectedFiles(new Set(allFileIds));
+    setIsSelectionMode(true);
+  };
+
+  const deselectAllFiles = () => {
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
+  };
+
+  const exitSelectionMode = () => {
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
+  };
+
+  const bulkDeleteFiles = async () => {
+    if (selectedFiles.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const deletePromises = Array.from(selectedFiles).map(fileId => 
+        apiFetch(`/api/files/${fileId}`, { method: "DELETE" })
+      );
+      
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(r => r.ok).length;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} ficheiro(s) movido(s) para a lixeira`);
+        await fetchContent();
+        await refreshUser();
+      }
+      
+      if (successCount < selectedFiles.size) {
+        toast.error(`${selectedFiles.size - successCount} ficheiro(s) não puderam ser eliminados`);
+      }
+      
+      exitSelectionMode();
+    } catch (err) {
+      console.error("Error bulk deleting files:", err);
+      toast.error("Erro ao eliminar ficheiros");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const bulkPermanentDeleteFiles = async () => {
+    if (selectedFiles.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const deletePromises = Array.from(selectedFiles).map(fileId => 
+        apiFetch(`/api/files/${fileId}/permanent`, { method: "DELETE" })
+      );
+      
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(r => r.ok).length;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} ficheiro(s) eliminado(s) permanentemente`);
+        await fetchContent();
+        await refreshUser();
+      }
+      
+      if (successCount < selectedFiles.size) {
+        toast.error(`${selectedFiles.size - successCount} ficheiro(s) não puderam ser eliminados`);
+      }
+      
+      exitSelectionMode();
+    } catch (err) {
+      console.error("Error bulk permanently deleting files:", err);
+      toast.error("Erro ao eliminar ficheiros permanentemente");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const bulkRestoreFiles = async () => {
+    if (selectedFiles.size === 0) return;
+    
+    setBulkActionLoading(true);
+    try {
+      const restorePromises = Array.from(selectedFiles).map(fileId => 
+        apiFetch(`/api/files/${fileId}/restore`, { method: "POST" })
+      );
+      
+      const results = await Promise.all(restorePromises);
+      const successCount = results.filter(r => r.ok).length;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} ficheiro(s) restaurado(s)`);
+        await fetchContent();
+        await refreshUser();
+      }
+      
+      if (successCount < selectedFiles.size) {
+        toast.error(`${selectedFiles.size - successCount} ficheiro(s) não puderam ser restaurados`);
+      }
+      
+      exitSelectionMode();
+    } catch (err) {
+      console.error("Error bulk restoring files:", err);
+      toast.error("Erro ao restaurar ficheiros");
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
   // Utility functions
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 Bytes";
@@ -3788,17 +3925,136 @@ export default function Dashboard() {
                     {displayFiles.length > 0 && (
                       <div>
                         {!searchResults && folders.length > 0 && <h3 className="text-sm font-medium text-white/50 mb-3">Ficheiros</h3>}
+                        
+                        {/* Selection Controls Bar */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {!isSelectionMode ? (
+                              <button
+                                onClick={() => setIsSelectionMode(true)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
+                                data-testid="button-enter-selection-mode"
+                              >
+                                <Square className="w-3.5 h-3.5" />
+                                Selecionar
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={selectAllFiles}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs font-medium transition-colors"
+                                  data-testid="button-select-all"
+                                >
+                                  <CheckSquare className="w-3.5 h-3.5" />
+                                  Selecionar Todos
+                                </button>
+                                {selectedFiles.size > 0 && (
+                                  <button
+                                    onClick={deselectAllFiles}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
+                                    data-testid="button-deselect-all"
+                                  >
+                                    <Square className="w-3.5 h-3.5" />
+                                    Desmarcar Todos
+                                  </button>
+                                )}
+                                <button
+                                  onClick={exitSelectionMode}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-xs font-medium transition-colors"
+                                  data-testid="button-exit-selection-mode"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                  Cancelar
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          
+                          {/* Bulk Actions when files are selected */}
+                          {selectedFiles.size > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-white/60 text-xs mr-2">
+                                {selectedFiles.size} selecionado{selectedFiles.size > 1 ? 's' : ''}
+                              </span>
+                              {viewMode === "trash" ? (
+                                <>
+                                  <button
+                                    onClick={bulkRestoreFiles}
+                                    disabled={bulkActionLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/20 hover:bg-green-500/30 text-green-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                    data-testid="button-bulk-restore"
+                                  >
+                                    {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                                    Restaurar
+                                  </button>
+                                  <button
+                                    onClick={bulkPermanentDeleteFiles}
+                                    disabled={bulkActionLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                    data-testid="button-bulk-permanent-delete"
+                                  >
+                                    {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                    Eliminar Permanentemente
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={bulkDeleteFiles}
+                                  disabled={bulkActionLoading}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs font-medium transition-colors disabled:opacity-50"
+                                  data-testid="button-bulk-delete"
+                                >
+                                  {bulkActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                                  Mover para Lixeira
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3" style={{ contain: 'layout paint' }}>
                           {displayFiles.map((file) => (
                             <div
                               key={file.id}
-                              className="group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 overflow-hidden"
+                              className={`group relative flex flex-col rounded-lg bg-white/5 hover:bg-white/10 border overflow-hidden transition-all ${
+                                selectedFiles.has(file.id) 
+                                  ? 'border-primary ring-2 ring-primary/30 bg-primary/10' 
+                                  : 'border-white/10'
+                              }`}
                               data-testid={`file-item-${file.id}`}
-                              style={{ transition: 'background-color 0.15s' }}
+                              style={{ transition: 'background-color 0.15s, border-color 0.15s' }}
+                              onClick={() => isSelectionMode && toggleFileSelection(file.id)}
                             >
+                              {/* Selection Checkbox */}
+                              {isSelectionMode && (
+                                <div 
+                                  className="absolute top-2 left-2 z-30"
+                                  onClick={(e) => { e.stopPropagation(); toggleFileSelection(file.id); }}
+                                >
+                                  <div className={`w-5 h-5 rounded flex items-center justify-center cursor-pointer transition-colors ${
+                                    selectedFiles.has(file.id) 
+                                      ? 'bg-primary text-white' 
+                                      : 'bg-black/60 text-white/70 hover:bg-black/80'
+                                  }`}>
+                                    {selectedFiles.has(file.id) ? (
+                                      <Check className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <div className="w-3 h-3 border border-white/50 rounded-sm" />
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
                               <div 
-                                className="aspect-square flex items-center justify-center bg-black/20 cursor-pointer overflow-hidden"
-                                onClick={() => openPreview(file)}
+                                className={`aspect-square flex items-center justify-center bg-black/20 overflow-hidden ${
+                                  isSelectionMode ? 'cursor-pointer' : 'cursor-pointer'
+                                }`}
+                                onClick={(e) => { 
+                                  if (!isSelectionMode) {
+                                    e.stopPropagation();
+                                    openPreview(file);
+                                  }
+                                }}
                                 style={{ contain: 'layout paint' }}
                               >
                                 {isMediaFile(file) && fileThumbnails[file.id] && fileThumbnails[file.id] !== "" && !failedThumbnails.has(file.id) ? (
@@ -3845,29 +4101,32 @@ export default function Dashboard() {
                                 )}
                               </div>
                               
-                              <div className="absolute top-2 right-2 z-20">
-                                <button
-                                  ref={file.id === showFileMenu ? menuButtonRef : null}
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    e.preventDefault(); 
-                                    const newRef = e.currentTarget;
-                                    const rect = newRef.getBoundingClientRect();
-                                    setMenuPosition({ 
-                                      top: rect.bottom + 8, 
-                                      left: rect.left - 180 
-                                    });
-                                    setShowFileMenu(showFileMenu === file.id ? null : file.id); 
-                                    setMenuOpenTime(Date.now()); 
-                                    setSelectedFile(file); 
-                                  }}
-                                  className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
-                                  title="Mais opções"
-                                  data-testid={`button-menu-${file.id}`}
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </button>
-                              </div>
+                              {/* File menu button - hidden in selection mode */}
+                              {!isSelectionMode && (
+                                <div className="absolute top-2 right-2 z-20">
+                                  <button
+                                    ref={file.id === showFileMenu ? menuButtonRef : null}
+                                    onClick={(e) => { 
+                                      e.stopPropagation(); 
+                                      e.preventDefault(); 
+                                      const newRef = e.currentTarget;
+                                      const rect = newRef.getBoundingClientRect();
+                                      setMenuPosition({ 
+                                        top: rect.bottom + 8, 
+                                        left: rect.left - 180 
+                                      });
+                                      setShowFileMenu(showFileMenu === file.id ? null : file.id); 
+                                      setMenuOpenTime(Date.now()); 
+                                      setSelectedFile(file); 
+                                    }}
+                                    className="p-2 rounded bg-black/60 text-white hover:bg-black/80 transition-colors"
+                                    title="Mais opções"
+                                    data-testid={`button-menu-${file.id}`}
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
