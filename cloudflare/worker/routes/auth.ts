@@ -185,6 +185,15 @@ authRoutes.post('/register', async (c) => {
 
 authRoutes.post('/login', async (c) => {
   try {
+    if (!c.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not configured');
+      return c.json({ message: 'Erro de configuração do servidor' }, 500);
+    }
+    if (!c.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return c.json({ message: 'Erro de configuração do servidor' }, 500);
+    }
+
     const schema = z.object({
       email: z.string().email(),
       password: z.string(),

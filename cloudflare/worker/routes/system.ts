@@ -134,6 +134,15 @@ export const statsRoutes = new Hono<{ Bindings: Env }>();
 
 statsRoutes.get('/', async (c) => {
   try {
+    if (!c.env.DATABASE_URL) {
+      console.error('DATABASE_URL is not configured');
+      return c.json({ 
+        message: 'DATABASE_URL not configured',
+        env_keys: Object.keys(c.env || {}),
+      }, 500);
+    }
+
+    console.log('Stats: DATABASE_URL exists, connecting to DB...');
     const db = createDb(c.env.DATABASE_URL);
 
     const [usersResult] = await db.select({ count: sql`count(*)` }).from(users);
@@ -144,8 +153,11 @@ statsRoutes.get('/', async (c) => {
       ficheiros: Number(filesResult?.count || 0),
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Stats error:', error);
-    return c.json({ message: 'Erro ao obter estatísticas' }, 500);
+    return c.json({ 
+      message: 'Erro ao obter estatísticas',
+      error: error?.message || String(error),
+    }, 500);
   }
 });
