@@ -70,6 +70,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setHasEncryptionKey(!!getStoredEncryptionKey());
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    let lastActiveTime = Date.now();
+    const INACTIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const timeAway = Date.now() - lastActiveTime;
+        
+        if (timeAway > INACTIVE_THRESHOLD && isLoggedIn) {
+          console.log('[Auth] User returned after being away, checking session...');
+          
+          try {
+            const currentToken = token || getStoredToken();
+            if (!currentToken) {
+              console.log('[Auth] No token found, forcing logout and reload');
+              handleSessionExpired();
+              return;
+            }
+
+            const response = await fetch("/api/auth/me", {
+              credentials: "include",
+              headers: { "Authorization": `Bearer ${currentToken}` },
+            });
+
+            if (!response.ok) {
+              console.log('[Auth] Session expired while away, logging out and refreshing...');
+              handleSessionExpired();
+            } else {
+              const userData = await response.json();
+              setUser(userData);
+              console.log('[Auth] Session still valid');
+            }
+          } catch (err) {
+            console.error('[Auth] Error checking session:', err);
+            handleSessionExpired();
+          }
+        }
+        
+        lastActiveTime = Date.now();
+      } else {
+        lastActiveTime = Date.now();
+      }
+    };
+
+    const handleSessionExpired = () => {
+      clearToken();
+      setToken(null);
+      clearEncryptionKey();
+      setHasEncryptionKey(false);
+      setUser(null);
+      setIsLoggedIn(false);
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+    };
+
+    const handleOnline = async () => {
+      if (isLoggedIn) {
+        console.log('[Auth] Device came online, revalidating session...');
+        const isValid = await revalidateSession();
+        if (!isValid) {
+          handleSessionExpired();
+        }
+      }
+    };
+
+    const handleFocus = () => {
+      lastActiveTime = Date.now();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isLoggedIn, token]);
+
   const getAuthHeaders = (includeContentType: boolean = true): HeadersInit => {
     const headers: Record<string, string> = {};
     
