@@ -7,8 +7,12 @@ import { relations } from "drizzle-orm";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   nome: text("nome").notNull(),
+  avatar: text("avatar"),
+  googleId: text("google_id").unique(),
+  githubId: text("github_id").unique(),
+  facebookId: text("facebook_id").unique(),
   plano: text("plano").notNull().default("gratis"),
   storageLimit: bigint("storage_limit", { mode: "number" }).notNull().default(21474836480), // 20GB em bytes
   storageUsed: bigint("storage_used", { mode: "number" }).notNull().default(0),

@@ -14,6 +14,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { authRoutes } from './routes/auth';
+import { oauthRoutes } from './routes/oauth';
 import { fileRoutes } from './routes/files';
 import { folderRoutes } from './routes/folders';
 import { shareRoutes } from './routes/shares';
@@ -38,6 +39,13 @@ export interface Env {
   TELEGRAM_BOT_9_TOKEN?: string;
   TELEGRAM_BOT_10_TOKEN?: string;
   TELEGRAM_STORAGE_CHAT_ID?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  FACEBOOK_CLIENT_ID?: string;
+  FACEBOOK_CLIENT_SECRET?: string;
+  APP_URL?: string;
   ENVIRONMENT: string;
   ASSETS?: {
     fetch: (request: Request) => Promise<Response>;
@@ -109,6 +117,7 @@ api.get('/info', (c) => {
 });
 
 api.route('/auth', authRoutes);
+api.route('/auth/oauth', oauthRoutes);
 api.route('/files', fileRoutes);
 api.route('/folders', folderRoutes);
 api.route('/shares', shareRoutes);

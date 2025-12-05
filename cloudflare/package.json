@@ -20,7 +20,8 @@
     "bcryptjs": "^2.4.3",
     "@neondatabase/serverless": "0.10.4",
     "drizzle-orm": "0.39.1",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "worker-auth-providers": "^0.0.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
