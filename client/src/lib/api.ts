@@ -11,6 +11,56 @@ function storeToken(token: string): void {
   localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
+function clearStoredToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+export async function safeJsonParse(response: Response): Promise<{ data: any; isHtml: boolean; error?: string }> {
+  const contentType = response.headers.get('content-type') || '';
+  
+  if (contentType.includes('text/html')) {
+    console.warn('[API] Received HTML instead of JSON, session may be expired');
+    return { 
+      data: null, 
+      isHtml: true, 
+      error: 'O servidor retornou uma página HTML. Por favor, faça login novamente.' 
+    };
+  }
+  
+  try {
+    const text = await response.text();
+    
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.warn('[API] Response body is HTML, session may be expired');
+      return { 
+        data: null, 
+        isHtml: true, 
+        error: 'O servidor retornou uma página HTML. Por favor, faça login novamente.' 
+      };
+    }
+    
+    const data = JSON.parse(text);
+    return { data, isHtml: false };
+  } catch (e) {
+    console.error('[API] Failed to parse JSON response:', e);
+    return { 
+      data: null, 
+      isHtml: false, 
+      error: 'Erro ao processar resposta do servidor. Tente novamente.' 
+    };
+  }
+}
+
+export function handleHtmlResponse(): void {
+  console.log('[API] Handling HTML response - clearing session and reloading');
+  clearStoredToken();
+  localStorage.removeItem('angocloud_encryption_key');
+  
+  setTimeout(() => {
+    window.location.reload();
+  }, 100);
+}
+
 async function tryRefreshSession(): Promise<string | null> {
   if (isRefreshingToken && refreshPromise) {
     return refreshPromise;
@@ -33,12 +83,16 @@ async function tryRefreshSession(): Promise<string | null> {
         credentials: 'include',
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.token) {
-          storeToken(data.token);
-          return data.token;
-        }
+      const { data, isHtml, error } = await safeJsonParse(response);
+      
+      if (isHtml) {
+        handleHtmlResponse();
+        return null;
+      }
+      
+      if (response.ok && data?.token) {
+        storeToken(data.token);
+        return data.token;
       }
       
       return null;

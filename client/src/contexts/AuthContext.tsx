@@ -7,6 +7,7 @@ import {
   clearEncryptionKey,
   isEncryptionSupported
 } from "@/lib/encryption";
+import { safeJsonParse, handleHtmlResponse } from "@/lib/api";
 
 const AUTH_TOKEN_KEY = 'angocloud_auth_token';
 
@@ -247,10 +248,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password, nome, encryptionSalt }),
       });
 
-      const data = await response.json();
+      const { data, isHtml, error: parseError } = await safeJsonParse(response);
+      
+      if (isHtml) {
+        handleHtmlResponse();
+        throw new Error("Erro de conexão. A página será recarregada.");
+      }
+      
+      if (parseError && !data) {
+        throw new Error(parseError);
+      }
       
       if (!response.ok) {
-        throw new Error(data.message || "Erro ao criar conta");
+        throw new Error(data?.message || "Erro ao criar conta");
       }
 
       const userData = data.user || data;
@@ -285,10 +295,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const { data, isHtml, error: parseError } = await safeJsonParse(response);
+      
+      if (isHtml) {
+        handleHtmlResponse();
+        throw new Error("Erro de conexão. A página será recarregada.");
+      }
+      
+      if (parseError && !data) {
+        throw new Error(parseError);
+      }
       
       if (!response.ok) {
-        throw new Error(data.message || "Email ou senha incorretos");
+        throw new Error(data?.message || "Email ou senha incorretos");
       }
 
       const userData = data.user || data;
