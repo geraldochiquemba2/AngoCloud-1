@@ -80,11 +80,25 @@ oauthRoutes.get('/google/callback', async (c) => {
   const error = c.req.query('error');
 
   if (error) {
-    return c.redirect(`/?error=google_auth_failed&message=${error}`);
+    return c.redirect(`/?error=google_auth_failed&message=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
     return c.redirect('/?error=no_code');
+  }
+
+  const cookieHeader = c.req.header('Cookie') || '';
+  let storedState: string | null = null;
+  for (const cookie of cookieHeader.split(';')) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith('oauth_state=')) {
+      storedState = trimmed.substring('oauth_state='.length);
+      break;
+    }
+  }
+  
+  if (!state || !storedState || state !== storedState) {
+    return c.redirect('/?error=invalid_state');
   }
 
   try {
@@ -144,7 +158,12 @@ oauthRoutes.get('/google/callback', async (c) => {
 
     const token = await createUserToken(user, c.env.JWT_SECRET);
 
-    return c.redirect(`/?token=${token}`);
+    const headers = new Headers();
+    headers.set('Location', '/?auth=success');
+    headers.append('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/`);
+    headers.append('Set-Cookie', `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`);
+    
+    return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error('Google OAuth error:', error);
     return c.redirect(`/?error=google_auth_error`);
@@ -178,14 +197,29 @@ oauthRoutes.get('/github', async (c) => {
 
 oauthRoutes.get('/github/callback', async (c) => {
   const code = c.req.query('code');
+  const state = c.req.query('state');
   const error = c.req.query('error');
 
   if (error) {
-    return c.redirect(`/?error=github_auth_failed&message=${error}`);
+    return c.redirect(`/?error=github_auth_failed&message=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
     return c.redirect('/?error=no_code');
+  }
+
+  const cookieHeader = c.req.header('Cookie') || '';
+  let storedState: string | null = null;
+  for (const cookie of cookieHeader.split(';')) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith('oauth_state=')) {
+      storedState = trimmed.substring('oauth_state='.length);
+      break;
+    }
+  }
+  
+  if (!state || !storedState || state !== storedState) {
+    return c.redirect('/?error=invalid_state');
   }
 
   try {
@@ -261,7 +295,12 @@ oauthRoutes.get('/github/callback', async (c) => {
 
     const token = await createUserToken(user, c.env.JWT_SECRET);
 
-    return c.redirect(`/?token=${token}`);
+    const headers = new Headers();
+    headers.set('Location', '/?auth=success');
+    headers.append('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/`);
+    headers.append('Set-Cookie', `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`);
+    
+    return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error('GitHub OAuth error:', error);
     return c.redirect(`/?error=github_auth_error`);
@@ -295,14 +334,29 @@ oauthRoutes.get('/facebook', async (c) => {
 
 oauthRoutes.get('/facebook/callback', async (c) => {
   const code = c.req.query('code');
+  const state = c.req.query('state');
   const error = c.req.query('error');
 
   if (error) {
-    return c.redirect(`/?error=facebook_auth_failed&message=${error}`);
+    return c.redirect(`/?error=facebook_auth_failed&message=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
     return c.redirect('/?error=no_code');
+  }
+
+  const cookieHeader = c.req.header('Cookie') || '';
+  let storedState: string | null = null;
+  for (const cookie of cookieHeader.split(';')) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith('oauth_state=')) {
+      storedState = trimmed.substring('oauth_state='.length);
+      break;
+    }
+  }
+  
+  if (!state || !storedState || state !== storedState) {
+    return c.redirect('/?error=invalid_state');
   }
 
   try {
@@ -362,7 +416,12 @@ oauthRoutes.get('/facebook/callback', async (c) => {
 
     const token = await createUserToken(user, c.env.JWT_SECRET);
 
-    return c.redirect(`/?token=${token}`);
+    const headers = new Headers();
+    headers.set('Location', '/?auth=success');
+    headers.append('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; SameSite=Lax; Max-Age=604800; Path=/`);
+    headers.append('Set-Cookie', `oauth_state=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/`);
+    
+    return new Response(null, { status: 302, headers });
   } catch (error) {
     console.error('Facebook OAuth error:', error);
     return c.redirect(`/?error=facebook_auth_error`);

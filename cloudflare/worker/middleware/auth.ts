@@ -37,7 +37,7 @@ export async function createToken(payload: Omit<JWTPayload, 'iat' | 'exp'>, secr
 export async function verifyToken(token: string, secret: string): Promise<JWTPayload | null> {
   try {
     const payload = await verify(token, secret);
-    return payload as JWTPayload;
+    return payload as unknown as JWTPayload;
   } catch (error) {
     return null;
   }
@@ -51,8 +51,26 @@ export function getTokenFromHeader(c: Context): string | null {
   return authHeader.substring(7);
 }
 
+export function getTokenFromCookie(c: Context): string | null {
+  const cookieHeader = c.req.header('Cookie') || '';
+  const cookies = cookieHeader.split(';');
+  
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+    if (trimmed.startsWith('auth_token=')) {
+      return trimmed.substring('auth_token='.length) || null;
+    }
+  }
+  
+  return null;
+}
+
+export function getToken(c: Context): string | null {
+  return getTokenFromHeader(c) || getTokenFromCookie(c);
+}
+
 export async function authMiddleware(c: Context, next: Next) {
-  const token = getTokenFromHeader(c);
+  const token = getToken(c);
   
   if (!token) {
     return c.json({ message: 'Token de autenticação não fornecido' }, 401);
@@ -69,7 +87,7 @@ export async function authMiddleware(c: Context, next: Next) {
 }
 
 export async function optionalAuthMiddleware(c: Context, next: Next) {
-  const token = getTokenFromHeader(c);
+  const token = getToken(c);
   
   if (token) {
     const payload = await verifyToken(token, c.env.JWT_SECRET);

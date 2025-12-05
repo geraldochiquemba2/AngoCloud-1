@@ -277,7 +277,13 @@ authRoutes.post('/login', async (c) => {
 });
 
 authRoutes.post('/logout', (c) => {
-  return c.json({ message: 'Logout realizado com sucesso' });
+  return new Response(JSON.stringify({ message: 'Logout realizado com sucesso' }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'auth_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/'
+    }
+  });
 });
 
 authRoutes.get('/me', authMiddleware, async (c) => {
