@@ -50,11 +50,7 @@ ENVIRONMENT = "production"
 [build]
 command = "npm install && npm run build"
 
-# Resolve modules from parent node_modules
-[build.upload]
-format = "modules"
-
-# Tell wrangler to look in parent node_modules too
+# Worker script rules
 [[rules]]
 type = "ESModule"
 globs = ["**/*.ts"]
