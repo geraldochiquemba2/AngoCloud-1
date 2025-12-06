@@ -15,6 +15,24 @@ function clearStoredToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    const message = error.message.toLowerCase();
+    return message.includes('network') || 
+           message.includes('failed to fetch') || 
+           message.includes('load failed') ||
+           message.includes('networkerror');
+  }
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+  return false;
+}
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export async function safeJsonParse(response: Response): Promise<{ data: any; isHtml: boolean; error?: string }> {
   const contentType = response.headers.get('content-type') || '';
   
@@ -108,7 +126,27 @@ async function tryRefreshSession(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function apiFetch(url: string, options: RequestInit = {}, retryOn401: boolean = true): Promise<Response> {
+interface RetryConfig {
+  maxRetries?: number;
+  baseDelay?: number;
+  maxDelay?: number;
+  retryOn401?: boolean;
+  timeout?: number;
+}
+
+export async function apiFetch(
+  url: string, 
+  options: RequestInit = {}, 
+  config: RetryConfig | boolean = true
+): Promise<Response> {
+  const {
+    maxRetries = 3,
+    baseDelay = 1000,
+    maxDelay = 10000,
+    retryOn401 = typeof config === 'boolean' ? config : true,
+    timeout = 30000,
+  } = typeof config === 'boolean' ? { retryOn401: config } : config;
+
   const token = getStoredToken();
   
   const headers: Record<string, string> = {};
@@ -130,26 +168,94 @@ export async function apiFetch(url: string, options: RequestInit = {}, retryOn40
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
+
+  let lastError: Error | null = null;
   
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    credentials: "include",
-  });
-  
-  if (response.status === 401 && retryOn401 && token) {
-    const refreshedToken = await tryRefreshSession();
-    if (refreshedToken) {
-      headers["Authorization"] = `Bearer ${refreshedToken}`;
-      return fetch(url, {
-        ...options,
-        headers,
-        credentials: "include",
-      });
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), maxDelay);
+        console.log(`[API] Retry attempt ${attempt}/${maxRetries} after ${delay}ms for ${url}`);
+        await sleep(delay);
+        
+        if (!navigator.onLine) {
+          console.log('[API] Device is offline, waiting for connection...');
+          await new Promise<void>(resolve => {
+            const onOnline = () => {
+              window.removeEventListener('online', onOnline);
+              resolve();
+            };
+            window.addEventListener('online', onOnline);
+            setTimeout(() => {
+              window.removeEventListener('online', onOnline);
+              resolve();
+            }, 5000);
+          });
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      let response: Response;
+      try {
+        response = await fetch(url, {
+          ...options,
+          headers,
+          credentials: "include",
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+      
+      if (response.status === 401 && retryOn401 && token) {
+        const refreshedToken = await tryRefreshSession();
+        if (refreshedToken) {
+          headers["Authorization"] = `Bearer ${refreshedToken}`;
+          
+          const retryController = new AbortController();
+          const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
+          
+          try {
+            const retryResponse = await fetch(url, {
+              ...options,
+              headers,
+              credentials: "include",
+              signal: retryController.signal,
+            });
+            clearTimeout(retryTimeoutId);
+            return retryResponse;
+          } catch (retryErr) {
+            clearTimeout(retryTimeoutId);
+            if (isNetworkError(retryErr)) {
+              console.warn('[API] Network error on retry after token refresh:', retryErr);
+            }
+            throw retryErr;
+          }
+        }
+      }
+      
+      return response;
+    } catch (err) {
+      lastError = err as Error;
+      
+      if (!isNetworkError(err)) {
+        throw err;
+      }
+      
+      if (attempt === maxRetries) {
+        console.error(`[API] All ${maxRetries + 1} attempts failed for ${url}:`, err);
+        throw lastError;
+      }
+      
+      console.warn(`[API] Network error on attempt ${attempt + 1}/${maxRetries + 1} for ${url}:`, err);
     }
   }
   
-  return response;
+  throw lastError || new Error('Fetch failed after retries');
 }
 
 export function getAuthHeaders(includeContentType: boolean = true): HeadersInit {

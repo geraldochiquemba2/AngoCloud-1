@@ -84,6 +84,15 @@ api.use('*', cors({
   maxAge: 86400,
 }));
 
+api.use('*', async (c, next) => {
+  await next();
+  
+  c.res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  c.res.headers.set('Pragma', 'no-cache');
+  c.res.headers.set('Expires', '0');
+  c.res.headers.set('Surrogate-Control', 'no-store');
+});
+
 api.get('/health', (c) => {
   return c.json({
     status: 'ok',

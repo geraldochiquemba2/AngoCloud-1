@@ -55,6 +55,109 @@ function clearToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
 }
 
+function isNetworkError(error: unknown): boolean {
+  if (error instanceof TypeError) {
+    const message = error.message.toLowerCase();
+    return message.includes('network') || 
+           message.includes('failed to fetch') || 
+           message.includes('load failed') ||
+           message.includes('networkerror');
+  }
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+  return false;
+}
+
+function isAuthError(status: number): boolean {
+  return status === 401 || status === 403;
+}
+
+interface FetchWithRetryResult {
+  response?: Response;
+  isNetworkError: boolean;
+  error?: Error;
+}
+
+async function fetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 0) {
+        if (!navigator.onLine) {
+          console.log(`[Auth] Device is offline, waiting before retry...`);
+          await new Promise<void>(resolve => {
+            const onOnline = () => {
+              window.removeEventListener('online', onOnline);
+              resolve();
+            };
+            window.addEventListener('online', onOnline);
+            setTimeout(() => {
+              window.removeEventListener('online', onOnline);
+              resolve();
+            }, 5000);
+          });
+        }
+        
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.log(`[Auth] Retry attempt ${attempt}/${maxRetries} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        return response;
+      } catch (err) {
+        clearTimeout(timeout);
+        throw err;
+      }
+    } catch (err) {
+      lastError = err as Error;
+      
+      if (!isNetworkError(err)) {
+        throw err;
+      }
+      
+      if (attempt === maxRetries) {
+        console.log(`[Auth] All ${maxRetries + 1} attempts failed`);
+        throw lastError;
+      }
+    }
+  }
+  
+  throw lastError || new Error('Fetch failed');
+}
+
+async function safeFetchWithRetry(
+  url: string, 
+  options: RequestInit, 
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<FetchWithRetryResult> {
+  try {
+    const response = await fetchWithRetry(url, options, maxRetries, baseDelay);
+    return { response, isNetworkError: false };
+  } catch (err) {
+    return { 
+      isNetworkError: isNetworkError(err), 
+      error: err as Error 
+    };
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -75,46 +178,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let lastActiveTime = Date.now();
     const INACTIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        const timeAway = Date.now() - lastActiveTime;
-        
-        if (timeAway > INACTIVE_THRESHOLD && isLoggedIn) {
-          console.log('[Auth] User returned after being away, checking session...');
-          
-          try {
-            const currentToken = token || getStoredToken();
-            if (!currentToken) {
-              console.log('[Auth] No token found, forcing logout and reload');
-              handleSessionExpired();
-              return;
-            }
-
-            const response = await fetch("/api/auth/me", {
-              credentials: "include",
-              headers: { "Authorization": `Bearer ${currentToken}` },
-            });
-
-            if (!response.ok) {
-              console.log('[Auth] Session expired while away, logging out and refreshing...');
-              handleSessionExpired();
-            } else {
-              const userData = await response.json();
-              setUser(userData);
-              console.log('[Auth] Session still valid');
-            }
-          } catch (err) {
-            console.error('[Auth] Error checking session:', err);
-            handleSessionExpired();
-          }
-        }
-        
-        lastActiveTime = Date.now();
-      } else {
-        lastActiveTime = Date.now();
-      }
-    };
-
     const handleSessionExpired = () => {
       clearToken();
       setToken(null);
@@ -128,12 +191,90 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, 100);
     };
 
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const timeAway = Date.now() - lastActiveTime;
+        
+        if (timeAway > INACTIVE_THRESHOLD && isLoggedIn) {
+          console.log('[Auth] User returned after being away, checking session...');
+          
+          const currentToken = token || getStoredToken();
+          if (!currentToken) {
+            console.log('[Auth] No token found, forcing logout and reload');
+            handleSessionExpired();
+            return;
+          }
+
+          if (!navigator.onLine) {
+            console.log('[Auth] Device is offline, skipping session check');
+            lastActiveTime = Date.now();
+            return;
+          }
+
+          try {
+            const response = await fetchWithRetry("/api/auth/me", {
+              credentials: "include",
+              headers: { "Authorization": `Bearer ${currentToken}` },
+            }, 3, 1000);
+
+            if (isAuthError(response.status)) {
+              console.log('[Auth] Session expired while away (401/403), logging out...');
+              handleSessionExpired();
+            } else if (response.ok) {
+              const userData = await response.json();
+              setUser(userData);
+              console.log('[Auth] Session still valid');
+            } else {
+              console.log(`[Auth] Unexpected response status: ${response.status}, keeping session`);
+            }
+          } catch (err) {
+            if (isNetworkError(err)) {
+              console.warn('[Auth] Network error checking session, will retry later:', err);
+            } else {
+              console.error('[Auth] Error checking session:', err);
+            }
+          }
+        }
+        
+        lastActiveTime = Date.now();
+      } else {
+        lastActiveTime = Date.now();
+      }
+    };
+
     const handleOnline = async () => {
       if (isLoggedIn) {
         console.log('[Auth] Device came online, revalidating session...');
-        const isValid = await revalidateSession();
-        if (!isValid) {
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const currentToken = token || getStoredToken();
+        if (!currentToken) {
           handleSessionExpired();
+          return;
+        }
+        
+        try {
+          const response = await fetchWithRetry("/api/auth/me", {
+            credentials: "include",
+            headers: { "Authorization": `Bearer ${currentToken}` },
+          }, 3, 1000);
+          
+          if (isAuthError(response.status)) {
+            console.log('[Auth] Session invalid after coming online (401/403)');
+            handleSessionExpired();
+          } else if (response.ok) {
+            const userData = await response.json();
+            setUser(userData);
+            setIsLoggedIn(true);
+            console.log('[Auth] Session revalidated after coming online');
+          }
+        } catch (err) {
+          if (isNetworkError(err)) {
+            console.warn('[Auth] Network still unstable after coming online:', err);
+          } else {
+            console.error('[Auth] Error revalidating after online:', err);
+          }
         }
       }
     };
@@ -389,10 +530,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         headers["Authorization"] = `Bearer ${currentToken}`;
       }
       
-      const response = await fetch("/api/auth/me", {
+      const response = await fetchWithRetry("/api/auth/me", {
         credentials: "include",
         headers,
-      });
+      }, 2, 1000);
 
       if (response.ok) {
         const userData = await response.json();
@@ -404,17 +545,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         console.log("[Auth] Session revalidated successfully");
         return true;
-      } else {
-        console.log("[Auth] Session invalid, clearing auth state");
+      } else if (isAuthError(response.status)) {
+        console.log("[Auth] Session invalid (401/403), clearing auth state");
         clearToken();
         setToken(null);
         setUser(null);
         setIsLoggedIn(false);
         return false;
+      } else {
+        console.log(`[Auth] Unexpected status ${response.status}, assuming session valid`);
+        return true;
       }
     } catch (err) {
+      if (isNetworkError(err)) {
+        console.warn("[Auth] Network error during revalidation, assuming session valid:", err);
+        return true;
+      }
       console.error("[Auth] Error revalidating session:", err);
-      return false;
+      return true;
     }
   };
 

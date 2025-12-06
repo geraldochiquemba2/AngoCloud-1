@@ -281,7 +281,8 @@ authRoutes.post('/logout', (c) => {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': 'auth_token=; HttpOnly; Secure; SameSite=Lax; Max-Age=0; Path=/'
+      'Set-Cookie': 'auth_token=; HttpOnly; Secure; SameSite=None; Max-Age=0; Path=/',
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
     }
   });
 });
