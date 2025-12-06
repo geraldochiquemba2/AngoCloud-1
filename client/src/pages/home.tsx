@@ -220,7 +220,7 @@ export default function Home() {
         <img 
           src="/features-bg.jpg"
           alt=""
-          loading="lazy"
+          loading="eager"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1 }}
         />
