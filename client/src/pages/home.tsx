@@ -261,7 +261,7 @@ export default function Home() {
       <section id="pricing" className="relative min-h-screen py-24 px-6 md:px-12 overflow-hidden flex flex-col">
         {/* Video Background Container */}
         <div className="absolute inset-0 z-0">
-          {/* Poster image - always visible until video loads */}
+          {/* Poster image - always visible as fallback */}
           <img 
             src={pricingPoster} 
             alt="Background" 
@@ -274,10 +274,11 @@ export default function Home() {
             muted
             loop
             playsInline
+            poster={pricingPoster}
             preload={isMobile ? "metadata" : "auto"}
             onCanPlay={handleVideoLoaded}
             onLoadedData={handleVideoLoaded}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover [&::-webkit-media-controls]:hidden [&::-webkit-media-controls-enclosure]:hidden [&::-webkit-media-controls-panel]:hidden [&::-webkit-media-controls-play-button]:hidden [&::-webkit-media-controls-start-playback-button]:hidden"
             style={{ zIndex: 2 }}
           >
             <source src="/pricing-video.mp4" type="video/mp4" />

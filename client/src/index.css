@@ -129,3 +129,24 @@ html, body, #root {
     color: rgba(255, 255, 255, 0.7) !important;
   }
 }
+
+/* Hide video controls and play button overlay on all browsers */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button,
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+video::-moz-media-controls {
+  display: none !important;
+}
+
+video::media-controls {
+  display: none !important;
+}
