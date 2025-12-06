@@ -13,6 +13,7 @@ const VideoBackground = memo(function VideoBackground({
 }) {
   const [videoFailed, setVideoFailed] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -40,19 +41,39 @@ const VideoBackground = memo(function VideoBackground({
 
     const handleCanPlay = () => {
       setVideoReady(true);
-      if (onLoad) onLoad();
+      video.play().then(() => {
+        setIsPlaying(true);
+        if (onLoad) onLoad();
+      }).catch(() => {
+        setIsPlaying(false);
+        if (onLoad) onLoad();
+      });
     };
 
     const handleLoadedData = () => {
       setVideoReady(true);
     };
 
+    const handlePlaying = () => {
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      if (video.currentTime === 0) {
+        setIsPlaying(false);
+      }
+    };
+
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('loadeddata', handleLoadedData);
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('pause', handlePause);
 
     return () => {
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('loadeddata', handleLoadedData);
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('pause', handlePause);
     };
   }, [onLoad, videoFailed, shouldLoadVideo]);
 
@@ -86,9 +107,9 @@ const VideoBackground = memo(function VideoBackground({
           preload={isMobile ? "none" : "metadata"}
           onError={handleVideoError}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity ${transitionDuration} ${
-            videoReady ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ zIndex: 2 }}
+            videoReady && isPlaying ? 'opacity-100' : 'opacity-0'
+          } ${isMobile && !isPlaying ? 'pointer-events-none invisible' : ''}`}
+          style={{ zIndex: isMobile && !isPlaying ? -1 : 2 }}
         >
           <source src={videoSrc} type="video/mp4" />
         </video>
